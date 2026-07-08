@@ -1,0 +1,388 @@
+:root {
+  --sky: #aee3ff;
+  --grass: #67c23a;
+  --sun: #ffd94a;
+  --paper: #fffdf5;
+  --ink: #3a3226;
+  --primary: #ff9d3c;
+  --danger: #e86a5f;
+  font-family: 'Comic Sans MS', 'Chalkboard SE', 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  color: var(--ink);
+}
+
+.app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--sky);
+}
+
+.game-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.canvas-fallback {
+  display: grid;
+  place-content: center;
+  text-align: center;
+  height: 100%;
+  padding: 2rem;
+  background: var(--sky);
+}
+
+.loading-screen {
+  display: grid;
+  place-content: center;
+  text-align: center;
+  height: 100%;
+  background: linear-gradient(var(--sky), #d8f2c8);
+  font-size: 1.3rem;
+}
+
+/* ---- top bar ---- */
+
+.top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: var(--paper);
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+}
+
+.top-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.save-indicator {
+  background: var(--paper);
+  border-radius: 999px;
+  padding: 0.45rem 1rem;
+  font-size: 1rem;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+}
+
+.save-indicator-error {
+  background: #ffe3df;
+}
+
+.storage-warning {
+  position: absolute;
+  top: 4.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff3cd;
+  border: 3px solid #f0c36d;
+  border-radius: 16px;
+  padding: 0.6rem 1.2rem;
+  font-size: 1.05rem;
+  max-width: min(90vw, 34rem);
+  text-align: center;
+}
+
+/* ---- buttons ---- */
+
+.kid-button {
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--paper);
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  border-radius: 16px;
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
+  transition: transform 0.08s ease;
+}
+
+.kid-button:hover {
+  transform: translateY(-2px);
+}
+
+.kid-button:active {
+  transform: translateY(1px);
+}
+
+.kid-button:focus-visible {
+  outline: 4px solid #2a6fd6;
+  outline-offset: 2px;
+}
+
+.kid-button-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.kid-button-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* ---- mode bar ---- */
+
+.mode-bar {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+.selected-block {
+  border-radius: 16px;
+  border: 3px solid rgba(0, 0, 0, 0.2);
+  padding: 0.6rem 1rem;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* ---- hotbar ---- */
+
+.hotbar {
+  position: absolute;
+  bottom: 0.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  background: rgba(255, 253, 245, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+  max-width: 96vw;
+  overflow-x: auto;
+}
+
+.hotbar-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  min-width: 4.4rem;
+  padding: 0.5rem 0.4rem;
+  border: 3px solid rgba(0, 0, 0, 0.18);
+  border-radius: 14px;
+  cursor: pointer;
+  font: inherit;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.hotbar-slot:focus-visible {
+  outline: 4px solid #2a6fd6;
+  outline-offset: 2px;
+}
+
+.hotbar-slot-selected {
+  border-color: #fff;
+  outline: 4px solid var(--primary);
+  transform: translateY(-4px);
+}
+
+.hotbar-emoji {
+  font-size: 1.5rem;
+}
+
+.hotbar-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.hotbar-key {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  font-size: 0.65rem;
+  opacity: 0.85;
+}
+
+/* ---- panels & dialogs ---- */
+
+.panel-backdrop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(58, 50, 38, 0.35);
+  z-index: 10;
+}
+
+.panel {
+  background: var(--paper);
+  border-radius: 24px;
+  border: 4px solid #e8d8a8;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.18);
+  padding: 1.5rem;
+  max-width: min(92vw, 30rem);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.panel h1,
+.panel h2 {
+  margin-top: 0;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.panel-hint {
+  color: #7a6f5d;
+}
+
+.welcome-panel {
+  text-align: center;
+  font-size: 1.15rem;
+}
+
+.welcome-tips {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+  line-height: 2;
+}
+
+.dialog-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+/* ---- magic box panel ---- */
+
+.box-actions {
+  margin: 1rem 0;
+}
+
+.box-items {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.box-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.box-item-icon {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 10px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  font-size: 1.2rem;
+}
+
+.box-item-label {
+  flex: 1;
+  font-weight: 700;
+}
+
+.box-empty {
+  font-size: 1.1rem;
+  color: #7a6f5d;
+}
+
+.confirm-row {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.rename-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.rename-form input {
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+  border-radius: 12px;
+  border: 3px solid #e8d8a8;
+}
+
+/* ---- toast ---- */
+
+.toast {
+  position: absolute;
+  bottom: 7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.7rem 1.4rem;
+  font-size: 1.05rem;
+  z-index: 20;
+  max-width: 90vw;
+  text-align: center;
+}
+
+/* ---- helpers ---- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kid-button,
+  .hotbar-slot {
+    transition: none;
+  }
+}
