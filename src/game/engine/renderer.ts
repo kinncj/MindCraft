@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { BlockPosition, PlacedBlock } from '../../types/game';
 import { BLOCK_DEFINITIONS } from './blockRegistry';
+import { createBlockMaterials } from './textures';
 import { WORLD_SIZE } from './world';
 
 export type RendererCallbacks = {
@@ -25,7 +26,7 @@ export class VoxelRenderer {
   private blockMeshes = new Map<string, THREE.Mesh>();
   private meshToBlock = new Map<THREE.Mesh, PlacedBlock>();
   private geometry = new THREE.BoxGeometry(1, 1, 1);
-  private materials = new Map<string, THREE.Material>();
+  private materials = new Map<string, THREE.Material | THREE.Material[]>();
   private groundPlane: THREE.Mesh;
   private highlight: THREE.LineSegments;
   private target = new THREE.Vector3(WORLD_SIZE.width / 2, 1, WORLD_SIZE.depth / 2);
@@ -45,6 +46,8 @@ export class VoxelRenderer {
   ) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.domElement.style.display = 'block';
     this.renderer.domElement.style.touchAction = 'none';
     container.appendChild(this.renderer.domElement);
@@ -55,9 +58,23 @@ export class VoxelRenderer {
     this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 300);
 
     const sun = new THREE.DirectionalLight('#fffbe8', 1.6);
-    sun.position.set(30, 50, 20);
+    sun.position.set(WORLD_SIZE.width / 2 + 24, 44, WORLD_SIZE.depth / 2 - 14);
+    sun.target.position.set(WORLD_SIZE.width / 2, 0, WORLD_SIZE.depth / 2);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -30;
+    sun.shadow.camera.right = 30;
+    sun.shadow.camera.top = 30;
+    sun.shadow.camera.bottom = -30;
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 120;
+    sun.shadow.bias = -0.0005;
+    sun.shadow.camera.updateProjectionMatrix();
     this.scene.add(sun);
+    this.scene.add(sun.target);
     this.scene.add(new THREE.HemisphereLight('#cfe9ff', '#9ad07c', 1.1));
+
+    this.addClouds();
 
     // Invisible plane just under the floor so clicks on empty ground
     // still place blocks even if the grass there was removed.
@@ -76,6 +93,7 @@ export class VoxelRenderer {
       new THREE.MeshLambertMaterial({ color: '#e8d8a8' }),
     );
     rim.position.set(WORLD_SIZE.width / 2 - 0.5, -1.01, WORLD_SIZE.depth / 2 - 0.5);
+    rim.receiveShadow = true;
     this.scene.add(rim);
 
     const highlightGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, 1.02, 1.02));
@@ -100,15 +118,40 @@ export class VoxelRenderer {
     }
   }
 
-  private materialFor(type: PlacedBlock['type']): THREE.Material {
+  // Flat drifting cloud slabs high above the build area. Pure decoration:
+  // they are never raycast targets.
+  private addClouds(): void {
+    const material = new THREE.MeshLambertMaterial({
+      color: '#ffffff',
+      transparent: true,
+      opacity: 0.85,
+    });
+    const spots: Array<[number, number, number, number, number]> = [
+      [4, 24, 6, 7, 4],
+      [14, 27, 22, 9, 5],
+      [26, 25, 10, 6, 3],
+      [30, 28, 28, 8, 5],
+      [-2, 26, 20, 5, 3],
+    ];
+    for (const [x, y, z, w, d] of spots) {
+      const cloud = new THREE.Mesh(new THREE.BoxGeometry(w, 0.8, d), material);
+      cloud.position.set(x, y, z);
+      this.scene.add(cloud);
+    }
+  }
+
+  private materialFor(type: PlacedBlock['type']): THREE.Material | THREE.Material[] {
     const cached = this.materials.get(type);
     if (cached) return cached;
     const def = BLOCK_DEFINITIONS[type];
-    const material = new THREE.MeshLambertMaterial({
-      color: def.color,
-      transparent: def.transparent,
-      opacity: def.opacity,
-    });
+    // Pixel textures when 2D canvas is available, flat colors otherwise.
+    const material =
+      createBlockMaterials(type) ??
+      new THREE.MeshLambertMaterial({
+        color: def.color,
+        transparent: def.transparent,
+        opacity: def.opacity,
+      });
     this.materials.set(type, material);
     return material;
   }
@@ -134,6 +177,9 @@ export class VoxelRenderer {
       }
       const mesh = new THREE.Mesh(this.geometry, this.materialFor(block.type));
       mesh.position.set(block.position.x, block.position.y, block.position.z);
+      const def = BLOCK_DEFINITIONS[block.type];
+      mesh.castShadow = !def.transparent;
+      mesh.receiveShadow = true;
       this.scene.add(mesh);
       this.blockMeshes.set(key, mesh);
       this.meshToBlock.set(mesh, block);
@@ -327,7 +373,12 @@ export class VoxelRenderer {
     window.removeEventListener('resize', this.handleResize);
     this.renderer.dispose();
     this.geometry.dispose();
-    for (const material of this.materials.values()) material.dispose();
+    for (const entry of this.materials.values()) {
+      for (const material of Array.isArray(entry) ? entry : [entry]) {
+        if (material instanceof THREE.MeshLambertMaterial) material.map?.dispose();
+        material.dispose();
+      }
+    }
     this.renderer.domElement.remove();
   }
 }
