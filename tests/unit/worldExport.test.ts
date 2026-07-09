@@ -21,6 +21,9 @@ const input = {
     },
   ],
   selectedBlockType: 'brick',
+  visualMode: 'claudeDream',
+  timeMode: 'night',
+  weather: 'snow',
   exportedAt: new Date('2026-07-08T12:00:00Z'),
 };
 
@@ -33,6 +36,9 @@ describe('buildWorldExport', () => {
     expect(data.world.blocks).toHaveLength(2);
     expect(data.magicDeliveryBoxes[0].items[0]).toEqual({ blockType: 'star', quantity: 2 });
     expect(data.inventory.selectedBlockType).toBe('brick');
+    expect(data.visualMode?.selectedMode).toBe('claudeDream');
+    expect(data.settings?.timeMode).toBe('night');
+    expect(data.settings?.weather).toBe('snow');
   });
 
   it('survives a JSON round trip', () => {
@@ -48,6 +54,9 @@ describe('buildWorldExport', () => {
       expect(result.blocks).toHaveLength(2);
       expect(result.boxes).toHaveLength(1);
       expect(result.worldName).toBe('Castle Land');
+      expect(result.visualMode).toBe('claudeDream');
+      expect(result.timeMode).toBe('night');
+      expect(result.weather).toBe('snow');
     }
   });
 });

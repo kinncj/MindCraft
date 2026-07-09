@@ -76,20 +76,37 @@ describe('SettingsRepository', () => {
 
   it('round-trips settings', async () => {
     const { settings } = freshRepo();
-    await settings.saveSettings({ worldName: 'Rainbow Land', selectedBlockType: 'star' });
+    await settings.saveSettings({
+      ...DEFAULT_SETTINGS,
+      worldName: 'Rainbow Land',
+      selectedBlockType: 'star',
+      visualMode: 'claudeDream',
+      timeMode: 'night',
+      weather: 'snow',
+    });
     const loaded = await settings.loadSettings();
     expect(loaded.worldName).toBe('Rainbow Land');
     expect(loaded.selectedBlockType).toBe('star');
+    expect(loaded.visualMode).toBe('claudeDream');
+    expect(loaded.timeMode).toBe('night');
+    expect(loaded.weather).toBe('snow');
   });
 
-  it('falls back to defaults for unknown block types', async () => {
+  it('falls back to defaults for unknown values', async () => {
     const { settings } = freshRepo();
     await settings.saveSettings({
+      ...DEFAULT_SETTINGS,
       worldName: 'X',
       // Simulates an old or hand-edited save.
       selectedBlockType: 'lava' as never,
+      visualMode: 'noir' as never,
+      timeMode: 'spooky' as never,
+      weather: 'hurricane' as never,
     });
     const loaded = await settings.loadSettings();
     expect(loaded.selectedBlockType).toBe(DEFAULT_SETTINGS.selectedBlockType);
+    expect(loaded.visualMode).toBe(DEFAULT_SETTINGS.visualMode);
+    expect(loaded.timeMode).toBe(DEFAULT_SETTINGS.timeMode);
+    expect(loaded.weather).toBe(DEFAULT_SETTINGS.weather);
   });
 });

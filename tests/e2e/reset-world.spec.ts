@@ -1,39 +1,43 @@
 import { expect, test } from '@playwright/test';
-import { hasBlockAt, startGame, waitForSaved } from './helpers';
+import { hasBlockAt, openMenu, SKY_SPOT, startGame, waitForSaved } from './helpers';
 
-test('reset asks for confirmation and restores the starter world', async ({ page }) => {
+test('reset asks for confirmation and builds a fresh world', async ({ page }) => {
   await startGame(page);
 
-  await page.evaluate(() => {
-    window.mindcraft.getState().placeBlockAt({ x: 4, y: 1, z: 4 });
-  });
-  expect(await hasBlockAt(page, 4, 1, 4)).toBe(true);
+  await page.evaluate((spot) => {
+    window.mindcraft.getState().placeBlockAt(spot);
+  }, SKY_SPOT);
+  expect(await hasBlockAt(page, SKY_SPOT.x, SKY_SPOT.y, SKY_SPOT.z)).toBe(true);
   await waitForSaved(page);
 
+  await openMenu(page);
   await page.getByRole('button', { name: 'Reset the world' }).click();
   await expect(page.getByRole('dialog', { name: 'Reset World?' })).toBeVisible();
   await expect(
-    page.getByText('This will clear your MindCraft world on this computer.'),
+    page.getByText(/This will clear your MindCraft world on this computer/),
   ).toBeVisible();
 
   await page.getByRole('button', { name: 'Reset World', exact: true }).click();
-  await expect.poll(() => hasBlockAt(page, 4, 1, 4)).toBe(false);
+  await expect.poll(() => hasBlockAt(page, SKY_SPOT.x, SKY_SPOT.y, SKY_SPOT.z)).toBe(false);
+
+  // The fresh world has its Magic Delivery Box back at the spawn plaza.
+  const boxPosition = await page.evaluate(() => window.mindcraft.getState().boxes[0]?.position);
+  expect(boxPosition).toEqual({ x: 32, y: 5, z: 32 });
 
   // And it stays reset after a reload.
   await waitForSaved(page);
   await page.reload();
   await page.getByRole('button', { name: /Let's build!/ }).click();
-  expect(await hasBlockAt(page, 4, 1, 4)).toBe(false);
-  // Starter landmarks are back.
-  expect(await hasBlockAt(page, 16, 1, 16)).toBe(true);
+  expect(await hasBlockAt(page, SKY_SPOT.x, SKY_SPOT.y, SKY_SPOT.z)).toBe(false);
 });
 
 test('cancel leaves the world alone', async ({ page }) => {
   await startGame(page);
-  await page.evaluate(() => {
-    window.mindcraft.getState().placeBlockAt({ x: 6, y: 1, z: 6 });
-  });
+  await page.evaluate((spot) => {
+    window.mindcraft.getState().placeBlockAt(spot);
+  }, SKY_SPOT);
+  await openMenu(page);
   await page.getByRole('button', { name: 'Reset the world' }).click();
   await page.getByRole('button', { name: 'Cancel' }).click();
-  expect(await hasBlockAt(page, 6, 1, 6)).toBe(true);
+  expect(await hasBlockAt(page, SKY_SPOT.x, SKY_SPOT.y, SKY_SPOT.z)).toBe(true);
 });

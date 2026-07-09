@@ -43,6 +43,34 @@ describe('validateWorldImport', () => {
     }
   });
 
+  it('reads visual mode and world settings, rejecting unknown values', () => {
+    const good = {
+      ...validFile(),
+      visualMode: { selectedMode: 'ultraRealistic' },
+      settings: { timeMode: 'night', weather: 'rain' },
+    };
+    const result = validateWorldImport(good);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.visualMode).toBe('ultraRealistic');
+      expect(result.timeMode).toBe('night');
+      expect(result.weather).toBe('rain');
+    }
+
+    const bad = {
+      ...validFile(),
+      visualMode: { selectedMode: 'hyperdrive' },
+      settings: { timeMode: 'spooky', weather: 'meteor' },
+    };
+    const badResult = validateWorldImport(bad);
+    expect(badResult.ok).toBe(true);
+    if (badResult.ok) {
+      expect(badResult.visualMode).toBeNull();
+      expect(badResult.timeMode).toBeNull();
+      expect(badResult.weather).toBeNull();
+    }
+  });
+
   it('rejects things that are not world files', () => {
     for (const junk of [null, 42, 'hello', [], {}, { schemaVersion: 'x' }]) {
       const result = validateWorldImport(junk);

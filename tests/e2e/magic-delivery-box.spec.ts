@@ -1,22 +1,21 @@
 import { expect, test } from '@playwright/test';
-import { startGame, waitForSaved } from './helpers';
+import { openStarterBox, startGame, waitForSaved } from './helpers';
 
 test('tapping the Magic Delivery Box in the world opens it', async ({ page }) => {
   await startGame(page);
-  // The starter box sits at the camera target, dead center of the view.
-  const canvas = page.getByTestId('game-canvas');
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error('canvas has no size');
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  // Project the starter box to screen pixels and click it there.
+  const spot = await page.evaluate(() => {
+    const box = window.mindcraft.getState().boxes[0];
+    return window.mindcraftDebug?.projectBlock(box.position.x, box.position.y, box.position.z) ?? null;
+  });
+  expect(spot).not.toBeNull();
+  await page.mouse.click(spot!.x, spot!.y);
   await expect(page.getByRole('dialog', { name: 'Magic Delivery Box' })).toBeVisible();
 });
 
 test('the box stores and returns blocks, and survives a reload', async ({ page }) => {
   await startGame(page);
-  await page.evaluate(() => {
-    const state = window.mindcraft.getState();
-    state.openBoxAt({ x: 16, y: 1, z: 16 });
-  });
+  await openStarterBox(page);
   const dialog = page.getByRole('dialog', { name: 'Magic Delivery Box' });
   await expect(dialog).toBeVisible();
 
@@ -34,18 +33,14 @@ test('the box stores and returns blocks, and survives a reload', async ({ page }
   await waitForSaved(page);
   await page.reload();
   await page.getByRole('button', { name: /Let's build!/ }).click();
-  await page.evaluate(() => {
-    window.mindcraft.getState().openBoxAt({ x: 16, y: 1, z: 16 });
-  });
+  await openStarterBox(page);
   await expect(dialog.getByText('Grass × 1')).toBeVisible();
   await expect(dialog.getByText('Star × 2')).toBeVisible();
 });
 
 test('emptying the box asks first', async ({ page }) => {
   await startGame(page);
-  await page.evaluate(() => {
-    window.mindcraft.getState().openBoxAt({ x: 16, y: 1, z: 16 });
-  });
+  await openStarterBox(page);
   const dialog = page.getByRole('dialog', { name: 'Magic Delivery Box' });
   await dialog.getByRole('button', { name: /Empty the box/ }).click();
   await expect(dialog.getByText('Empty the whole box?')).toBeVisible();

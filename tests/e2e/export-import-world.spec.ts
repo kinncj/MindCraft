@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { blockCount, hasBlockAt, startGame } from './helpers';
+import { blockCount, hasBlockAt, openMenu, startGame } from './helpers';
 
 test('export downloads a valid versioned world file', async ({ page }) => {
   await startGame(page);
+  await openMenu(page);
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export your world to a file' }).click();
   const download = await downloadPromise;
@@ -19,6 +20,7 @@ test('export downloads a valid versioned world file', async ({ page }) => {
 
 test('import replaces the world after confirmation', async ({ page }) => {
   await startGame(page);
+  await openMenu(page);
 
   const worldFile = {
     schemaVersion: 1,
@@ -67,6 +69,7 @@ test('import replaces the world after confirmation', async ({ page }) => {
 
 test('import rejects a file that is not a world', async ({ page }) => {
   await startGame(page);
+  await openMenu(page);
   await page.setInputFiles('[data-testid="import-file-input"]', {
     name: 'junk.json',
     mimeType: 'application/json',

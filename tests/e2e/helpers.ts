@@ -5,6 +5,7 @@ import type { Page } from '@playwright/test';
 // compile the whole SPA.
 type StoreState = {
   blocks: Record<string, { id: string; type: string }>;
+  boxes: Array<{ id: string; position: { x: number; y: number; z: number } }>;
   saveState: string;
   placeBlockAt: (pos: { x: number; y: number; z: number }) => unknown;
   removeBlockAt: (pos: { x: number; y: number; z: number }) => unknown;
@@ -14,14 +15,33 @@ type StoreState = {
 declare global {
   interface Window {
     mindcraft: { getState: () => StoreState };
+    mindcraftDebug?: {
+      projectBlock: (x: number, y: number, z: number) => { x: number; y: number } | null;
+    };
   }
 }
 
-/** Waits for the game to load and closes the welcome panel. */
+/** Waits for the game to load and closes the splash screen. */
 export async function startGame(page: Page): Promise<void> {
   await page.goto('/');
   await page.getByRole('button', { name: /Let's build!/ }).click();
 }
+
+/** Opens the game menu, where export/import/reset live. */
+export async function openMenu(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Open the menu' }).click();
+}
+
+/** Opens the starter Magic Delivery Box through the store. */
+export async function openStarterBox(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const state = window.mindcraft.getState();
+    state.openBoxAt(state.boxes[0].position);
+  });
+}
+
+/** A guaranteed-empty spot: high in the sky above the spawn plaza. */
+export const SKY_SPOT = { x: 30, y: 24, z: 30 } as const;
 
 /**
  * Waits until the pending autosave lands. Mutating the store flips
