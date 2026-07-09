@@ -277,9 +277,163 @@ body,
   color: #7a6f5d;
 }
 
-.welcome-panel {
+/* ---- splash screen ---- */
+
+.splash {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(#7ec8f7 0%, #aee3ff 55%, #b8e8a0 100%);
+  overflow: hidden;
+}
+
+.splash-content {
+  position: relative;
   text-align: center;
   font-size: 1.15rem;
+  background: rgba(255, 253, 245, 0.92);
+  border-radius: 28px;
+  border: 4px solid #e8d8a8;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.18);
+  padding: 2rem 2.5rem;
+  max-width: min(92vw, 32rem);
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.splash-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  margin: 0 0 0.4rem;
+  animation: splash-pop 0.6s ease-out;
+}
+
+.splash-subtitle {
+  font-size: 1.2rem;
+  color: #7a6f5d;
+  margin-top: 0;
+}
+
+.splash-play {
+  font-size: 1.4rem;
+  padding: 0.8rem 2rem;
+  /* Glow pulse, not a transform: moving geometry makes automated
+     clicks (and shaky little hands) miss the button. */
+  animation: splash-glow 2.4s ease-in-out infinite;
+}
+
+.splash-version {
+  font-size: 0.85rem;
+  color: #9a8f7d;
+  margin-bottom: 0;
+}
+
+.splash-blocks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.splash-block {
+  position: absolute;
+  bottom: -4rem;
+  border-radius: 8px;
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  background-size: cover;
+  image-rendering: pixelated;
+  animation: splash-float 9s linear infinite;
+  opacity: 0.9;
+}
+
+@keyframes splash-float {
+  from {
+    transform: translateY(0) rotate(0deg);
+  }
+  to {
+    transform: translateY(-115vh) rotate(200deg);
+  }
+}
+
+@keyframes splash-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes splash-glow {
+  0%,
+  100% {
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 3px 0 rgba(0, 0, 0, 0.15),
+      0 0 24px 6px rgba(255, 157, 60, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-block,
+  .splash-play,
+  .splash-title {
+    animation: none;
+  }
+}
+
+/* ---- menu ---- */
+
+.menu-panel {
+  min-width: min(88vw, 22rem);
+}
+
+.menu-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+.menu-items .kid-button {
+  width: 100%;
+}
+
+.menu-help {
+  margin: 0;
+  background: rgba(232, 216, 168, 0.35);
+  border-radius: 14px;
+  padding: 0.8rem 1rem 0.8rem 1.6rem;
+}
+
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.setting-group h3,
+.menu-items h3 {
+  margin: 0.6rem 0 0.1rem;
+  font-size: 1rem;
+  color: #7a6f5d;
+}
+
+.setting-hint {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.menu-footer {
+  color: #7a6f5d;
+  font-size: 0.95rem;
+  margin-bottom: 0;
 }
 
 .welcome-tips {
@@ -396,6 +550,20 @@ body,
   padding: 0.45rem 0.7rem;
   border-radius: 12px;
   border: 3px solid #e8d8a8;
+}
+
+/* ---- crosshair (first person) ---- */
+
+.crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.6rem;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 5;
 }
 
 /* ---- toast ---- */

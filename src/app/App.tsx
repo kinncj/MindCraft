@@ -6,9 +6,7 @@ import { blockIconDataUrl } from '../game/engine/textures';
 import { Hotbar } from '../components/Hotbar';
 import { SaveIndicator } from '../components/SaveIndicator';
 import { MagicDeliveryBoxPanel } from '../components/MagicDeliveryBoxPanel';
-import { ImportWorldDialog } from '../components/ImportWorldDialog';
-import { ResetWorldDialog } from '../components/ResetWorldDialog';
-import { ExportWorldButton } from '../components/ExportWorldButton';
+import { MenuPanel } from '../components/MenuPanel';
 import { WelcomePanel } from '../components/WelcomePanel';
 import { Toast } from '../components/Toast';
 import { KidButton } from '../components/KidButton';
@@ -20,7 +18,8 @@ export function App() {
   const mode = useGameStore((state) => state.mode);
   const setMode = useGameStore((state) => state.setMode);
   const selectedBlockType = useGameStore((state) => state.selectedBlockType);
-  const closePanels = useGameStore((state) => state.closePanels);
+  const viewMode = useGameStore((state) => state.viewMode);
+  const toggleViewMode = useGameStore((state) => state.toggleViewMode);
   const init = useGameStore((state) => state.init);
 
   useEffect(() => {
@@ -29,11 +28,15 @@ export function App() {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') closePanels();
+      if (event.key !== 'Escape') return;
+      const state = useGameStore.getState();
+      // Escape closes whatever is open; with nothing open it opens the menu.
+      if (state.openPanel === 'none') state.setOpenPanel('menu');
+      else state.closePanels();
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [closePanels]);
+  }, []);
 
   if (!ready) {
     return (
@@ -59,9 +62,12 @@ export function App() {
         </div>
         <SaveIndicator />
         <div className="top-actions">
-          <ExportWorldButton />
-          <ImportWorldDialog />
-          <ResetWorldDialog />
+          <KidButton
+            onClick={() => useGameStore.getState().setOpenPanel('menu')}
+            aria-label="Open the menu"
+          >
+            📋 Menu
+          </KidButton>
         </div>
       </header>
 
@@ -100,10 +106,20 @@ export function App() {
         >
           🧽 Remove
         </KidButton>
+        <KidButton onClick={toggleViewMode} aria-label="Change camera view">
+          {viewMode === 'third' ? '👀 My eyes' : '🧍 Behind me'}
+        </KidButton>
       </div>
+
+      {viewMode === 'first' && (
+        <div className="crosshair" aria-hidden="true">
+          +
+        </div>
+      )}
 
       <Hotbar />
       <MagicDeliveryBoxPanel />
+      <MenuPanel />
       <WelcomePanel />
       <Toast />
     </div>
