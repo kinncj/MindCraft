@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BLOCK_DEFINITIONS } from '../game/engine/blockRegistry';
+import { blockIconDataUrl } from '../game/engine/textures';
 import { useGameStore } from '../game/gameStore';
 import { KidButton } from './KidButton';
 
@@ -86,10 +87,19 @@ export function MagicDeliveryBoxPanel() {
           <ul className="box-items">
             {box.items.map((item) => {
               const def = BLOCK_DEFINITIONS[item.blockType];
+              const icon = blockIconDataUrl(item.blockType);
               return (
                 <li key={item.blockType} className="box-item">
-                  <span className="box-item-icon" style={{ background: def.color }} aria-hidden="true">
-                    {def.emoji}
+                  <span
+                    className="box-item-icon"
+                    style={
+                      icon
+                        ? { backgroundImage: `url(${icon})`, backgroundColor: def.color }
+                        : { background: def.color }
+                    }
+                    aria-hidden="true"
+                  >
+                    {!icon && def.emoji}
                   </span>
                   <span className="box-item-label">
                     {def.label} × {item.quantity}

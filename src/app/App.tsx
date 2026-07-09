@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { GameCanvas } from '../game/GameCanvas';
 import { useGameStore } from '../game/gameStore';
 import { BLOCK_DEFINITIONS } from '../game/engine/blockRegistry';
+import { blockIconDataUrl } from '../game/engine/textures';
 import { Hotbar } from '../components/Hotbar';
 import { SaveIndicator } from '../components/SaveIndicator';
 import { MagicDeliveryBoxPanel } from '../components/MagicDeliveryBoxPanel';
@@ -46,6 +47,7 @@ export function App() {
   }
 
   const selectedDef = BLOCK_DEFINITIONS[selectedBlockType];
+  const selectedIcon = blockIconDataUrl(selectedBlockType);
 
   return (
     <div className="app">
@@ -71,8 +73,16 @@ export function App() {
       )}
 
       <div className="mode-bar">
-        <div className="selected-block" style={{ background: selectedDef.color }}>
-          <span aria-hidden="true">{selectedDef.emoji}</span> {selectedDef.label}
+        <div
+          className="selected-block"
+          style={
+            selectedIcon
+              ? { backgroundImage: `url(${selectedIcon})`, backgroundColor: selectedDef.color }
+              : { background: selectedDef.color }
+          }
+        >
+          {!selectedIcon && <span aria-hidden="true">{selectedDef.emoji}</span>}{' '}
+          {selectedDef.label}
         </div>
         <KidButton
           tone={mode === 'place' ? 'primary' : 'default'}
