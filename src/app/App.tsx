@@ -7,6 +7,7 @@ import { Hotbar } from '../components/Hotbar';
 import { SaveIndicator } from '../components/SaveIndicator';
 import { MagicDeliveryBoxPanel } from '../components/MagicDeliveryBoxPanel';
 import { MenuPanel } from '../components/MenuPanel';
+import { VirtualControls } from '../components/VirtualControls';
 import { WelcomePanel } from '../components/WelcomePanel';
 import { Toast } from '../components/Toast';
 import { KidButton } from '../components/KidButton';
@@ -118,6 +119,7 @@ export function App() {
       )}
 
       <Hotbar />
+      <VirtualControls />
       <MagicDeliveryBoxPanel />
       <MenuPanel />
       <WelcomePanel />

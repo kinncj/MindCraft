@@ -17,6 +17,7 @@ declare global {
     mindcraft: { getState: () => StoreState };
     mindcraftDebug?: {
       projectBlock: (x: number, y: number, z: number) => { x: number; y: number } | null;
+      playerPosition: () => { x: number; y: number; z: number };
     };
   }
 }

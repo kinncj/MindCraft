@@ -17,6 +17,8 @@
 - Friendly animals — bunnies, chicks, butterflies — that wander, hop, and love being
   tapped; purely decorative, never obstacles
 - Place mode and remove mode, switchable by button or right-click
+- Tablet/phone play: an on-screen joystick and jump button appear on touch devices,
+  two-finger pinch zooms, drag looks around, tap builds
 - Hotbar with number-key and click selection
 - Magic Delivery Box: store blocks, take them out, rename, empty (with confirmation)
 - Two starter presets: a fresh meadow (new random terrain each reset) and Toy Land

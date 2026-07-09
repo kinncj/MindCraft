@@ -10,6 +10,7 @@ import {
   type BucketId,
 } from './worldMesh';
 import { VISUAL_MODES } from '../../shaders/visualModes';
+import { touchInput } from '../touchControls';
 import type { TimeMode, VisualModeId, WeatherMode } from '../../types/game';
 import { PlayerController, type CellQuery } from './player';
 import { SPAWN } from './starterWorld';
@@ -36,6 +37,7 @@ declare global {
     /** Test hook: world position → screen pixels. The game is fully local. */
     mindcraftDebug?: {
       projectBlock: (x: number, y: number, z: number) => { x: number; y: number } | null;
+      playerPosition: () => { x: number; y: number; z: number };
     };
   }
 }
@@ -75,6 +77,8 @@ export class VoxelRenderer {
   private pointerDownAt: { x: number; y: number; button: number } | null = null;
   private dragging = false;
   private lastPointer = { x: 0, y: 0 };
+  private activePointers = new Map<number, { x: number; y: number }>();
+  private pinchDistance: number | null = null;
   private animationFrame = 0;
   private disposed = false;
 
@@ -188,6 +192,7 @@ export class VoxelRenderer {
           y: rect.top + ((1 - v.y) / 2) * rect.height,
         };
       },
+      playerPosition: () => ({ x: this.player.x, y: this.player.y, z: this.player.z }),
     };
 
     this.handleResize();
@@ -324,14 +329,41 @@ export class VoxelRenderer {
     window.addEventListener('resize', this.handleResize);
   }
 
+  private pinchSpread(): number {
+    const [a, b] = [...this.activePointers.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
   private onPointerDown = (event: PointerEvent): void => {
+    this.activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    this.renderer.domElement.setPointerCapture(event.pointerId);
+    if (this.activePointers.size === 2) {
+      // Second finger: this is a pinch zoom, not a tap or a look-drag.
+      this.pinchDistance = this.pinchSpread();
+      this.pointerDownAt = null;
+      this.dragging = false;
+      this.highlight.visible = false;
+      return;
+    }
+    if (this.activePointers.size > 2) return;
     this.pointerDownAt = { x: event.clientX, y: event.clientY, button: event.button };
     this.lastPointer = { x: event.clientX, y: event.clientY };
     this.dragging = false;
-    this.renderer.domElement.setPointerCapture(event.pointerId);
   };
 
   private onPointerMove = (event: PointerEvent): void => {
+    const tracked = this.activePointers.get(event.pointerId);
+    if (tracked) {
+      tracked.x = event.clientX;
+      tracked.y = event.clientY;
+    }
+    if (this.activePointers.size >= 2 && this.pinchDistance !== null) {
+      const spread = this.pinchSpread();
+      // Fingers apart = zoom in, together = zoom out.
+      this.zoomBy((this.pinchDistance - spread) * 0.06);
+      this.pinchDistance = spread;
+      return;
+    }
     if (this.pointerDownAt) {
       const dx = event.clientX - this.pointerDownAt.x;
       const dy = event.clientY - this.pointerDownAt.y;
@@ -353,6 +385,8 @@ export class VoxelRenderer {
   };
 
   private onPointerUp = (event: PointerEvent): void => {
+    this.activePointers.delete(event.pointerId);
+    if (this.activePointers.size < 2) this.pinchDistance = null;
     const start = this.pointerDownAt;
     this.pointerDownAt = null;
     if (!start || this.dragging) {
@@ -362,7 +396,9 @@ export class VoxelRenderer {
     this.handleTap(event, start.button);
   };
 
-  private onPointerLeave = (): void => {
+  private onPointerLeave = (event: PointerEvent): void => {
+    this.activePointers.delete(event.pointerId);
+    if (this.activePointers.size < 2) this.pinchDistance = null;
     this.pointerDownAt = null;
     this.dragging = false;
     this.highlight.visible = false;
@@ -370,11 +406,16 @@ export class VoxelRenderer {
 
   private onWheel = (event: WheelEvent): void => {
     event.preventDefault();
+    this.zoomBy(event.deltaY * 0.02);
+  };
+
+  /** Shared by wheel and pinch: positive moves the camera away. */
+  private zoomBy(delta: number): void {
     const mode = this.callbacks.getViewMode();
     if (mode === 'first') {
-      // Scrolling out of your own head brings the camera behind you,
+      // Zooming out of your own head brings the camera behind you,
       // just like the game this one is named after.
-      if (event.deltaY > 0) {
+      if (delta > 0) {
         this.callbacks.requestViewMode('third');
         this.distance = MIN_THIRD_PERSON_DISTANCE;
         this.targetDistance = 7;
@@ -382,7 +423,7 @@ export class VoxelRenderer {
       return;
     }
     this.targetDistance = THREE.MathUtils.clamp(
-      this.targetDistance + event.deltaY * 0.02,
+      this.targetDistance + delta,
       MIN_THIRD_PERSON_DISTANCE - 1,
       60,
     );
@@ -391,7 +432,7 @@ export class VoxelRenderer {
       this.targetDistance = 7;
       this.distance = 7;
     }
-  };
+  }
 
   private onKeyDown = (event: KeyboardEvent): void => {
     const target = event.target;
@@ -512,12 +553,13 @@ export class VoxelRenderer {
   }
 
   private playerInput() {
+    // Keyboard and the on-screen joystick both drive the same input.
     return {
-      forward: this.keysDown.has('w') || this.keysDown.has('arrowup'),
-      back: this.keysDown.has('s') || this.keysDown.has('arrowdown'),
-      left: this.keysDown.has('a') || this.keysDown.has('arrowleft'),
-      right: this.keysDown.has('d') || this.keysDown.has('arrowright'),
-      jump: this.keysDown.has(' '),
+      forward: this.keysDown.has('w') || this.keysDown.has('arrowup') || touchInput.y < -0.3,
+      back: this.keysDown.has('s') || this.keysDown.has('arrowdown') || touchInput.y > 0.3,
+      left: this.keysDown.has('a') || this.keysDown.has('arrowleft') || touchInput.x < -0.3,
+      right: this.keysDown.has('d') || this.keysDown.has('arrowright') || touchInput.x > 0.3,
+      jump: this.keysDown.has(' ') || touchInput.jump,
     };
   }
 

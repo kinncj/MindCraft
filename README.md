@@ -55,6 +55,18 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 
 Every keyboard action also has a visible button, so a kid who can't type can still play.
 
+### On tablets and phones
+
+Touch devices get virtual controls automatically:
+
+| Action | How |
+|---|---|
+| Walk | on-screen joystick (bottom left) |
+| Jump / swim up | Jump button (bottom right) |
+| Look around | drag anywhere on the world |
+| Zoom | pinch with two fingers (pinch all the way in for first person) |
+| Place / remove / open / pet | tap, with the Place–Remove toggle |
+
 ## Running it
 
 ```bash
@@ -143,7 +155,6 @@ layers. Reasoning: `docs/architecture/adr-0001-businessrepo-structure.md`.
 
 - One world per browser (no world list yet)
 - No sound
-- No touch-drag camera on mobile (tap to place works)
 - Ultra mode is realism-inspired, not ray-traced — see `docs/product/visual-modes.md`
 - Animals are decorative and respawn fresh each session
 

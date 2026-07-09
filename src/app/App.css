@@ -552,6 +552,116 @@ body,
   border: 3px solid #e8d8a8;
 }
 
+/* ---- virtual controls (touch devices) ---- */
+
+.virtual-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.joystick {
+  position: absolute;
+  left: 1.2rem;
+  bottom: 8rem;
+  width: 8.5rem;
+  height: 8.5rem;
+  border-radius: 50%;
+  background: rgba(255, 253, 245, 0.35);
+  border: 3px solid rgba(255, 253, 245, 0.6);
+  pointer-events: auto;
+  touch-action: none;
+  display: grid;
+  place-items: center;
+}
+
+.joystick-thumb {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  background: rgba(255, 253, 245, 0.9);
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
+}
+
+.jump-button {
+  position: absolute;
+  right: 1.2rem;
+  bottom: 8rem;
+  width: 5.2rem;
+  height: 5.2rem;
+  border-radius: 50%;
+  background: rgba(255, 253, 245, 0.85);
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+  font: inherit;
+  font-size: 1.5rem;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+}
+
+.jump-button-active {
+  transform: translateY(2px);
+  background: var(--primary);
+}
+
+.jump-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ---- small screens ---- */
+
+@media (max-width: 760px) {
+  .brand {
+    font-size: 1.1rem;
+    padding: 0.3rem 0.8rem;
+  }
+
+  .save-indicator {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.7rem;
+  }
+
+  .kid-button {
+    font-size: 0.95rem;
+    padding: 0.45rem 0.85rem;
+  }
+
+  .hotbar-slot {
+    min-width: 3.4rem;
+    min-height: 3.6rem;
+  }
+
+  .hotbar-label {
+    font-size: 0.6rem;
+  }
+
+  .mode-bar {
+    top: auto;
+    bottom: 15rem;
+    transform: none;
+  }
+
+  .joystick {
+    width: 7rem;
+    height: 7rem;
+    bottom: 7rem;
+  }
+
+  .jump-button {
+    bottom: 7rem;
+  }
+}
+
 /* ---- crosshair (first person) ---- */
 
 .crosshair {
