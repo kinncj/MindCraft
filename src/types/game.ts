@@ -2,16 +2,28 @@ export type BlockTypeId =
   | 'grass'
   | 'dirt'
   | 'stone'
+  | 'cobblestone'
+  | 'sand'
+  | 'snow'
+  | 'ice'
   | 'wood'
+  | 'planks'
   | 'leaves'
+  | 'flower'
   | 'water'
   | 'cloud'
   | 'rainbow'
   | 'star'
   | 'light'
+  | 'torch'
+  | 'campfire'
   | 'brick'
   | 'glass'
   | 'magic-box';
+
+export type TimeMode = 'cycle' | 'day' | 'night';
+export type WeatherMode = 'sunny' | 'rain' | 'snow';
+export type VisualModeId = 'classic' | 'ultraRealistic' | 'claudeDream';
 
 export type BlockPosition = {
   x: number;

@@ -12,6 +12,8 @@ export type BlockDefinition = {
   // Blocks the player can pick from the hotbar. The magic box is special:
   // it is placeable but also opens a storage panel when tapped.
   inHotbar: boolean;
+  // 0-15, Minecraft-style: how much light this block pours into the world.
+  lightLevel?: number;
 };
 
 export const BLOCK_DEFINITIONS: Record<BlockTypeId, BlockDefinition> = {
@@ -45,6 +47,56 @@ export const BLOCK_DEFINITIONS: Record<BlockTypeId, BlockDefinition> = {
     opacity: 1,
     inHotbar: true,
   },
+  cobblestone: {
+    id: 'cobblestone',
+    label: 'Cobble',
+    color: '#848b93',
+    accentColor: '#a0a7af',
+    emoji: '🪨',
+    transparent: false,
+    opacity: 1,
+    inHotbar: true,
+  },
+  sand: {
+    id: 'sand',
+    label: 'Sand',
+    color: '#ecd9a3',
+    accentColor: '#f5e6b8',
+    emoji: '🏖️',
+    transparent: false,
+    opacity: 1,
+    inHotbar: true,
+  },
+  snow: {
+    id: 'snow',
+    label: 'Snow',
+    color: '#f4f7fb',
+    accentColor: '#ffffff',
+    emoji: '❄️',
+    transparent: false,
+    opacity: 1,
+    inHotbar: true,
+  },
+  ice: {
+    id: 'ice',
+    label: 'Ice',
+    color: '#bfe0f5',
+    accentColor: '#e0f2fd',
+    emoji: '🧊',
+    transparent: true,
+    opacity: 0.85,
+    inHotbar: true,
+  },
+  planks: {
+    id: 'planks',
+    label: 'Planks',
+    color: '#d3a35e',
+    accentColor: '#e0b26d',
+    emoji: '🪚',
+    transparent: false,
+    opacity: 1,
+    inHotbar: true,
+  },
   wood: {
     id: 'wood',
     label: 'Wood',
@@ -61,6 +113,16 @@ export const BLOCK_DEFINITIONS: Record<BlockTypeId, BlockDefinition> = {
     color: '#3faf5c',
     accentColor: '#5cc878',
     emoji: '🍃',
+    transparent: false,
+    opacity: 1,
+    inHotbar: true,
+  },
+  flower: {
+    id: 'flower',
+    label: 'Flowers',
+    color: '#7cc95a',
+    accentColor: '#f291bb',
+    emoji: '🌸',
     transparent: false,
     opacity: 1,
     inHotbar: true,
@@ -104,6 +166,7 @@ export const BLOCK_DEFINITIONS: Record<BlockTypeId, BlockDefinition> = {
     transparent: false,
     opacity: 1,
     inHotbar: true,
+    lightLevel: 9,
   },
   light: {
     id: 'light',
@@ -114,6 +177,29 @@ export const BLOCK_DEFINITIONS: Record<BlockTypeId, BlockDefinition> = {
     transparent: false,
     opacity: 1,
     inHotbar: true,
+    lightLevel: 14,
+  },
+  torch: {
+    id: 'torch',
+    label: 'Torch',
+    color: '#ffb03c',
+    accentColor: '#8a6238',
+    emoji: '🕯️',
+    transparent: false,
+    opacity: 1,
+    inHotbar: true,
+    lightLevel: 13,
+  },
+  campfire: {
+    id: 'campfire',
+    label: 'Campfire',
+    color: '#e07b39',
+    accentColor: '#6b4a26',
+    emoji: '🏕️',
+    transparent: false,
+    opacity: 1,
+    inHotbar: true,
+    lightLevel: 12,
   },
   brick: {
     id: 'brick',

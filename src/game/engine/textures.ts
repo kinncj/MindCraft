@@ -92,6 +92,161 @@ function paintStone(ctx: CanvasRenderingContext2D, rand: Rand): void {
   }
 }
 
+function paintSand(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  noiseFill(ctx, rand, ['#ecd9a3', '#e6d29a', '#f2e0ad', '#e9d6a0']);
+  for (let i = 0; i < 8; i++) {
+    px(ctx, Math.floor(rand() * SIZE), Math.floor(rand() * SIZE), '#d9c288');
+  }
+}
+
+function paintSnow(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  noiseFill(ctx, rand, ['#f4f7fb', '#eef3f9', '#ffffff', '#f8fbfe']);
+  for (let i = 0; i < 6; i++) {
+    px(ctx, Math.floor(rand() * SIZE), Math.floor(rand() * SIZE), '#dde8f2');
+  }
+}
+
+function paintSnowSide(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  paintDirt(ctx, rand);
+  for (let x = 0; x < SIZE; x++) {
+    const depth = 3 + Math.floor(rand() * 3);
+    for (let y = 0; y < depth; y++) {
+      px(ctx, x, y, pick(rand, ['#f4f7fb', '#ffffff', '#eef3f9']));
+    }
+  }
+}
+
+const FLOWER_COLORS = ['#f291bb', '#e8574f', '#ffd94a', '#c48ae0'];
+
+function paintFlowerTop(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  noiseFill(ctx, rand, ['#7cc95a', '#72bf50', '#85d363']);
+  // Little five-pixel blossoms.
+  for (const [cx, cy] of [
+    [3, 3],
+    [11, 4],
+    [6, 10],
+    [12, 12],
+  ] as const) {
+    const color = pick(rand, FLOWER_COLORS);
+    px(ctx, cx, cy, '#fff3b0');
+    px(ctx, cx - 1, cy, color);
+    px(ctx, cx + 1, cy, color);
+    px(ctx, cx, cy - 1, color);
+    px(ctx, cx, cy + 1, color);
+  }
+}
+
+function paintFlowerSide(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  paintGrassSide(ctx, rand);
+  // A blossom or two peeking over the edge.
+  const color = pick(rand, FLOWER_COLORS);
+  px(ctx, 4, 1, color);
+  px(ctx, 11, 2, pick(rand, FLOWER_COLORS));
+}
+
+function paintCobblestone(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  noiseFill(ctx, rand, ['#848b93', '#7c838b']);
+  // Rounded stones with mortar between them.
+  const stones = ['#99a1aa', '#8f979f', '#a4acb5'];
+  for (const [cx, cy] of [
+    [3, 3],
+    [10, 2],
+    [5, 9],
+    [12, 8],
+    [2, 13],
+    [9, 13],
+  ] as const) {
+    ctx.fillStyle = pick(rand, stones);
+    ctx.fillRect(cx - 1, cy, 4, 3);
+    ctx.fillRect(cx, cy - 1, 2, 5);
+  }
+}
+
+function paintIce(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  noiseFill(ctx, rand, ['#bfe0f5', '#b6dbf2', '#c8e6f8']);
+  // Glassy cracks and shine.
+  for (let i = 0; i < 4; i++) {
+    let x = Math.floor(rand() * SIZE);
+    let y = Math.floor(rand() * SIZE);
+    for (let step = 0; step < 5; step++) {
+      px(ctx, x % SIZE, y % SIZE, '#e6f5fd');
+      x += 1;
+      y += rand() > 0.5 ? 1 : 0;
+    }
+  }
+  px(ctx, 3, 3, '#ffffff');
+  px(ctx, 12, 10, '#ffffff');
+}
+
+function paintPlanks(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  for (let y = 0; y < SIZE; y++) {
+    const seam = y % 4 === 3;
+    for (let x = 0; x < SIZE; x++) {
+      px(ctx, x, y, seam ? '#a87c42' : pick(rand, ['#d3a35e', '#cc9c57', '#dbaa64']));
+    }
+  }
+  // Nail dots at the board ends.
+  px(ctx, 2, 1, '#8a6238');
+  px(ctx, 13, 5, '#8a6238');
+  px(ctx, 2, 9, '#8a6238');
+  px(ctx, 13, 13, '#8a6238');
+}
+
+function paintTorchSide(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  // Warm glow background so the cube reads as "a light you carry".
+  noiseFill(ctx, rand, ['#3a3226', '#443a2c']);
+  // Stick.
+  ctx.fillStyle = '#8a6238';
+  ctx.fillRect(7, 8, 2, 8);
+  // Flame.
+  ctx.fillStyle = '#ffb03c';
+  ctx.fillRect(6, 4, 4, 4);
+  ctx.fillStyle = '#ffd94a';
+  ctx.fillRect(7, 5, 2, 2);
+  ctx.fillStyle = '#fff3b0';
+  px(ctx, 7, 6, '#fff3b0');
+  px(ctx, 8, 5, '#fff3b0');
+}
+
+function paintTorchTop(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  noiseFill(ctx, rand, ['#ffb03c', '#f2a032']);
+  ctx.fillStyle = '#ffd94a';
+  ctx.fillRect(5, 5, 6, 6);
+  ctx.fillStyle = '#fff3b0';
+  ctx.fillRect(7, 7, 2, 2);
+}
+
+function paintCampfireTop(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  noiseFill(ctx, rand, ['#6b4a26', '#5f4222']);
+  // Crossed logs.
+  ctx.fillStyle = '#8a6238';
+  ctx.fillRect(0, 6, 16, 4);
+  ctx.fillRect(6, 0, 4, 16);
+  // Cozy flame in the middle.
+  ctx.fillStyle = '#e07b39';
+  ctx.fillRect(5, 5, 6, 6);
+  ctx.fillStyle = '#ffb03c';
+  ctx.fillRect(6, 6, 4, 4);
+  ctx.fillStyle = '#ffd94a';
+  ctx.fillRect(7, 7, 2, 2);
+}
+
+function paintCampfireSide(ctx: CanvasRenderingContext2D, rand: Rand): void {
+  noiseFill(ctx, rand, ['#5f4222', '#553b1e']);
+  // Log ends.
+  ctx.fillStyle = '#8a6238';
+  ctx.fillRect(1, 10, 5, 5);
+  ctx.fillRect(10, 10, 5, 5);
+  ctx.fillStyle = '#c98d4b';
+  ctx.fillRect(2, 11, 3, 3);
+  ctx.fillRect(11, 11, 3, 3);
+  // Flame peeking above the logs.
+  ctx.fillStyle = '#ffb03c';
+  ctx.fillRect(6, 3, 4, 7);
+  ctx.fillStyle = '#ffd94a';
+  ctx.fillRect(7, 5, 2, 4);
+}
+
 function paintWoodSide(ctx: CanvasRenderingContext2D, rand: Rand): void {
   for (let x = 0; x < SIZE; x++) {
     const seam = x % 4 === 3;
@@ -305,13 +460,21 @@ const PAINTERS: Record<BlockTypeId, FacePainters> = {
   grass: { top: paintGrassTop, side: paintGrassSide, bottom: paintDirt, seed: 11 },
   dirt: uniform(paintDirt, 22),
   stone: uniform(paintStone, 33),
+  cobblestone: uniform(paintCobblestone, 34),
+  sand: uniform(paintSand, 36),
+  snow: { top: paintSnow, side: paintSnowSide, bottom: paintDirt, seed: 39 },
+  ice: uniform(paintIce, 41),
+  planks: uniform(paintPlanks, 43),
   wood: { top: paintWoodTop, side: paintWoodSide, bottom: paintWoodTop, seed: 44 },
   leaves: uniform(paintLeaves, 55),
+  flower: { top: paintFlowerTop, side: paintFlowerSide, bottom: paintDirt, seed: 58 },
   water: uniform(paintWater, 66),
   cloud: uniform(paintCloud, 77),
   rainbow: uniform(paintRainbow, 88),
   star: uniform(paintStar, 99),
   light: uniform(paintLight, 111),
+  torch: { top: paintTorchTop, side: paintTorchSide, bottom: paintWoodTop, seed: 115 },
+  campfire: { top: paintCampfireTop, side: paintCampfireSide, bottom: paintDirt, seed: 118 },
   brick: uniform(paintBrick, 122),
   glass: uniform(paintGlass, 133),
   'magic-box': { top: paintBoxTop, side: paintBoxSide, bottom: paintBoxBottom, seed: 144 },

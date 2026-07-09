@@ -1,9 +1,11 @@
 import type { BlockPosition, BlockTypeId, PlacedBlock, WorldSize } from '../../types/game';
 
+// Big enough to feel like open country under the fog, small enough that a
+// full save/export stays instant. ~10k blocks after terrain generation.
 export const WORLD_SIZE: WorldSize = {
-  width: 32,
-  depth: 32,
-  height: 16,
+  width: 64,
+  depth: 64,
+  height: 32,
 };
 
 export function positionKey(pos: BlockPosition): string {
