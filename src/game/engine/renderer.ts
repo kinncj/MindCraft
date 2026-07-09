@@ -1,38 +1,76 @@
 import * as THREE from 'three';
 import type { BlockPosition, PlacedBlock } from '../../types/game';
-import { BLOCK_DEFINITIONS } from './blockRegistry';
-import { createBlockMaterials } from './textures';
+import { AnimalSystem, type GroundQuery } from './animals';
+import { EnvironmentSystem } from './environment';
+import { computeLight } from './lighting';
+import {
+  TextureAtlas,
+  buildWorldGeometries,
+  patchVoxelLighting,
+  type BucketId,
+} from './worldMesh';
+import { VISUAL_MODES } from '../../shaders/visualModes';
+import type { TimeMode, VisualModeId, WeatherMode } from '../../types/game';
+import { PlayerController, type CellQuery } from './player';
+import { SPAWN } from './starterWorld';
 import { WORLD_SIZE } from './world';
+
+export type ViewMode = 'third' | 'first';
 
 export type RendererCallbacks = {
   onPlace: (pos: BlockPosition) => void;
   onRemove: (pos: BlockPosition) => void;
   onBoxTap: (pos: BlockPosition) => void;
   getMode: () => 'place' | 'remove';
+  /** Ground lookup for animals: highest block in a column. */
+  groundAt: GroundQuery;
+  /** Grid cell lookup for player physics (collision, swimming). */
+  cellAt: CellQuery;
+  getViewMode: () => ViewMode;
+  requestViewMode: (mode: ViewMode) => void;
+  onAnimalPet: (kind: string) => void;
 };
 
+declare global {
+  interface Window {
+    /** Test hook: world position → screen pixels. The game is fully local. */
+    mindcraftDebug?: {
+      projectBlock: (x: number, y: number, z: number) => { x: number; y: number } | null;
+    };
+  }
+}
+
 const DRAG_THRESHOLD_PX = 6;
+const MIN_THIRD_PERSON_DISTANCE = 3;
 
 /**
- * A deliberately small voxel renderer: one mesh per block, shared
- * geometry, cached materials. A 32x32 floor plus builds is around
- * 1,100 meshes, which every laptop from the last decade handles fine.
+ * Chunk-meshed voxel renderer: the world is merged into four meshes
+ * (opaque / water / alpha / glow) with only visible faces emitted —
+ * a handful of draw calls and ~20k triangles for a full world.
+ * Raycast hits resolve to grid cells via the hit point and face normal.
  */
 export class VoxelRenderer {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera: THREE.PerspectiveCamera;
   private raycaster = new THREE.Raycaster();
-  private blockMeshes = new Map<string, THREE.Mesh>();
-  private meshToBlock = new Map<THREE.Mesh, PlacedBlock>();
-  private geometry = new THREE.BoxGeometry(1, 1, 1);
-  private materials = new Map<string, THREE.Material | THREE.Material[]>();
+  private atlas = new TextureAtlas();
+  private worldMeshes = new Map<BucketId, THREE.Mesh>();
+  private blocksRef: Record<string, PlacedBlock> = {};
+  private environment: EnvironmentSystem;
   private groundPlane: THREE.Mesh;
   private highlight: THREE.LineSegments;
-  private target = new THREE.Vector3(WORLD_SIZE.width / 2, 1, WORLD_SIZE.depth / 2);
-  private yaw = Math.PI / 4;
-  private pitch = 0.55;
-  private distance = 26;
+  private animals: AnimalSystem;
+  private player: PlayerController;
+  private firstPersonArm: THREE.Group;
+  private clock = new THREE.Clock();
+  private eye = new THREE.Vector3(SPAWN.x, SPAWN.y + 1.6, SPAWN.z);
+  // Camera starts behind the player, facing the spawn plaza and its
+  // Magic Delivery Box.
+  private yaw = Math.PI / 4 + Math.PI;
+  private pitch = 0.5;
+  private distance = 9;
+  private targetDistance = 9;
   private keysDown = new Set<string>();
   private pointerDownAt: { x: number; y: number; button: number } | null = null;
   private dragging = false;
@@ -40,44 +78,63 @@ export class VoxelRenderer {
   private animationFrame = 0;
   private disposed = false;
 
+  /** True when WebGL runs on a software rasterizer (CI, VMs, old machines). */
+  private readonly lowPower: boolean;
+
   constructor(
     private container: HTMLElement,
     private callbacks: RendererCallbacks,
   ) {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
+    this.lowPower = VoxelRenderer.detectSoftwareRendering();
+    this.renderer = new THREE.WebGLRenderer({ antialias: !this.lowPower });
+    // Software rasterizers are fill-rate bound: rendering at half
+    // resolution roughly quadruples the frame rate and still looks fine
+    // upscaled. Real GPUs get the crisp native-DPI picture.
+    this.renderer.setPixelRatio(this.lowPower ? 0.5 : Math.min(window.devicePixelRatio, 2));
+    // Soft shadows are the single most expensive feature on a software
+    // rasterizer (seconds per frame). Real GPUs keep them.
+    this.renderer.shadowMap.enabled = !this.lowPower;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.domElement.style.display = 'block';
     this.renderer.domElement.style.touchAction = 'none';
     container.appendChild(this.renderer.domElement);
 
     this.scene.background = new THREE.Color('#aee3ff');
-    this.scene.fog = new THREE.Fog('#aee3ff', 60, 120);
+    this.scene.fog = new THREE.Fog('#aee3ff', 70, 170);
 
-    this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 300);
+    this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 400);
 
     const sun = new THREE.DirectionalLight('#fffbe8', 1.6);
-    sun.position.set(WORLD_SIZE.width / 2 + 24, 44, WORLD_SIZE.depth / 2 - 14);
+    sun.position.set(WORLD_SIZE.width / 2 + 40, 70, WORLD_SIZE.depth / 2 - 24);
     sun.target.position.set(WORLD_SIZE.width / 2, 0, WORLD_SIZE.depth / 2);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -30;
-    sun.shadow.camera.right = 30;
-    sun.shadow.camera.top = 30;
-    sun.shadow.camera.bottom = -30;
+    sun.shadow.camera.left = -55;
+    sun.shadow.camera.right = 55;
+    sun.shadow.camera.top = 55;
+    sun.shadow.camera.bottom = -55;
     sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 120;
+    sun.shadow.camera.far = 220;
     sun.shadow.bias = -0.0005;
     sun.shadow.camera.updateProjectionMatrix();
     this.scene.add(sun);
     this.scene.add(sun.target);
-    this.scene.add(new THREE.HemisphereLight('#cfe9ff', '#9ad07c', 1.1));
+    const hemisphere = new THREE.HemisphereLight('#cfe9ff', '#9ad07c', 1.1);
+    this.scene.add(hemisphere);
+
+    this.environment = new EnvironmentSystem(
+      this.scene,
+      sun,
+      hemisphere,
+      this.renderer,
+      VISUAL_MODES.classic,
+      !this.lowPower,
+    );
 
     this.addClouds();
 
-    // Invisible plane just under the floor so clicks on empty ground
-    // still place blocks even if the grass there was removed.
+    // Invisible plane just under the terrain so clicks on exposed ground
+    // still place blocks.
     const planeGeometry = new THREE.PlaneGeometry(WORLD_SIZE.width, WORLD_SIZE.depth);
     planeGeometry.rotateX(-Math.PI / 2);
     this.groundPlane = new THREE.Mesh(
@@ -89,7 +146,7 @@ export class VoxelRenderer {
 
     // Soft sand-colored rim so the edge of the world looks intentional.
     const rim = new THREE.Mesh(
-      new THREE.BoxGeometry(WORLD_SIZE.width + 4, 1, WORLD_SIZE.depth + 4),
+      new THREE.BoxGeometry(WORLD_SIZE.width + 6, 1, WORLD_SIZE.depth + 6),
       new THREE.MeshLambertMaterial({ color: '#e8d8a8' }),
     );
     rim.position.set(WORLD_SIZE.width / 2 - 0.5, -1.01, WORLD_SIZE.depth / 2 - 0.5);
@@ -103,6 +160,35 @@ export class VoxelRenderer {
     );
     this.highlight.visible = false;
     this.scene.add(this.highlight);
+
+    this.animals = new AnimalSystem(this.scene, callbacks.groundAt, {
+      x: SPAWN.x,
+      z: SPAWN.z,
+    });
+    this.player = new PlayerController(this.scene, callbacks.cellAt, {
+      x: SPAWN.x - 3,
+      z: SPAWN.z - 3,
+    });
+
+    // First-person arm: the player's own hand in the bottom corner of
+    // the view, attached to the camera.
+    this.firstPersonArm = this.buildFirstPersonArm();
+    this.camera.add(this.firstPersonArm);
+    this.scene.add(this.camera);
+
+    this.createWorldMeshes();
+
+    window.mindcraftDebug = {
+      projectBlock: (x, y, z) => {
+        const v = new THREE.Vector3(x, y, z).project(this.camera);
+        if (v.z > 1) return null; // behind the camera
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        return {
+          x: rect.left + ((v.x + 1) / 2) * rect.width,
+          y: rect.top + ((1 - v.y) / 2) * rect.height,
+        };
+      },
+    };
 
     this.handleResize();
     this.attachEvents();
@@ -118,8 +204,38 @@ export class VoxelRenderer {
     }
   }
 
-  // Flat drifting cloud slabs high above the build area. Pure decoration:
-  // they are never raycast targets.
+  static detectSoftwareRendering(): boolean {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+      if (!gl) return true;
+      const info = gl.getExtension('WEBGL_debug_renderer_info');
+      const name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
+      return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(name);
+    } catch {
+      return true;
+    }
+  }
+
+  private buildFirstPersonArm(): THREE.Group {
+    const group = new THREE.Group();
+    const sleeve = new THREE.Mesh(
+      new THREE.BoxGeometry(0.14, 0.14, 0.4),
+      new THREE.MeshBasicMaterial({ color: '#ffb03c' }),
+    );
+    sleeve.position.z = 0.14;
+    const hand = new THREE.Mesh(
+      new THREE.BoxGeometry(0.13, 0.13, 0.14),
+      new THREE.MeshBasicMaterial({ color: '#f2c79a' }),
+    );
+    hand.position.z = -0.13;
+    group.add(sleeve, hand);
+    group.position.set(0.32, -0.3, -0.55);
+    group.rotation.set(-0.25, 0.12, 0);
+    group.visible = false;
+    return group;
+  }
+
   private addClouds(): void {
     const material = new THREE.MeshLambertMaterial({
       color: '#ffffff',
@@ -127,62 +243,71 @@ export class VoxelRenderer {
       opacity: 0.85,
     });
     const spots: Array<[number, number, number, number, number]> = [
-      [4, 24, 6, 7, 4],
-      [14, 27, 22, 9, 5],
-      [26, 25, 10, 6, 3],
-      [30, 28, 28, 8, 5],
-      [-2, 26, 20, 5, 3],
+      [8, 34, 12, 9, 5],
+      [28, 38, 44, 11, 6],
+      [52, 36, 20, 8, 4],
+      [60, 40, 56, 10, 6],
+      [-4, 37, 40, 7, 4],
+      [40, 35, 4, 8, 5],
     ];
     for (const [x, y, z, w, d] of spots) {
-      const cloud = new THREE.Mesh(new THREE.BoxGeometry(w, 0.8, d), material);
+      const cloud = new THREE.Mesh(new THREE.BoxGeometry(w, 0.9, d), material);
       cloud.position.set(x, y, z);
       this.scene.add(cloud);
     }
   }
 
-  private materialFor(type: PlacedBlock['type']): THREE.Material | THREE.Material[] {
-    const cached = this.materials.get(type);
-    if (cached) return cached;
-    const def = BLOCK_DEFINITIONS[type];
-    // Pixel textures when 2D canvas is available, flat colors otherwise.
-    const material =
-      createBlockMaterials(type) ??
-      new THREE.MeshLambertMaterial({
-        color: def.color,
-        transparent: def.transparent,
-        opacity: def.opacity,
-      });
-    this.materials.set(type, material);
-    return material;
+  private createWorldMeshes(): void {
+    const atlasMap = this.atlas.texture;
+    const materials: Record<BucketId, THREE.Material> = {
+      opaque: new THREE.MeshLambertMaterial({ map: atlasMap }),
+      water: new THREE.MeshLambertMaterial({
+        map: atlasMap,
+        transparent: true,
+        opacity: 0.8,
+        depthWrite: false,
+      }),
+      alpha: new THREE.MeshLambertMaterial({
+        map: atlasMap,
+        transparent: true,
+        alphaTest: 0.04,
+        side: THREE.DoubleSide,
+      }),
+      glow: new THREE.MeshLambertMaterial({
+        map: atlasMap,
+        emissive: new THREE.Color('#fff3c0'),
+        emissiveIntensity: 0.4,
+        emissiveMap: atlasMap ?? undefined,
+      }),
+    };
+    for (const bucket of Object.keys(materials) as BucketId[]) {
+      // Glow faces ignore darkness — a torch texture is always bright.
+      if (bucket !== 'glow') {
+        patchVoxelLighting(materials[bucket], this.environment.dayLight);
+      }
+      const mesh = new THREE.Mesh(new THREE.BufferGeometry(), materials[bucket]);
+      mesh.castShadow = bucket === 'opaque' || bucket === 'glow';
+      mesh.receiveShadow = true;
+      mesh.visible = false;
+      this.scene.add(mesh);
+      this.worldMeshes.set(bucket, mesh);
+    }
   }
 
   syncBlocks(blocks: Record<string, PlacedBlock>): void {
-    // Remove meshes for blocks that no longer exist.
-    for (const [key, mesh] of this.blockMeshes) {
-      if (!blocks[key]) {
-        this.scene.remove(mesh);
-        this.meshToBlock.delete(mesh);
-        this.blockMeshes.delete(key);
+    this.blocksRef = blocks;
+    const light = computeLight(blocks);
+    const geometries = buildWorldGeometries(blocks, this.atlas, light);
+    for (const [bucket, mesh] of this.worldMeshes) {
+      const geometry = geometries[bucket];
+      mesh.geometry.dispose();
+      if (geometry) {
+        mesh.geometry = geometry;
+        mesh.visible = true;
+      } else {
+        mesh.geometry = new THREE.BufferGeometry();
+        mesh.visible = false;
       }
-    }
-    // Add meshes for new blocks.
-    for (const [key, block] of Object.entries(blocks)) {
-      const existing = this.blockMeshes.get(key);
-      if (existing) {
-        const known = this.meshToBlock.get(existing);
-        if (known && known.type === block.type) continue;
-        this.scene.remove(existing);
-        this.meshToBlock.delete(existing);
-        this.blockMeshes.delete(key);
-      }
-      const mesh = new THREE.Mesh(this.geometry, this.materialFor(block.type));
-      mesh.position.set(block.position.x, block.position.y, block.position.z);
-      const def = BLOCK_DEFINITIONS[block.type];
-      mesh.castShadow = !def.transparent;
-      mesh.receiveShadow = true;
-      this.scene.add(mesh);
-      this.blockMeshes.set(key, mesh);
-      this.meshToBlock.set(mesh, block);
     }
   }
 
@@ -217,7 +342,9 @@ export class VoxelRenderer {
         const moveX = event.clientX - this.lastPointer.x;
         const moveY = event.clientY - this.lastPointer.y;
         this.yaw -= moveX * 0.006;
-        this.pitch = THREE.MathUtils.clamp(this.pitch + moveY * 0.004, 0.15, 1.35);
+        // No clamp here — updateCamera owns the pitch range, and it
+        // allows looking all the way up at the sky and ceilings.
+        this.pitch += moveY * 0.004;
       }
     } else {
       this.updateHighlight(event);
@@ -243,50 +370,119 @@ export class VoxelRenderer {
 
   private onWheel = (event: WheelEvent): void => {
     event.preventDefault();
-    this.distance = THREE.MathUtils.clamp(this.distance + event.deltaY * 0.02, 8, 60);
+    const mode = this.callbacks.getViewMode();
+    if (mode === 'first') {
+      // Scrolling out of your own head brings the camera behind you,
+      // just like the game this one is named after.
+      if (event.deltaY > 0) {
+        this.callbacks.requestViewMode('third');
+        this.distance = MIN_THIRD_PERSON_DISTANCE;
+        this.targetDistance = 7;
+      }
+      return;
+    }
+    this.targetDistance = THREE.MathUtils.clamp(
+      this.targetDistance + event.deltaY * 0.02,
+      MIN_THIRD_PERSON_DISTANCE - 1,
+      60,
+    );
+    if (this.targetDistance < MIN_THIRD_PERSON_DISTANCE) {
+      this.callbacks.requestViewMode('first');
+      this.targetDistance = 7;
+      this.distance = 7;
+    }
   };
 
   private onKeyDown = (event: KeyboardEvent): void => {
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+    const target = event.target;
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
       return;
     }
-    this.keysDown.add(event.key.toLowerCase());
+    // Buttons own their activation keys; walking keys still work.
+    if (target instanceof HTMLButtonElement && (event.key === ' ' || event.key === 'Enter')) {
+      return;
+    }
+    if (event.key === ' ') event.preventDefault();
+    const key = event.key.toLowerCase();
+    if (key === 'v') {
+      this.callbacks.requestViewMode(this.callbacks.getViewMode() === 'third' ? 'first' : 'third');
+      return;
+    }
+    this.keysDown.add(key);
   };
 
   private onKeyUp = (event: KeyboardEvent): void => {
     this.keysDown.delete(event.key.toLowerCase());
   };
 
-  private pickAt(event: PointerEvent): THREE.Intersection[] {
+  private pickAt(event: PointerEvent): {
+    intersection: THREE.Intersection;
+    block: PlacedBlock | null;
+  } | null {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const pointer = new THREE.Vector2(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
     this.raycaster.setFromCamera(pointer, this.camera);
-    const targets: THREE.Object3D[] = [...this.blockMeshes.values(), this.groundPlane];
-    return this.raycaster.intersectObjects(targets, false);
+    const targets: THREE.Object3D[] = [this.groundPlane];
+    for (const mesh of this.worldMeshes.values()) {
+      if (mesh.visible) targets.push(mesh);
+    }
+    const hit = this.raycaster.intersectObjects(targets, false)[0];
+    if (!hit) return null;
+    if (hit.object === this.groundPlane) return { intersection: hit, block: null };
+    // The hit point sits on a face plane; stepping half a block against
+    // the normal lands inside the block that owns the face.
+    const normal = hit.face?.normal;
+    if (!normal) return null;
+    const cell = {
+      x: Math.round(hit.point.x - normal.x * 0.5),
+      y: Math.round(hit.point.y - normal.y * 0.5),
+      z: Math.round(hit.point.z - normal.z * 0.5),
+    };
+    const block = this.blocksRef[`${cell.x},${cell.y},${cell.z}`] ?? null;
+    return block ? { intersection: hit, block } : null;
   }
 
   private updateHighlight(event: PointerEvent): void {
-    const hit = this.pickAt(event)[0];
-    if (hit && hit.object !== this.groundPlane) {
-      this.highlight.position.copy(hit.object.position);
+    const hit = this.pickAt(event);
+    if (hit?.block) {
+      const { x, y, z } = hit.block.position;
+      this.highlight.position.set(x, y, z);
       this.highlight.visible = true;
     } else {
       this.highlight.visible = false;
     }
   }
 
+  setTimeMode(mode: TimeMode): void {
+    this.environment.setTimeMode(mode);
+  }
+
+  setWeather(weather: WeatherMode): void {
+    this.environment.setWeather(weather);
+  }
+
+  setVisualMode(mode: VisualModeId): void {
+    this.environment.applyVisualMode(VISUAL_MODES[mode]);
+  }
+
   private handleTap(event: PointerEvent, button: number): void {
-    const hit = this.pickAt(event)[0];
+    // Petting comes first: animals are friends, not building surfaces.
+    const petted = this.animals.tapAt(this.raycaster, this.camera, event, this.renderer.domElement);
+    if (petted) {
+      this.callbacks.onAnimalPet(petted);
+      return;
+    }
+    const hit = this.pickAt(event);
     if (!hit) return;
 
     const removing = button === 2 || this.callbacks.getMode() === 'remove';
 
-    if (hit.object === this.groundPlane) {
+    if (!hit.block) {
       if (removing) return;
-      const point = hit.point;
+      const point = hit.intersection.point;
       this.callbacks.onPlace({
         x: Math.round(point.x),
         y: 0,
@@ -295,11 +491,7 @@ export class VoxelRenderer {
       return;
     }
 
-    const block = this.meshToBlock.get(hit.object as THREE.Mesh);
-    if (!block) return;
-
-    // Tapping a Magic Delivery Box opens it (unless the kid is in
-    // remove mode and wants it gone).
+    const block = hit.block;
     if (block.type === 'magic-box' && !removing) {
       this.callbacks.onBoxTap(block.position);
       return;
@@ -310,7 +502,7 @@ export class VoxelRenderer {
       return;
     }
 
-    const normal = hit.face?.normal;
+    const normal = hit.intersection.face?.normal;
     if (!normal) return;
     this.callbacks.onPlace({
       x: block.position.x + Math.round(normal.x),
@@ -319,34 +511,41 @@ export class VoxelRenderer {
     });
   }
 
-  private moveFromKeys(): void {
-    const speed = 0.35;
-    const forward = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw));
-    const right = new THREE.Vector3(forward.z, 0, -forward.x);
-    if (this.keysDown.has('w') || this.keysDown.has('arrowup')) {
-      this.target.addScaledVector(forward, -speed);
-    }
-    if (this.keysDown.has('s') || this.keysDown.has('arrowdown')) {
-      this.target.addScaledVector(forward, speed);
-    }
-    if (this.keysDown.has('a') || this.keysDown.has('arrowleft')) {
-      this.target.addScaledVector(right, -speed);
-    }
-    if (this.keysDown.has('d') || this.keysDown.has('arrowright')) {
-      this.target.addScaledVector(right, speed);
-    }
-    this.target.x = THREE.MathUtils.clamp(this.target.x, -4, WORLD_SIZE.width + 4);
-    this.target.z = THREE.MathUtils.clamp(this.target.z, -4, WORLD_SIZE.depth + 4);
+  private playerInput() {
+    return {
+      forward: this.keysDown.has('w') || this.keysDown.has('arrowup'),
+      back: this.keysDown.has('s') || this.keysDown.has('arrowdown'),
+      left: this.keysDown.has('a') || this.keysDown.has('arrowleft'),
+      right: this.keysDown.has('d') || this.keysDown.has('arrowright'),
+      jump: this.keysDown.has(' '),
+    };
   }
 
-  private updateCamera(): void {
-    const offset = new THREE.Vector3(
-      Math.sin(this.yaw) * Math.cos(this.pitch),
-      Math.sin(this.pitch),
-      Math.cos(this.yaw) * Math.cos(this.pitch),
-    ).multiplyScalar(this.distance);
-    this.camera.position.copy(this.target).add(offset);
-    this.camera.lookAt(this.target);
+  private updateCamera(mode: ViewMode): void {
+    this.player.eyePosition(this.eye);
+    // Full range in both modes so ceilings and sky are always reachable.
+    this.pitch = THREE.MathUtils.clamp(this.pitch, -1.25, 1.35);
+    this.distance += (this.targetDistance - this.distance) * 0.18;
+
+    if (mode === 'first') {
+      this.camera.position.copy(this.eye);
+      const look = new THREE.Vector3(
+        -Math.sin(this.yaw) * Math.cos(this.pitch),
+        -Math.sin(this.pitch),
+        -Math.cos(this.yaw) * Math.cos(this.pitch),
+      );
+      this.camera.lookAt(look.add(this.eye));
+    } else {
+      const offset = new THREE.Vector3(
+        Math.sin(this.yaw) * Math.cos(this.pitch),
+        Math.sin(this.pitch),
+        Math.cos(this.yaw) * Math.cos(this.pitch),
+      ).multiplyScalar(this.distance);
+      const position = this.camera.position.copy(this.eye).add(offset);
+      // Looking up swings the camera low; keep it from diving underground.
+      position.y = Math.max(position.y, 0.4);
+      this.camera.lookAt(this.eye);
+    }
   }
 
   private handleResize = (): void => {
@@ -359,8 +558,29 @@ export class VoxelRenderer {
 
   private loop = (): void => {
     if (this.disposed) return;
-    this.moveFromKeys();
-    this.updateCamera();
+    const dt = Math.min(this.clock.getDelta(), 0.1);
+    const elapsed = this.clock.elapsedTime;
+    const mode = this.callbacks.getViewMode();
+    const input = this.playerInput();
+    this.player.update(dt, input, this.yaw, elapsed);
+    this.player.setVisible(mode === 'third');
+    this.firstPersonArm.visible = mode === 'first';
+    if (mode === 'first') {
+      // Gentle walk bob for the visible hand.
+      const moving = input.forward || input.back || input.left || input.right;
+      this.firstPersonArm.position.y = -0.3 + (moving ? Math.sin(elapsed * 9) * 0.02 : 0);
+      this.firstPersonArm.position.x = 0.32 + (moving ? Math.cos(elapsed * 4.5) * 0.012 : 0);
+    }
+    this.updateCamera(mode);
+    this.environment.update(dt, elapsed);
+    this.animals.update(dt, elapsed);
+    // Gentle water shimmer: breathe the opacity instead of scrolling,
+    // since the water mesh shares the atlas texture.
+    const water = this.worldMeshes.get('water');
+    if (water && water.visible) {
+      (water.material as THREE.MeshLambertMaterial).opacity =
+        0.78 + Math.sin(elapsed * 1.4) * 0.06;
+    }
     this.renderer.render(this.scene, this.camera);
     this.animationFrame = requestAnimationFrame(this.loop);
   };
@@ -371,14 +591,17 @@ export class VoxelRenderer {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('resize', this.handleResize);
-    this.renderer.dispose();
-    this.geometry.dispose();
-    for (const entry of this.materials.values()) {
-      for (const material of Array.isArray(entry) ? entry : [entry]) {
-        if (material instanceof THREE.MeshLambertMaterial) material.map?.dispose();
-        material.dispose();
-      }
+    this.environment.dispose();
+    this.animals.dispose();
+    this.player.dispose();
+    delete window.mindcraftDebug;
+    for (const mesh of this.worldMeshes.values()) {
+      mesh.geometry.dispose();
+      const material = mesh.material;
+      for (const m of Array.isArray(material) ? material : [material]) m.dispose();
     }
+    this.atlas.texture?.dispose();
+    this.renderer.dispose();
     this.renderer.domElement.remove();
   }
 }
