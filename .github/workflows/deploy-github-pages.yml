@@ -26,7 +26,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          # Makes Vite emit asset URLs under /mindcraft/. Change VITE_BASE
+          # Makes Vite emit asset URLs under /MindCraft/. Change VITE_BASE
           # here if the repository is named something else.
           GITHUB_PAGES: 'true'
       - uses: actions/upload-pages-artifact@v3

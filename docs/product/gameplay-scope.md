@@ -1,14 +1,26 @@
 # Gameplay scope
 
-## In the MVP
+## In the game
 
-- One 32×32×16 block world with a starter scene (grass floor, rainbow arch, tree,
-  star, light, Magic Delivery Box, welcome sign)
-- 13 block types, all available from the start — nothing to unlock
+- A 64×64×32 procedurally generated world: rolling hills, lakes with sandy shores,
+  snowy peaks, scattered trees and flowers, and a flat spawn plaza with landmarks
+  (rainbow arch, star, light, the Magic Delivery Box)
+- A playable kid character: walk (WASD/arrows), jump (space), swim, wade, step up
+  single blocks, real collision (roofs and shelters work), first- and third-person
+  views (V key, view button, or scroll all the way in)
+- 21 block types, all available from the start — nothing to unlock
+- Minecraft-style voxel lighting: sealed shelters are dark inside until you place a
+  torch, campfire, light, or star; sky light leaks through doors and windows
+- Day/night cycle (or always-day / always-night), rain and snowfall — all toggleable
+  in the menu, never scary
+- Three visual modes: Classic, Ultra, and Claude Dream (sparkles!)
+- Friendly animals — bunnies, chicks, butterflies — that wander, hop, and love being
+  tapped; purely decorative, never obstacles
 - Place mode and remove mode, switchable by button or right-click
-- Orbit camera: drag to rotate, wheel to zoom, WASD/arrows to move
 - Hotbar with number-key and click selection
 - Magic Delivery Box: store blocks, take them out, rename, empty (with confirmation)
+- Two starter presets: a fresh meadow (new random terrain each reset) and Toy Land
+  (a flat playroom with a toy chest, block towers, and two original toy statues)
 - Autosave to IndexedDB with a visible save indicator
 - Export to JSON file, import from JSON file (validated, confirmed, local-only)
 - Reset to starter world (with confirmation and export-first option)

@@ -3,6 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "description": "MindCraft — a kid-friendly creative block-building game that runs entirely in the browser",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kinncj/MindCraft.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
