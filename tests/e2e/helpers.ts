@@ -49,8 +49,10 @@ export const SKY_SPOT = { x: 30, y: 24, z: 30 } as const;
  * change cannot race against an older 'saved' state.
  */
 export async function waitForSaved(page: Page): Promise<void> {
+  // Generous: CI runners write ~9k IndexedDB rows per save while several
+  // browser workers compete for two cores.
   await page.waitForFunction(() => window.mindcraft.getState().saveState === 'saved', undefined, {
-    timeout: 10_000,
+    timeout: 30_000,
   });
 }
 

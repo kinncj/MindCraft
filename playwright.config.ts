@@ -6,6 +6,9 @@ export default defineConfig({
   // 3D world at a handful of frames per second.
   timeout: 60_000,
   retries: process.env.CI ? 1 : 0,
+  // CI runners have two cores; more workers just makes every page slow
+  // enough to trip timeouts.
+  workers: process.env.CI ? 2 : undefined,
   use: {
     baseURL: 'http://localhost:4173',
     trace: 'retain-on-failure',
