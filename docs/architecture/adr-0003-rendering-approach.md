@@ -16,10 +16,18 @@ Options considered:
 ## Decision
 
 Plain Three.js (option 1) with the simplest thing that works: one shared `BoxGeometry`,
-one cached `MeshLambertMaterial` per block type, one `Mesh` per block. The world caps at
-32×32×16, so the worst realistic scene is a couple thousand meshes — trivial for WebGL.
-Raycasting against individual meshes gives block picking and face-adjacent placement for
-free.
+cached materials per block type, one `Mesh` per block. The world caps at 32×32×16, so the
+worst realistic scene is a couple thousand meshes — trivial for WebGL. Raycasting against
+individual meshes gives block picking and face-adjacent placement for free.
+
+Textures are procedural: `textures.ts` paints 16×16 pixel canvases at startup (seeded,
+so they look identical on every load) and wraps them in `CanvasTexture` with
+nearest-neighbor filtering for the chunky pixel look. Blocks with distinct faces (grass,
+wood, the Magic Delivery Box) get a 6-material array; the rest share one material on all
+faces. The same canvases become data-URL icons for the hotbar and panels, so the UI and
+the world match. A directional light casts soft shadows (PCF, 2048 map — one extra render
+pass, cheap at this scene size). If 2D canvas is unavailable, everything falls back to
+flat colors; jsdom tests exercise exactly that path.
 
 React owns every 2D surface (HUD, panels, dialogs). The canvas is managed imperatively by
 a `VoxelRenderer` class that a single `useEffect` mounts and disposes; it syncs from the

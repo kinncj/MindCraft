@@ -13,6 +13,8 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 
 - A 32×32 block world with a grass floor, a rainbow arch, a little tree, and a Magic Delivery Box
 - 13 block types: grass, dirt, stone, wood, leaves, water, cloud, rainbow, star, light, brick, glass, and the Magic Delivery Box
+- Chunky 16×16 pixel-art textures (generated in code — no copied assets), soft sun shadows, clouds
+- The Magic Delivery Box looks the part: kraft cardboard, packing tape, flap seams, and a hand-drawn smiley
 - Place and remove blocks with mouse, keyboard, or the big on-screen buttons
 - The Magic Delivery Box: a friendly cardboard box that stores blocks (tap it to open)
 - Autosave to the browser (IndexedDB), with a small "Saved on this computer" indicator
@@ -93,10 +95,14 @@ MindCraft, everything you need is here. The reasoning is written down in
 
 ## Rendering choice
 
-Three.js with plain (non-React) scene management: one shared box geometry, one cached
-material per block type, one mesh per block. A full floor plus builds is ~1,100 meshes,
-which any laptop handles. React owns the UI; the canvas is imperative. The alternatives
-considered and the trade-offs are in `docs/architecture/adr-0003-rendering-approach.md`.
+Three.js with plain (non-React) scene management: one shared box geometry, cached
+materials per block type, one mesh per block. A full floor plus builds is ~1,100 meshes,
+which any laptop handles. Block textures are 16×16 pixel canvases generated in code at
+startup (no image assets, all original art), rendered with nearest-neighbor filtering for
+the classic chunky-pixel look, plus soft sun shadows and a few clouds. The same generated
+pixels are used as hotbar and panel icons. React owns the UI; the canvas is imperative.
+The alternatives considered and the trade-offs are in
+`docs/architecture/adr-0003-rendering-approach.md`.
 
 ## Current limitations
 
