@@ -10,6 +10,9 @@ export type ExportInput = {
   blocks: PlacedBlock[];
   boxes: MagicDeliveryBox[];
   selectedBlockType: string;
+  visualMode?: string;
+  timeMode?: string;
+  weather?: string;
   exportedAt?: Date;
 };
 
@@ -32,6 +35,10 @@ export function buildWorldExport(input: ExportInput): MindCraftWorldExport {
     inventory: {
       selectedBlockType: input.selectedBlockType,
     },
+    ...(input.visualMode ? { visualMode: { selectedMode: input.visualMode } } : {}),
+    ...(input.timeMode || input.weather
+      ? { settings: { timeMode: input.timeMode, weather: input.weather } }
+      : {}),
     magicDeliveryBoxes: input.boxes.map((box) => ({
       id: box.id,
       name: box.name,

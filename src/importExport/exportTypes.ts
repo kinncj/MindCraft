@@ -34,6 +34,9 @@ export type MindCraftWorldExport = {
   inventory: {
     selectedBlockType: string;
   };
+  visualMode?: {
+    selectedMode: string;
+  };
   magicDeliveryBoxes: Array<{
     id: string;
     name: string;
@@ -54,5 +57,7 @@ export type MindCraftWorldExport = {
   settings?: {
     soundEnabled?: boolean;
     reducedMotion?: boolean;
+    timeMode?: string;
+    weather?: string;
   };
 };

@@ -1,6 +1,14 @@
 import { isKnownBlockType } from '../game/engine/blockRegistry';
 import { WORLD_SIZE, isInsideWorld } from '../game/engine/world';
-import type { MagicDeliveryBox, PlacedBlock } from '../types/game';
+import { isVisualModeId } from '../shaders/visualModes';
+import { isTimeMode, isWeatherMode } from '../storage/settingsRepository';
+import type {
+  MagicDeliveryBox,
+  PlacedBlock,
+  TimeMode,
+  VisualModeId,
+  WeatherMode,
+} from '../types/game';
 import { EXPORT_SCHEMA_VERSION } from './exportTypes';
 
 // 10 MB is far beyond any real MindCraft world (a full 32x32x16 world with
@@ -14,6 +22,9 @@ export type ImportValidationResult =
       blocks: PlacedBlock[];
       boxes: MagicDeliveryBox[];
       selectedBlockType: string | null;
+      visualMode: VisualModeId | null;
+      timeMode: TimeMode | null;
+      weather: WeatherMode | null;
       skippedBlocks: number;
       warnings: string[];
     }
@@ -141,7 +152,24 @@ export function validateWorldImport(raw: unknown): ImportValidationResult {
     ? inventory.selectedBlockType
     : null;
 
-  return { ok: true, worldName, blocks, boxes, selectedBlockType, skippedBlocks, warnings };
+  const rawVisual = isRecord(raw.visualMode) ? raw.visualMode : {};
+  const visualMode = isVisualModeId(rawVisual.selectedMode) ? rawVisual.selectedMode : null;
+  const rawSettings = isRecord(raw.settings) ? raw.settings : {};
+  const timeMode = isTimeMode(rawSettings.timeMode) ? rawSettings.timeMode : null;
+  const weather = isWeatherMode(rawSettings.weather) ? rawSettings.weather : null;
+
+  return {
+    ok: true,
+    worldName,
+    blocks,
+    boxes,
+    selectedBlockType,
+    visualMode,
+    timeMode,
+    weather,
+    skippedBlocks,
+    warnings,
+  };
 }
 
 /** Parses text into a validated world, with friendly errors for bad JSON. */

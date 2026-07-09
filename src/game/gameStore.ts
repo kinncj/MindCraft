@@ -6,9 +6,12 @@ import type {
   MagicDeliveryBox,
   PlacedBlock,
   SaveState,
+  TimeMode,
+  VisualModeId,
+  WeatherMode,
 } from '../types/game';
 import { WORLD_SIZE, isInsideWorld, makeBlock, newBlockId, positionKey } from './engine/world';
-import { createStarterWorld } from './engine/starterWorld';
+import { createStarterWorld, createToyLandWorld } from './engine/starterWorld';
 import { db } from '../storage/db';
 import { WorldRepository } from '../storage/worldRepository';
 import { SettingsRepository, DEFAULT_SETTINGS } from '../storage/settingsRepository';
@@ -16,6 +19,8 @@ import { buildWorldExport, downloadWorldExport } from '../importExport/exportWor
 import { parseWorldImportFile } from '../importExport/validateWorldImport';
 
 export type PanelId = 'none' | 'inventory' | 'magic-box' | 'menu';
+export type ViewMode = 'third' | 'first';
+export type WorldPreset = 'meadow' | 'toyland';
 
 export type GameState = {
   ready: boolean;
@@ -30,8 +35,18 @@ export type GameState = {
   openPanel: PanelId;
   activeBoxId: string | null;
   toast: string | null;
+  viewMode: ViewMode;
+  visualMode: VisualModeId;
+  timeMode: TimeMode;
+  weather: WeatherMode;
 
   init: () => Promise<void>;
+  setViewMode: (mode: ViewMode) => void;
+  toggleViewMode: () => void;
+  setVisualMode: (mode: VisualModeId) => void;
+  setTimeMode: (mode: TimeMode) => void;
+  setWeather: (weather: WeatherMode) => void;
+  petAnimal: (kind: string) => void;
   selectBlockType: (type: BlockTypeId) => void;
   setMode: (mode: InteractionMode) => void;
   placeBlockAt: (pos: BlockPosition) => PlacedBlock | null;
@@ -43,7 +58,7 @@ export type GameState = {
   addItemToBox: (boxId: string, blockType: BlockTypeId) => void;
   takeItemFromBox: (boxId: string, blockType: BlockTypeId) => void;
   clearBox: (boxId: string) => void;
-  resetWorld: () => Promise<void>;
+  resetWorld: (preset?: WorldPreset) => Promise<void>;
   exportWorld: () => void;
   importWorldFromText: (text: string) => Promise<{ ok: boolean; error?: string }>;
   showToast: (message: string) => void;
@@ -82,6 +97,9 @@ export const useGameStore = create<GameState>((set, get) => {
         await settingsRepository.saveSettings({
           worldName: state.worldName,
           selectedBlockType: state.selectedBlockType,
+          visualMode: state.visualMode,
+          timeMode: state.timeMode,
+          weather: state.weather,
         });
         if (changeSeq === seqAtStart) {
           set({ saveState: 'saved' });
@@ -105,6 +123,45 @@ export const useGameStore = create<GameState>((set, get) => {
     openPanel: 'none',
     activeBoxId: null,
     toast: null,
+    viewMode: 'third',
+    visualMode: DEFAULT_SETTINGS.visualMode,
+    timeMode: DEFAULT_SETTINGS.timeMode,
+    weather: DEFAULT_SETTINGS.weather,
+
+    setVisualMode(mode) {
+      set({ visualMode: mode });
+      scheduleAutosave();
+      if (mode === 'claudeDream') get().showToast('Welcome to the dream world! ✨');
+    },
+
+    setTimeMode(mode) {
+      set({ timeMode: mode });
+      scheduleAutosave();
+    },
+
+    setWeather(weather) {
+      set({ weather });
+      scheduleAutosave();
+    },
+
+    petAnimal(kind) {
+      const messages: Record<string, string> = {
+        bunny: '🐰 Boing! The bunny loves you!',
+        chick: '🐤 Cheep cheep! So happy!',
+        butterfly: '🦋 The butterfly does a twirl!',
+      };
+      get().showToast(messages[kind] ?? '💛 Your friend is happy!');
+    },
+
+    setViewMode(mode) {
+      set({ viewMode: mode });
+    },
+
+    toggleViewMode() {
+      const next = get().viewMode === 'third' ? 'first' : 'third';
+      set({ viewMode: next });
+      get().showToast(next === 'first' ? 'Looking through your own eyes! 👀' : 'Back behind you! 🧍');
+    },
 
     async init() {
       // StrictMode mounts effects twice; a second init racing the first
@@ -115,14 +172,20 @@ export const useGameStore = create<GameState>((set, get) => {
       try {
         const saved = await worldRepository.loadWorld();
         const settings = await settingsRepository.loadSettings();
+        const settingsState = {
+          worldName: settings.worldName,
+          selectedBlockType: settings.selectedBlockType,
+          visualMode: settings.visualMode,
+          timeMode: settings.timeMode,
+          weather: settings.weather,
+        };
         if (saved) {
           set({
             ready: true,
             blocks: toRecord(saved.blocks),
             boxes: saved.boxes,
-            worldName: settings.worldName,
-            selectedBlockType: settings.selectedBlockType,
             saveState: 'saved',
+            ...settingsState,
           });
         } else {
           const starter = createStarterWorld();
@@ -130,8 +193,7 @@ export const useGameStore = create<GameState>((set, get) => {
             ready: true,
             blocks: toRecord(starter.blocks),
             boxes: starter.boxes,
-            worldName: settings.worldName,
-            selectedBlockType: settings.selectedBlockType,
+            ...settingsState,
           });
           scheduleAutosave();
         }
@@ -264,9 +326,9 @@ export const useGameStore = create<GameState>((set, get) => {
       scheduleAutosave();
     },
 
-    async resetWorld() {
+    async resetWorld(preset = 'meadow') {
       if (saveTimer) clearTimeout(saveTimer);
-      const starter = createStarterWorld();
+      const starter = preset === 'toyland' ? createToyLandWorld() : createStarterWorld();
       try {
         await worldRepository.clearWorld();
       } catch {
@@ -276,13 +338,17 @@ export const useGameStore = create<GameState>((set, get) => {
         blocks: toRecord(starter.blocks),
         boxes: starter.boxes,
         selectedBlockType: DEFAULT_SETTINGS.selectedBlockType,
-        worldName: DEFAULT_SETTINGS.worldName,
+        worldName: preset === 'toyland' ? 'Toy Land' : DEFAULT_SETTINGS.worldName,
         mode: 'place',
         openPanel: 'none',
         activeBoxId: null,
       });
       scheduleAutosave();
-      get().showToast('Fresh new world! Build something awesome!');
+      get().showToast(
+        preset === 'toyland'
+          ? 'Welcome to Toy Land! The toys are waiting! 🧸'
+          : 'Fresh new world! Build something awesome!',
+      );
     },
 
     exportWorld() {
@@ -294,6 +360,9 @@ export const useGameStore = create<GameState>((set, get) => {
         blocks: Object.values(state.blocks),
         boxes: state.boxes,
         selectedBlockType: state.selectedBlockType,
+        visualMode: state.visualMode,
+        timeMode: state.timeMode,
+        weather: state.weather,
       });
       downloadWorldExport(data);
       get().showToast('World exported! Keep that file safe.');
@@ -310,6 +379,9 @@ export const useGameStore = create<GameState>((set, get) => {
         boxes: result.boxes,
         worldName: result.worldName,
         selectedBlockType: (result.selectedBlockType as BlockTypeId) ?? get().selectedBlockType,
+        visualMode: result.visualMode ?? get().visualMode,
+        timeMode: result.timeMode ?? get().timeMode,
+        weather: result.weather ?? get().weather,
         openPanel: 'none',
         activeBoxId: null,
       });
