@@ -1,8 +1,7 @@
 import { blueprintById, BLUEPRINTS } from '../build/blueprints';
-import type { HouseOptions } from '../build/BuildTools';
-import type { BlockRegistry } from '../blocks/registry';
 import type { Engine } from '../core/Engine';
 import { resolveBlockId } from '../blocks/blocks';
+import { houseOptions, type BuildingArgs } from '../build/buildingKit';
 
 /** build_* tools: the same room/fill/paint/copy/paste/mirror the UI has. */
 export function registerBuildTools(engine: Engine): void {
@@ -54,11 +53,11 @@ export function registerBuildTools(engine: Engine): void {
   });
   tools.register({
     name: 'build_house',
-    description: 'Build a house or castle of any size at (x, z) with its floor at y: width and depth 5-25, floors 1-5, wall and roof block ids, colorful pillars and roof, castle towers.',
-    inputSchema: { type: 'object', properties: { x: int, y: int, z: int, width: int, depth: int, floors: int, wall: { type: 'string' }, roof: { type: 'string' }, colorful: { type: 'boolean' }, castle: { type: 'boolean' } }, required: ['x', 'y', 'z'] },
-    execute: (a: { x: number; y: number; z: number; width?: number; depth?: number; floors?: number; wall?: string; roof?: string; colorful?: boolean; castle?: boolean }) => {
+    description: 'Build any building at (x, z) with its floor at y: type (house, hospital, school, shop, skyscraper, hotel, barn, library, restaurant, firestation, castle), width and depth 5-25, floors 1-10, wall/roof/trim block ids, colorful, furnish (beds, tables, lamps...), sign "cross", flag (canada, brazil, usa, uk, france, italy, germany, japan, portugal, spain, mexico, ireland, rainbow). Doors, stairs between floors, windows, and lamps are always included.',
+    inputSchema: { type: 'object', properties: { x: int, y: int, z: int, type: { type: 'string' }, width: int, depth: int, floors: int, wall: { type: 'string' }, roof: { type: 'string' }, trim: { type: 'string' }, colorful: { type: 'boolean' }, castle: { type: 'boolean' }, furnish: { type: 'boolean' }, sign: { type: 'string' }, flag: { type: 'string' } }, required: ['x', 'y', 'z'] },
+    execute: (a: { x: number; y: number; z: number } & BuildingArgs) => {
       const edits = build.planHouse(a.x, a.y, a.z, houseOptions(engine.registry, a));
-      return { blocks: build.run(a.castle ? 'Build a castle' : 'Build a house', edits) };
+      return { blocks: build.run(`Build a ${a.type ?? (a.castle ? 'castle' : 'house')}`, edits) };
     },
   });
   tools.register({
@@ -98,27 +97,4 @@ export function registerBuildTools(engine: Engine): void {
       return { mirrorX: build.mirrorX };
     },
   });
-}
-
-/** Fills in the house knobs from loose arguments, with safe block fallbacks. */
-export function houseOptions(registry: BlockRegistry, a: { width?: number; depth?: number; floors?: number; wall?: string; roof?: string; colorful?: boolean; castle?: boolean }): HouseOptions {
-  const id = (name: string | undefined, fallback: string): number => {
-    const def = name ? resolveBlockId(name) : undefined;
-    return def?.numericId ?? registry.numericOf(fallback);
-  };
-  const castle = a.castle === true;
-  const wall = id(a.wall, castle ? 'stone_bricks' : 'planks');
-  return {
-    width: a.width ?? 7,
-    depth: a.depth ?? 7,
-    floors: a.floors ?? 1,
-    wall,
-    roof: id(a.roof, castle ? 'stone_bricks' : 'roof_tiles'),
-    floor: registry.numericOf('planks'),
-    glass: registry.numericOf('glass'),
-    chimney: registry.numericOf('brick'),
-    colorful: a.colorful === true,
-    castle,
-    palette: ['color_red', 'color_orange', 'color_yellow', 'color_green', 'color_blue', 'color_purple', 'color_pink'].map((c) => registry.numericOf(c)),
-  };
 }

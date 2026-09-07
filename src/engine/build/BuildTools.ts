@@ -1,6 +1,8 @@
 import type { BlockRegistry } from '../blocks/registry';
 import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
 
+export type FurnitureItem = { id: number; state?: number };
+
 export type HouseOptions = {
   width: number;
   depth: number;
@@ -10,12 +12,31 @@ export type HouseOptions = {
   floor: number;
   glass: number;
   chimney: number;
+  door: number;
+  doorState: number;
+  stairs: number;
+  stairRotation: number;
+  lamp: number | null;
+  lantern: number | null;
+  pole: number;
+  signBlock: number;
+  trim: number | null;
   colorful: boolean;
   /** Castle: taller storeys, battlements, corner towers. */
   castle: boolean;
+  /** Parapet instead of a pitched roof (skyscrapers, hospitals). */
+  flatRoof: boolean;
+  /** Corridor and rooms on big floors. */
+  rooms: boolean;
+  furnish: boolean;
+  /** Items cycled along the inside walls of every floor. */
+  furniture: FurnitureItem[];
+  sign: 'cross' | null;
+  /** Flag bitmap rows (block ids, 0 = gap), top row first; null for no flag. */
+  flag: number[][] | null;
   /** Colour blocks for pillars and roof when colourful. */
   palette: number[];
-};
+}
 import type { CommandHistory } from '../commands/CommandHistory';
 import type { BlockHit } from '../physics/raycast';
 import { DIRECTIONS, WORLD_HEIGHT } from '../world/coords';
@@ -189,59 +210,138 @@ export class BuildTools {
    * wall, ring, tree, line. Centered on (x, z), bottom at y.
    */
   /**
-   * A house of any size: floors with windows, a door in front, a stepped
-   * roof, a chimney on big ones, and corner towers for castles. `colorful`
-   * cycles the palette over pillars and roof, so "a colourful brick
-   * mansion" is exactly that. Everything a kid can describe maps onto
-   * these knobs; nothing is a fixed blueprint.
+   * A building generator, not a blueprint: any footprint, any number of
+   * floors, walls of any block, a real door at ground level, glass
+   * windows, a staircase between every floor with a hole above it, lamps
+   * on the walls and lanterns by the door, corridors and rooms on big
+   * floors, furniture that fits the kind of building, a sign, a stepped
+   * or flat roof, a chimney, castle towers, and a flag on a pole. The
+   * foundation replaces the ground layer so the floor is walkable and the
+   * door opens onto the grass.
    */
   planHouse(x: number, y: number, z: number, opts: HouseOptions): BlockEdit[] {
     const width = Math.max(5, Math.min(25, opts.width | 1));
     const depth = Math.max(5, Math.min(25, opts.depth | 1));
-    const floors = Math.max(1, Math.min(5, opts.floors));
+    const floors = Math.max(1, Math.min(10, opts.floors));
     const palette = opts.palette.length > 0 ? opts.palette : [opts.roof];
+    const storey = opts.castle ? 5 : 4;
+    const groundY = y - 1; // the block the door sits on
     const x0 = x - Math.floor(width / 2);
     const z0 = z - Math.floor(depth / 2);
     const x1 = x0 + width - 1;
     const z1 = z0 + depth - 1;
-    const edits: BlockEdit[] = [];
-    const put = (px: number, py: number, pz: number, id: number): void => {
-      edits.push({ x: px, y: py, z: pz, id, state: 0, entity: null });
+    const cells = new Map<string, BlockEdit>();
+    const put = (px: number, py: number, pz: number, id: number, state = 0): void => {
+      if (py < 0 || py >= WORLD_HEIGHT) return;
+      cells.set(`${px},${py},${pz}`, { x: px, y: py, z: pz, id, state, entity: null });
     };
-    const doorX = Math.floor((x0 + x1) / 2);
     const paint = (i: number): number => palette[((i % palette.length) + palette.length) % palette.length];
-    const storey = opts.castle ? 5 : 4;
+    const trimOrWall = (i: number): number => (opts.colorful ? paint(i) : (opts.trim ?? opts.wall));
+    const doorX = Math.floor((x0 + x1) / 2);
+    const air = 0;
 
-    // Foundation and every floor slab; the top slab is the roof deck.
+    // Foundation at ground level, then a slab per floor; the last slab is the roof deck.
     for (let f = 0; f <= floors; f++) {
-      const py = y + f * storey;
+      const py = groundY + f * storey;
       const last = f === floors;
-      for (let px = x0; px <= x1; px++) for (let pz = z0; pz <= z1; pz++) put(px, py, pz, last ? opts.roof : opts.floor);
+      for (let px = x0; px <= x1; px++) for (let pz = z0; pz <= z1; pz++) put(px, py, pz, last ? opts.roof : f === 0 ? opts.floor : opts.floor);
     }
-    // Walls with windows; corner pillars take the palette when colourful.
+    // Clear the inside so a hill never pokes through, then walls with windows.
     for (let f = 0; f < floors; f++) {
-      const base = y + f * storey;
+      const base = groundY + f * storey;
       for (let px = x0; px <= x1; px++) {
         for (let pz = z0; pz <= z1; pz++) {
           const onX = px === x0 || px === x1;
           const onZ = pz === z0 || pz === z1;
-          if (!onX && !onZ) continue;
-          const corner = onX && onZ;
-          const along = onZ ? px - x0 : pz - z0;
           for (let h = 1; h < storey; h++) {
             const py = base + h;
-            const window = !corner && (h === 2 || h === 3) && along % 2 === 0 && along > 0;
-            const door = f === 0 && pz === z0 && px === doorX && h <= 2;
+            if (!onX && !onZ) {
+              put(px, py, pz, air);
+              continue;
+            }
+            const corner = onX && onZ;
+            const along = onZ ? px - x0 : pz - z0;
+            const window = !corner && (h === 2 || h === 3) && along % 2 === 0 && along > 0 && !(f === 0 && pz === z0 && Math.abs(px - doorX) <= 1);
             let id = opts.wall;
-            if (corner && opts.colorful) id = paint(f);
+            if (corner) id = trimOrWall(f);
             if (window) id = opts.glass;
-            if (door) id = 0;
             put(px, py, pz, id);
           }
         }
       }
     }
-    const top = y + floors * storey;
+    // The front door: a real door block on the ground, headroom above, lanterns either side.
+    put(doorX, groundY + 1, z0, opts.door, opts.doorState);
+    put(doorX, groundY + 2, z0, air);
+    if (opts.lantern) {
+      put(doorX - 1, groundY + 3, z0 - 1, opts.lantern);
+      put(doorX + 1, groundY + 3, z0 - 1, opts.lantern);
+    }
+    // Lamps along the inside walls of every floor.
+    if (opts.lamp) {
+      for (let f = 0; f < floors; f++) {
+        const py = groundY + f * storey + 2;
+        for (let px = x0 + 2; px < x1; px += 4) {
+          put(px, py, z0 + 1, opts.lamp);
+          put(px, py, z1 - 1, opts.lamp);
+        }
+      }
+    }
+    // Rooms: big floors get a corridor down the middle with rooms on both sides.
+    const roomy = opts.rooms && width >= 11 && depth >= 9;
+    if (roomy) {
+      for (let f = 0; f < floors; f++) {
+        const base = groundY + f * storey;
+        const corridorZ0 = z - 1;
+        const corridorZ1 = z + 1;
+        for (let px = x0 + 4; px < x1 - 1; px += 4) {
+          for (let pz = z0 + 1; pz < z1; pz++) {
+            if (pz >= corridorZ0 && pz <= corridorZ1) continue;
+            for (let h = 1; h < storey; h++) put(px, base + h, pz, opts.wall);
+            // A doorway from the corridor into each room.
+            if (pz === corridorZ0 - 1 || pz === corridorZ1 + 1) {
+              put(px, base + 1, pz, air);
+              put(px, base + 2, pz, air);
+            }
+          }
+        }
+        // Room doors face the corridor: openings in the corridor walls are the whole corridor side.
+      }
+    }
+    // Staircases: one flight per floor along the back wall, rising toward +x, with a hole above.
+    const stairRotation = opts.stairRotation;
+    for (let f = 0; f < floors - 1; f++) {
+      const base = groundY + f * storey;
+      const sz = z1 - 2;
+      const sx = x0 + 2;
+      for (let i = 0; i < storey; i++) {
+        const px = sx + i;
+        const py = base + 1 + i;
+        put(px, py, sz, opts.stairs, stairRotation);
+        for (let below = base + 1; below < py; below++) put(px, below, sz, opts.floor);
+        // Headroom over each step.
+        put(px, py + 1, sz, air);
+        put(px, py + 2, sz, air);
+      }
+      // The top step sits in the slab; the headroom cuts carve the way up onto the next floor.
+    }
+    // Furniture that fits the building.
+    if (opts.furnish) {
+      const perFloor = opts.furniture;
+      for (let f = 0; f < floors; f++) {
+        const base = groundY + f * storey;
+        let n = 0;
+        for (let px = x0 + 2; px <= x1 - 2; px += 2) {
+          for (const pz of [z0 + 2, z1 - 3]) {
+            if (f < floors - 1 && Math.abs(pz - (z1 - 2)) <= 1 && px >= x0 + 1 && px <= x0 + 2 + storey) continue; // keep the stairs clear
+            const item = perFloor[n++ % perFloor.length];
+            if (item === undefined) continue;
+            put(px, base + 1, pz, item.id, item.state ?? 0);
+          }
+        }
+      }
+    }
+    const top = groundY + floors * storey;
     if (opts.castle) {
       // Battlements around the roof deck and a tower on every corner.
       for (let px = x0; px <= x1; px++) for (const pz of [z0, z1]) if ((px - x0) % 2 === 0) put(px, top + 1, pz, opts.wall);
@@ -252,20 +352,47 @@ export class BuildTools {
         }
         put(cx, top + 5, cz, opts.colorful ? paint(0) : opts.roof);
       }
-      return edits;
+    } else if (opts.flatRoof) {
+      // A parapet and a roof-top lamp: skyscrapers and hospitals.
+      for (let px = x0; px <= x1; px++) for (const pz of [z0, z1]) put(px, top + 1, pz, trimOrWall(floors));
+      for (let pz = z0; pz <= z1; pz++) for (const px of [x0, x1]) put(px, top + 1, pz, trimOrWall(floors));
+      if (opts.lamp) put(x, top + 1, z, opts.lamp);
+    } else {
+      // Stepped roof and a chimney on the big ones.
+      let k = 1;
+      while (x0 + k <= x1 - k && z0 + k <= z1 - k && k <= 5) {
+        const id = opts.colorful ? paint(k + floors) : opts.roof;
+        for (let px = x0 + k; px <= x1 - k; px++) for (let pz = z0 + k; pz <= z1 - k; pz++) put(px, top + k, pz, id);
+        k++;
+      }
+      if (width >= 9) for (let h = 1; h <= k + 1; h++) put(x1 - 1, top + h, z1 - 1, opts.chimney);
     }
-    // Stepped roof.
-    let k = 1;
-    while (x0 + k <= x1 - k && z0 + k <= z1 - k && k <= 5) {
-      const id = opts.colorful ? paint(k + floors) : opts.roof;
-      for (let px = x0 + k; px <= x1 - k; px++) for (let pz = z0 + k; pz <= z1 - k; pz++) put(px, top + k, pz, id);
-      k++;
+    // A sign on the front: a red cross for hospitals.
+    if (opts.sign === 'cross' && floors >= 1) {
+      const sy = groundY + storey + 1;
+      const cross = opts.signBlock;
+      for (let d = -1; d <= 1; d++) {
+        put(doorX + d, sy, z0, cross);
+        put(doorX, sy + d, z0, cross);
+      }
     }
-    // Chimney on the big ones.
-    if (width >= 9) {
-      for (let h = 1; h <= k + 1; h++) put(x1 - 1, top + h, z1 - 1, opts.chimney);
+    // A flag on a pole to the right of the door.
+    if (opts.flag) {
+      const fx = x1 + 2;
+      const fz = z0;
+      const poleTop = groundY + 9;
+      for (let py = groundY + 1; py <= poleTop; py++) put(fx, py, fz, opts.pole);
+      const rows = opts.flag;
+      const h = rows.length;
+      for (let r = 0; r < h; r++) {
+        const row = rows[r];
+        for (let c = 0; c < row.length; c++) {
+          const id = row[c];
+          if (id > 0) put(fx + 1 + c, poleTop - r, fz, id);
+        }
+      }
     }
-    return edits;
+    return [...cells.values()];
   }
 
   planShape(shape: string, x: number, y: number, z: number, id: number, size = 5): BlockEdit[] {

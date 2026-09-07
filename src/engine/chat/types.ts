@@ -39,6 +39,7 @@ export const CHAT_TOOL_ALLOWLIST = [
   'build_room',
   'world_place_block',
   'world_fill',
+  'villager_spawn',
   'villager_talk',
   'villager_walk_to',
   'villager_stay',

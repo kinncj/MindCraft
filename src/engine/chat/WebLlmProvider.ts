@@ -153,7 +153,8 @@ export async function deleteHelperModel(modelId = DEFAULT_HELPER_MODEL): Promise
  * builds in front of the child. Kept short for a 0.5B model.
  */
 export const TOOL_TEMPLATES: Record<string, string> = {
-  build_house: '{"tool":"build_house","args":{"width":13,"depth":11,"floors":3,"wall":"brick","colorful":true,"castle":false}}  (ANY house, mansion, cottage, or castle; width/depth 5-25, floors 1-5; wall: brick|stone_bricks|planks|glass|sandstone|ice|snow|color_red|color_blue...)',
+  build_house: '{"tool":"build_house","args":{"type":"hospital","width":15,"depth":13,"floors":3,"wall":"color_white","trim":"color_red","colorful":false,"furnish":true,"sign":"cross","flag":"canada"}}  (ANY building: type house|hospital|school|shop|skyscraper|hotel|barn|library|restaurant|firestation|castle; width/depth 5-25; floors 1-10; wall/trim: brick|stone_bricks|planks|glass|sandstone|ice|snow|color_red|color_pink...; doors, stairs, windows, lamps always included)',
+  villager_spawn: '{"tool":"villager_spawn","args":{"job":"doctor","name":"Patient Pat"}}  (job: doctor|teacher|shopkeeper|firefighter|baker|farmer|builder|musician|random)',
   build_stamp_blueprint: '{"tool":"build_stamp_blueprint","args":{"blueprint":"bridge","color":"color_pink"}}  (only for bridge, pool, garden, treehouse; color optional)',
   build_shape: '{"tool":"build_shape","args":{"shape":"pyramid","block":"sandstone","size":6}}  (shape: pyramid|tower|cube|platform|wall|ring|line|tree|arch; size 2-16)',
   build_room: '{"tool":"build_room","args":{"block":"planks"}}  (a small room with a doorway)',
@@ -179,8 +180,9 @@ export const TOOL_TEMPLATES: Record<string, string> = {
 export const PROMPT_EXAMPLES: Array<{ user: string; say: string; actions: string }> = [
   { user: 'hi there', say: "Hi! I'm {name}, the {job}. What shall we make? 😊", actions: '[]' },
   { user: 'go fly an airplane', say: 'Watch me take off! ✈️ Wheee!', actions: '[{"tool":"vehicle_ride","args":{"kind":"plane"}}]' },
-  { user: 'build me a beautiful and colourful brick and mortar mansion, like a massive house', say: 'A massive colourful brick mansion! 🏠 Watch me build it!', actions: '[{"tool":"build_house","args":{"width":13,"depth":11,"floors":3,"wall":"brick","colorful":true,"castle":false}}]' },
-  { user: 'a small pink castle please', say: 'A little pink castle! 🏰', actions: '[{"tool":"build_house","args":{"width":7,"depth":7,"floors":1,"wall":"color_pink","colorful":false,"castle":true}}]' },
+  { user: 'build a massive pink mansion', say: 'A massive pink mansion! 🏠 Watch me build it!', actions: '[{"tool":"build_house","args":{"type":"house","width":15,"depth":13,"floors":3,"wall":"color_pink","furnish":true}}]' },
+  { user: 'a huge hospital with doctors and patients and the canadian flag', say: 'A big hospital with a red cross! 🏥', actions: '[{"tool":"build_house","args":{"type":"hospital","width":15,"depth":13,"floors":3,"wall":"color_white","trim":"color_red","furnish":true,"sign":"cross","flag":"canada"}},{"tool":"villager_spawn","args":{"job":"doctor"}},{"tool":"villager_spawn","args":{"job":"random","name":"Patient Pat"}}]' },
+  { user: 'build a skyscraper', say: 'Up, up, up! 🏙️', actions: '[{"tool":"build_house","args":{"type":"skyscraper","width":9,"depth":9,"floors":6,"wall":"glass","trim":"stone_bricks"}}]' },
   { user: 'make it rain and give me a puppy', say: 'Rain and a puppy! 🌧️🐶', actions: '[{"tool":"weather_set","args":{"weather":"rain"}},{"tool":"pet_adopt","args":{"kind":"dog"}}]' },
 ];
 

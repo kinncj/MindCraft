@@ -8,7 +8,8 @@ import { resolveBlockId } from '../blocks/blocks';
 import type { ToolRegistry } from '../tools/ToolRegistry';
 import { BuiltInModelProvider } from './BuiltInModelProvider';
 import { RuleChatProvider, rotationFromYaw } from './RuleChatProvider';
-import { houseOptions } from '../tools/buildTools';
+import { houseOptions } from '../build/buildingKit';
+import { buildActionsFor, parseBuildRequest } from './buildRequest';
 import type { WebLlmProvider } from './WebLlmProvider';
 import { sharedHelper } from './helperSingleton';
 import { CHAT_TOOL_ALLOWLIST, HANDS_ON_TOOLS, type ChatAction, type ChatContext, type ChatProvider, type ChatReply, type ChatTurn } from './types';
@@ -129,6 +130,16 @@ export class ChatAgent {
         // Rules never throw; keep the chat going regardless.
       }
     }
+    // The child's own words are the spec. A small model tends to copy the example from its
+    // prompt, so when the words describe a building, the parsed building replaces the model's
+    // building call (and brings its people and flag along); the model keeps its own line.
+    if (provider !== 'rules') {
+      const spec = parseBuildRequest(ctx.message);
+      const isBuild = (t: string): boolean => t === 'build_house' || t === 'build_stamp_blueprint' || t === 'build_room';
+      if (spec && (reply.actions.some((x) => isBuild(x.tool)) || reply.actions.length === 0)) {
+        reply = { ...reply, actions: [...buildActionsFor(spec, ctx), ...reply.actions.filter((x) => !isBuild(x.tool) && x.tool !== 'villager_spawn')] };
+      }
+    }
     let performed = await this.perform(villagerId, reply.actions, ctx);
     // The model asked for something that could not be done (unknown blueprint, bad args):
     // the rules know how to do what the child asked, so do that instead.
@@ -150,7 +161,7 @@ export class ChatAgent {
   /** Runs actions: hands-on ones become villager work, the rest are tool calls. */
   async perform(villagerId: string, actions: ChatAction[], ctx: ChatContext): Promise<string[]> {
     const performed: string[] = [];
-    for (const action of actions.slice(0, 3)) {
+    for (const action of actions.slice(0, 8)) {
       if (!(CHAT_TOOL_ALLOWLIST as readonly string[]).includes(action.tool)) continue;
       try {
         if ((HANDS_ON_TOOLS as readonly string[]).includes(action.tool)) {
@@ -193,16 +204,23 @@ export class ChatAgent {
         return { label: `Build ${bp.label}`, edits: this.deps.build.planStamp(bp.stamp, num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), rotation, remap) };
       }
       case 'build_house': {
+        const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
         const opts = houseOptions(this.deps.registry, {
+          type: str(a.type),
           width: typeof a.width === 'number' ? a.width : undefined,
           depth: typeof a.depth === 'number' ? a.depth : undefined,
           floors: typeof a.floors === 'number' ? a.floors : undefined,
-          wall: typeof a.wall === 'string' ? a.wall : undefined,
-          roof: typeof a.roof === 'string' ? a.roof : undefined,
+          wall: str(a.wall),
+          roof: str(a.roof),
+          trim: str(a.trim) ?? null,
           colorful: a.colorful === true,
           castle: a.castle === true,
+          furnish: a.furnish === true,
+          sign: a.sign === 'cross' ? 'cross' : null,
+          flag: str(a.flag) ?? null,
         });
-        return { label: opts.castle ? 'Build a castle' : 'Build a house', edits: this.deps.build.planHouse(num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), opts) };
+        const what = str(a.type) ?? (opts.castle ? 'castle' : 'house');
+        return { label: `Build a ${what}`, edits: this.deps.build.planHouse(num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), opts) };
       }
       case 'build_shape': {
         const id = blockId(a.block) ?? this.deps.registry.numericOf('sandstone');

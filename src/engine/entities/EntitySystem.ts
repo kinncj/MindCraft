@@ -336,7 +336,7 @@ export class EntitySystem implements System {
     const command = new SetBlocksCommand(label, edits);
     command.capture(this.world);
     // Small jobs go block by block; a mansion should still finish in about fifteen seconds.
-    const interval = Math.max(0.012, Math.min(0.12, 15 / Math.max(1, edits.length)));
+    const interval = Math.max(0.005, Math.min(0.12, 15 / Math.max(1, edits.length)));
     entity.work = { label, edits, index: 0, timer: 0, command, interval };
     entity.mood = 'busy';
     entity.savedBrain = entity.savedBrain ?? entity.brain;

@@ -1,30 +1,68 @@
 /**
- * Turns whatever a kid types into a house or castle spec. No fixed
- * blueprints: size words, floor counts, materials, and colours all become
- * knobs on the parametric builder, so "a beautiful and colourful brick
- * and mortar mansion, like a massive house" is a 13×11, three-floor brick
- * house with rainbow pillars and roof.
+ * Turns whatever a kid types into a building spec. No fixed blueprints:
+ * the kind of building, size words, floor counts, materials, colours,
+ * furniture, people, and flags all become knobs on the parametric
+ * builder. "A huge hospital fully furnished with doctors and patients and
+ * the Canadian flag" is a 15×13 three-floor white building with a red
+ * cross, beds and lamps inside, four villagers, and a flag on a pole.
  */
+
+export type BuildingType = 'house' | 'castle' | 'hospital' | 'school' | 'shop' | 'skyscraper' | 'hotel' | 'barn' | 'library' | 'restaurant' | 'firestation';
 
 export type BuildSpec = {
   kind: 'house' | 'castle';
+  type: BuildingType;
   width: number;
   depth: number;
   floors: number;
   /** Block ids. */
   wall: string;
   roof: string;
+  trim: string | null;
   colorful: boolean;
+  furnish: boolean;
+  sign: 'cross' | null;
+  flag: string | null;
+  /** Villagers to spawn beside the building. */
+  people: Array<{ job: string; name?: string; count: number }>;
   /** Words for the reply. */
   label: string;
 };
 
-const HOUSE_WORDS = /\b(house|home|homes|cottage|hut|cabin|mansion|villa|palace|manor|bungalow|apartment|flat|hotel|shop|store|school|hospital|barn|shed|garage|lodge|inn|farmhouse|building|skyscraper|tower block)\b/;
-const CASTLE_WORDS = /\b(castle|fort|fortress|keep|citadel|stronghold)\b/;
+const TYPE_WORDS: Array<[RegExp, BuildingType]> = [
+  [/\b(hospital|clinic|doctor'?s office|medical cent(er|re))\b/, 'hospital'],
+  [/\b(school|classroom|kindergarten|nursery|university)\b/, 'school'],
+  [/\b(shop|store|market|supermarket|bakery|mall)\b/, 'shop'],
+  [/\b(skyscraper|tower block|office tower|high[- ]?rise)\b/, 'skyscraper'],
+  [/\b(hotel|motel|inn)\b/, 'hotel'],
+  [/\b(barn|stable|farmhouse)\b/, 'barn'],
+  [/\b(library)\b/, 'library'],
+  [/\b(restaurant|cafe|café|diner|pizzeria)\b/, 'restaurant'],
+  [/\b(fire ?station|firehouse)\b/, 'firestation'],
+  [/\b(castle|fort|fortress|keep|citadel|stronghold)\b/, 'castle'],
+  [/\b(house|home|homes|cottage|hut|cabin|mansion|villa|palace|manor|bungalow|apartment|flat|building|lodge|shed|garage)\b/, 'house'],
+];
+
+/** Per type: default size class, wall, trim, roof, furniture, sign, and who works there. */
+const TYPE_DEFAULTS: Record<BuildingType, { size: 'small' | 'normal' | 'big' | 'huge'; floors: number; wall: string; trim: string | null; roof: string; furnish: boolean; sign: 'cross' | null; people: Array<{ job: string; name?: string; count: number }> }> = {
+  house: { size: 'normal', floors: 1, wall: 'planks', trim: null, roof: 'roof_tiles', furnish: false, sign: null, people: [] },
+  castle: { size: 'big', floors: 2, wall: 'stone_bricks', trim: null, roof: 'stone_bricks', furnish: false, sign: null, people: [] },
+  hospital: { size: 'huge', floors: 3, wall: 'color_white', trim: 'color_red', roof: 'color_white', furnish: true, sign: 'cross', people: [{ job: 'doctor', count: 2 }] },
+  school: { size: 'big', floors: 2, wall: 'brick', trim: 'color_yellow', roof: 'roof_tiles', furnish: true, sign: null, people: [{ job: 'teacher', count: 1 }] },
+  shop: { size: 'normal', floors: 1, wall: 'planks', trim: 'color_orange', roof: 'roof_tiles', furnish: true, sign: null, people: [{ job: 'shopkeeper', count: 1 }] },
+  skyscraper: { size: 'big', floors: 6, wall: 'glass', trim: 'stone_bricks', roof: 'stone_bricks', furnish: false, sign: null, people: [] },
+  hotel: { size: 'huge', floors: 4, wall: 'sandstone', trim: 'color_blue', roof: 'roof_tiles', furnish: true, sign: null, people: [{ job: 'shopkeeper', name: 'Concierge', count: 1 }] },
+  barn: { size: 'big', floors: 1, wall: 'planks', trim: 'color_red', roof: 'color_red', furnish: false, sign: null, people: [{ job: 'farmer', count: 1 }] },
+  library: { size: 'big', floors: 2, wall: 'stone_bricks', trim: 'planks', roof: 'roof_tiles', furnish: true, sign: null, people: [{ job: 'teacher', name: 'Librarian', count: 1 }] },
+  restaurant: { size: 'normal', floors: 1, wall: 'brick', trim: 'color_red', roof: 'roof_tiles', furnish: true, sign: null, people: [{ job: 'baker', name: 'Chef', count: 1 }] },
+  firestation: { size: 'big', floors: 2, wall: 'color_red', trim: 'color_white', roof: 'stone_bricks', furnish: false, sign: null, people: [{ job: 'firefighter', count: 2 }] },
+};
+
+const SIZES = { small: [5, 5, 1], normal: [7, 7, 1], big: [9, 9, 2], huge: [15, 13, 3] } as const;
 
 const MATERIALS: Array<[RegExp, string, string]> = [
   [/\bbricks?\b|\bbrick and mortar\b|\bmortar\b/, 'brick', 'brick'],
-  [/\bstone bricks?\b|\bstone\b|\brock\b|\bcastle stone\b/, 'stone_bricks', 'stone'],
+  [/\bstone bricks?\b|\bstone\b|\brock\b/, 'stone_bricks', 'stone'],
   [/\bcobble(stone)?\b/, 'cobblestone', 'cobblestone'],
   [/\bsandstone\b|\bsand\b/, 'sandstone', 'sandstone'],
   [/\bglass\b|\bcrystal\b/, 'glass', 'glass'],
@@ -36,27 +74,65 @@ const MATERIALS: Array<[RegExp, string, string]> = [
 ];
 
 const COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'white', 'black', 'brown'];
-const NUMBER_WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5 };
+const NUMBER_WORDS: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10 };
+
+/** People words → villager jobs (patients and guests are plain neighbors with a fitting name). */
+const PEOPLE_WORDS: Array<[RegExp, string, string | undefined]> = [
+  [/\b(doctors?|nurses?|surgeons?)\b/, 'doctor', undefined],
+  [/\b(patients?|sick people)\b/, 'random', 'Patient'],
+  [/\b(teachers?|professors?)\b/, 'teacher', undefined],
+  [/\b(students?|pupils?|kids|children)\b/, 'random', 'Student'],
+  [/\b(shopkeepers?|cashiers?|sellers?)\b/, 'shopkeeper', undefined],
+  [/\b(customers?|shoppers?|guests?|visitors?)\b/, 'random', 'Guest'],
+  [/\b(firefighters?|firemen|fireman)\b/, 'firefighter', undefined],
+  [/\b(bakers?|chefs?|cooks?)\b/, 'baker', undefined],
+  [/\b(farmers?)\b/, 'farmer', undefined],
+  [/\b(builders?|workers?)\b/, 'builder', undefined],
+  [/\b(musicians?|singers?|band)\b/, 'musician', undefined],
+  [/\b(people|villagers|neighbou?rs|friends|family)\b/, 'random', undefined],
+];
+
+const FLAGS: Array<[RegExp, string]> = [
+  [/\b(canada|canadian)\b/, 'canada'],
+  [/\b(brazil|brazilian|brasil)\b/, 'brazil'],
+  [/\b(usa|america|american|united states|stars and stripes)\b/, 'usa'],
+  [/\b(uk|britain|british|england|english|union jack)\b/, 'uk'],
+  [/\b(france|french)\b/, 'france'],
+  [/\b(italy|italian)\b/, 'italy'],
+  [/\b(germany|german)\b/, 'germany'],
+  [/\b(japan|japanese)\b/, 'japan'],
+  [/\b(portugal|portuguese)\b/, 'portugal'],
+  [/\b(spain|spanish)\b/, 'spain'],
+  [/\b(mexico|mexican)\b/, 'mexico'],
+  [/\b(ireland|irish)\b/, 'ireland'],
+  [/\b(rainbow|pride)\b/, 'rainbow'],
+];
 
 export function parseBuildRequest(raw: string): BuildSpec | null {
   const text = raw.toLowerCase();
-  const castle = CASTLE_WORDS.test(text);
-  if (!castle && !HOUSE_WORDS.test(text)) return null;
+  let type: BuildingType | null = null;
+  for (const [pattern, t] of TYPE_WORDS) {
+    if (pattern.test(text)) {
+      type = t;
+      break;
+    }
+  }
+  if (!type) return null;
+  const d = TYPE_DEFAULTS[type];
 
-  // Size: words first, "mansion"-class nouns imply huge, numbers override.
-  const huge = /\b(huge|massive|giant|enormous|gigantic|humongous|mega|biggest|largest)\b|\b(mansion|palace|manor|hotel|hospital|school|skyscraper|fortress|citadel|stronghold)\b/.test(text);
+  // Size: the type's default, then words, then numbers.
+  const huge = /\b(huge|massive|giant|enormous|gigantic|humongous|mega|biggest|largest)\b|\b(mansion|palace|manor)\b/.test(text);
   const big = /\b(big|large|tall|grand|wide|long)\b/.test(text);
   const small = /\b(tiny|small|little|mini|cute|wee|baby)\b/.test(text);
-  let width = huge ? 13 : big ? 9 : small ? 5 : 7;
-  let depth = huge ? 11 : big ? 9 : small ? 5 : 7;
-  let floors = huge ? 3 : big ? 2 : 1;
-  if (/\bskyscraper\b/.test(text)) {
-    width = 9;
-    depth = 9;
-    floors = 5;
-  }
-  const floorMatch = /\b(one|two|three|four|five|\d)\s*(floors?|stor(e)?ys?|stories|levels?)\b/.exec(text);
-  if (floorMatch) floors = Math.max(1, Math.min(5, NUMBER_WORDS[floorMatch[1]] ?? floors));
+  const sizeClass = huge ? 'huge' : big && d.size !== 'huge' ? 'big' : small ? 'small' : d.size;
+  const sized = SIZES[sizeClass];
+  let width: number = sized[0];
+  let depth: number = sized[1];
+  const floorsBySize: number = sized[2];
+  let floors = Math.max(d.floors, huge ? 3 : big ? 2 : floorsBySize);
+  if (type === 'skyscraper') floors = Math.max(6, floors);
+  const floorMatch = /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d{1,2})\s*(floors?|stor(e)?ys?|stories|levels?)\b/.exec(text);
+  if (floorMatch) floors = Math.max(1, Math.min(10, NUMBER_WORDS[floorMatch[1]] ?? Number(floorMatch[1]) ?? floors));
   const sizeMatch = /\b(\d{1,2})\s*(x|by)\s*(\d{1,2})\b/.exec(text);
   if (sizeMatch) {
     width = Math.max(5, Math.min(25, Number(sizeMatch[1])));
@@ -64,8 +140,8 @@ export function parseBuildRequest(raw: string): BuildSpec | null {
   }
 
   // Material and colour.
-  let wall = castle ? 'stone_bricks' : 'planks';
-  let materialWord = castle ? 'stone' : 'wooden';
+  let wall = d.wall;
+  let materialWord = '';
   let explicit = false;
   for (const [pattern, id, word] of MATERIALS) {
     if (pattern.test(text)) {
@@ -77,14 +153,60 @@ export function parseBuildRequest(raw: string): BuildSpec | null {
   }
   const colors = COLORS.filter((c) => new RegExp(`\\b${c}\\b`).test(text));
   const colorful = /\b(colou?rful|colou?rs|colored|coloured|multicolou?r(ed)?|rainbow|bright|sparkly|fancy|beautiful|pretty|magical)\b/.test(text) || colors.length > 1;
+  let trim = d.trim;
   if (!explicit && colors.length === 1) {
     wall = `color_${colors[0]}`;
     materialWord = colors[0];
+    if (trim === wall) trim = 'color_white';
   }
-  const roof = colorful ? 'rainbow' : castle ? 'stone_bricks' : wall === 'planks' ? 'roof_tiles' : wall === 'brick' ? 'roof_tiles' : wall;
+  const roof = colorful ? 'rainbow' : explicit ? (wall === 'planks' || wall === 'brick' ? 'roof_tiles' : wall) : d.roof;
+
+  // Furniture, people, flag.
+  const furnish = d.furnish || /\b(furnish|furnished|furniture|beds?|tables?|chairs?|inside|interior|decorat)/.test(text);
+  const people: BuildSpec['people'] = [];
+  for (const [pattern, job, name] of PEOPLE_WORDS) {
+    const m = new RegExp(`\\b(a|an|one|two|three|four|five|six|\\d)\\s+(?:\\w+\\s+){0,2}?${pattern.source.slice(2, -2)}`).exec(text);
+    if (!pattern.test(text)) continue;
+    const count = m ? (NUMBER_WORDS[m[1]] ?? Number(m[1]) ?? 2) : 2;
+    people.push({ job, name, count: Math.max(1, Math.min(6, count)) });
+  }
+  if (people.length === 0 && /\b(with|and)\b/.test(text) === false) people.push(...d.people);
+  else if (people.length === 0) people.push(...d.people);
+  let flag: string | null = null;
+  if (/\bflag\b/.test(text)) {
+    for (const [pattern, name] of FLAGS) if (pattern.test(text)) flag = name;
+    if (!flag) flag = 'rainbow';
+  }
 
   const sizeWord = huge ? 'massive' : big ? 'big' : small ? 'little' : '';
-  const noun = castle ? 'castle' : /\bmansion\b/.test(text) ? 'mansion' : /\bpalace\b/.test(text) ? 'palace' : /\bcottage\b/.test(text) ? 'cottage' : /\btower block|skyscraper\b/.test(text) ? 'skyscraper' : 'house';
+  const noun = type === 'house' ? (/\bmansion\b/.test(text) ? 'mansion' : /\bpalace\b/.test(text) ? 'palace' : /\bcottage\b/.test(text) ? 'cottage' : 'house') : type === 'firestation' ? 'fire station' : type;
   const label = [sizeWord, colorful ? 'colourful' : '', materialWord, noun].filter(Boolean).join(' ');
-  return { kind: castle ? 'castle' : 'house', width, depth, floors, wall, roof, colorful, label };
+  return { kind: type === 'castle' ? 'castle' : 'house', type, width, depth, floors, wall, roof, trim, colorful, furnish, sign: d.sign, flag, people, label };
+}
+
+import type { ChatAction, ChatContext } from './types';
+
+/** The tool calls that make a spec real: the building, then its people beside it. */
+export function buildActionsFor(spec: BuildSpec, ctx: ChatContext): ChatAction[] {
+  const at = ctx.site;
+  const actions: ChatAction[] = [
+    {
+      tool: 'build_house',
+      args: {
+        x: at.x, y: at.y, z: at.z,
+        type: spec.type, width: spec.width, depth: spec.depth, floors: spec.floors,
+        wall: spec.wall, roof: spec.roof, trim: spec.trim, colorful: spec.colorful, castle: spec.kind === 'castle',
+        furnish: spec.furnish, sign: spec.sign, flag: spec.flag,
+      },
+    },
+  ];
+  let i = 0;
+  for (const person of spec.people) {
+    for (let n = 0; n < person.count; n++) {
+      const angle = (i++ / 6) * Math.PI * 2;
+      const name = person.name ? `${person.name} ${String.fromCharCode(65 + (i % 26))}` : undefined;
+      actions.push({ tool: 'villager_spawn', args: { job: person.job, ...(name ? { name } : {}), x: Math.round(at.x + Math.cos(angle) * (spec.width / 2 + 2)), z: Math.round(at.z - spec.depth / 2 - 3 + Math.sin(angle) * 2) } });
+    }
+  }
+  return actions;
 }
