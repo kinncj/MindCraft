@@ -1,7 +1,8 @@
 import { blueprintById, BLUEPRINTS } from '../build/blueprints';
 import type { Engine } from '../core/Engine';
 import { resolveBlockId } from '../blocks/blocks';
-import { houseOptions, type BuildingArgs } from '../build/buildingKit';
+import { earthworkOptions, houseOptions, type BuildingArgs } from '../build/buildingKit';
+import type { EarthworkKind } from '../build/BuildTools';
 import { houseLayout } from '../build/BuildTools';
 
 /** build_* tools: the same room/fill/paint/copy/paste/mirror the UI has. */
@@ -63,6 +64,15 @@ export function registerBuildTools(engine: Engine): void {
       const layout = houseLayout(a.x, a.y, a.z, opts);
       if (layout.shaft) engine.entities.spawnLift(layout.shaft.x + 0.5, layout.stops[0], layout.shaft.z + 0.5, layout.stops);
       return { blocks, elevator: layout.shaft !== null };
+    },
+  });
+  tools.register({
+    name: 'build_dig',
+    description: 'Dig something at (x, z) with the ground surface at y: kind pool (in-ground, tiled, with a ladder), raisedPool (above ground), lake, pond, pit, bunker (underground room with stairs and lights), tunnel (along +x), well, moat. width and length in blocks, depth in blocks down.',
+    inputSchema: { type: 'object', properties: { x: int, y: int, z: int, kind: { type: 'string', enum: ['pool', 'raisedPool', 'lake', 'pond', 'pit', 'bunker', 'tunnel', 'well', 'moat'] }, width: int, length: int, depth: int }, required: ['x', 'y', 'z', 'kind'] },
+    execute: (a: { x: number; y: number; z: number; kind: EarthworkKind; width?: number; length?: number; depth?: number }) => {
+      const edits = build.planEarthwork(a.kind, a.x, a.y, a.z, earthworkOptions(engine.registry, a));
+      return { blocks: build.run(`Dig a ${a.kind}`, edits) };
     },
   });
   tools.register({

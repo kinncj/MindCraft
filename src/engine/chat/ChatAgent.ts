@@ -8,9 +8,10 @@ import { resolveBlockId } from '../blocks/blocks';
 import type { ToolRegistry } from '../tools/ToolRegistry';
 import { BuiltInModelProvider } from './BuiltInModelProvider';
 import { RuleChatProvider, rotationFromYaw } from './RuleChatProvider';
-import { houseOptions } from '../build/buildingKit';
+import { EARTHWORK_KINDS, earthworkOptions, houseOptions } from '../build/buildingKit';
+import type { EarthworkKind } from '../build/BuildTools';
 import { houseLayout } from '../build/BuildTools';
-import { buildActionsFor, parseBuildRequest } from './buildRequest';
+import { buildActionsFor, parseBuildRequest, parseEarthwork } from './buildRequest';
 import type { WebLlmProvider } from './WebLlmProvider';
 import { sharedHelper } from './helperSingleton';
 import { CHAT_TOOL_ALLOWLIST, HANDS_ON_TOOLS, type ChatAction, type ChatContext, type ChatProvider, type ChatReply, type ChatTurn } from './types';
@@ -136,9 +137,14 @@ export class ChatAgent {
     // building call (and brings its people and flag along); the model keeps its own line.
     if (provider !== 'rules') {
       const spec = parseBuildRequest(ctx.message);
-      const isBuild = (t: string): boolean => t === 'build_house' || t === 'build_stamp_blueprint' || t === 'build_room';
+      const isBuild = (t: string): boolean => t === 'build_house' || t === 'build_stamp_blueprint' || t === 'build_room' || t === 'build_dig';
       if (spec && (reply.actions.some((x) => isBuild(x.tool)) || reply.actions.length === 0)) {
         reply = { ...reply, actions: [...buildActionsFor(spec, ctx), ...reply.actions.filter((x) => !isBuild(x.tool) && x.tool !== 'villager_spawn')] };
+      } else if (!spec) {
+        const dig = parseEarthwork(ctx.message);
+        if (dig && (reply.actions.some((x) => isBuild(x.tool)) || reply.actions.length === 0)) {
+          reply = { ...reply, actions: [{ tool: 'build_dig', args: { x: ctx.site.x, y: ctx.site.y, z: ctx.site.z, ...dig } }, ...reply.actions.filter((x) => !isBuild(x.tool))] };
+        }
       }
     }
     let performed = await this.perform(villagerId, reply.actions, ctx);
@@ -232,6 +238,11 @@ export class ChatAgent {
         if (layout.shaft) this.deps.entities.spawnLift(layout.shaft.x + 0.5, layout.stops[0], layout.shaft.z + 0.5, layout.stops);
         const what = str(a.type) ?? (opts.castle ? 'castle' : 'house');
         return { label: `Build a ${what}`, edits: this.deps.build.planHouse(num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), opts) };
+      }
+      case 'build_dig': {
+        const kind = typeof a.kind === 'string' && (EARTHWORK_KINDS as string[]).includes(a.kind) ? (a.kind as EarthworkKind) : 'pond';
+        const opts = earthworkOptions(this.deps.registry, { kind, width: typeof a.width === 'number' ? a.width : undefined, length: typeof a.length === 'number' ? a.length : undefined, depth: typeof a.depth === 'number' ? a.depth : undefined });
+        return { label: `Dig a ${kind}`, edits: this.deps.build.planEarthwork(kind, num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), opts) };
       }
       case 'build_shape': {
         const id = blockId(a.block) ?? this.deps.registry.numericOf('sandstone');

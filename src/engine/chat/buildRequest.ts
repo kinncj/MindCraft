@@ -271,3 +271,52 @@ export function buildActionsFor(spec: BuildSpec, ctx: ChatContext): ChatAction[]
   }
   return actions;
 }
+
+/** Digging jobs: what kind, how big, how deep. Null when the words are not about digging. */
+export type EarthworkSpec = { kind: 'pool' | 'raisedPool' | 'lake' | 'pond' | 'pit' | 'bunker' | 'tunnel' | 'well' | 'moat'; width?: number; length?: number; depth?: number; label: string };
+
+const EARTHWORK_WORDS: Array<[RegExp, EarthworkSpec['kind']]> = [
+  [/\b(above[- ]?ground|on[- ]?ground|raised) (swimming )?pools?\b/, 'raisedPool'],
+  [/\b(in[- ]?ground |underground |swimming |dig (a |an |me a )?)?pools?\b/, 'pool'],
+  [/\blakes?\b/, 'lake'],
+  [/\bponds?\b/, 'pond'],
+  [/\b(bunkers?|basements?|cellars?|underground (rooms?|dens?|bases?|hideouts?)|secret bases?)\b/, 'bunker'],
+  [/\b(tunnels?|caves?|mines?|mineshafts?)\b/, 'tunnel'],
+  [/\bwells?\b/, 'well'],
+  [/\bmoats?\b/, 'moat'],
+  [/\b(pits?|holes?|trench(es)?|ditch(es)?|dig (a |an )?holes?)\b/, 'pit'],
+];
+
+export function parseEarthwork(raw: string): EarthworkSpec | null {
+  const text = raw.toLowerCase();
+  let kind: EarthworkSpec['kind'] | null = null;
+  for (const [pattern, k] of EARTHWORK_WORDS) {
+    if (pattern.test(text)) {
+      kind = k;
+      break;
+    }
+  }
+  if (!kind) return null;
+  const spec: EarthworkSpec = { kind, label: kind === 'raisedPool' ? 'above-ground pool' : kind };
+  const sizeMatch = /\b(\d{1,2})\s*(x|by)\s*(\d{1,2})\b/.exec(text);
+  if (sizeMatch) {
+    spec.width = Math.max(3, Math.min(48, Number(sizeMatch[1])));
+    spec.length = Math.max(3, Math.min(48, Number(sizeMatch[3])));
+  } else if (/\b(huge|massive|giant|enormous|gigantic|biggest)\b/.test(text)) {
+    spec.width = kind === 'lake' ? 30 : 12;
+    spec.length = kind === 'lake' ? 20 : 9;
+  } else if (/\b(big|large|long|wide)\b/.test(text)) {
+    spec.width = kind === 'lake' ? 22 : 9;
+    spec.length = kind === 'lake' ? 16 : 7;
+  } else if (/\b(tiny|small|little|mini)\b/.test(text)) {
+    spec.width = 4;
+    spec.length = 4;
+  }
+  const depthMatch = /\b(\d{1,2})\s*(blocks? )?deep\b/.exec(text);
+  if (depthMatch) spec.depth = Math.max(1, Math.min(12, Number(depthMatch[1])));
+  else if (/\b(very deep|really deep|super deep)\b/.test(text)) spec.depth = 8;
+  else if (/\bdeep\b/.test(text)) spec.depth = 5;
+  else if (/\bshallow\b/.test(text)) spec.depth = 1;
+  if (kind === 'tunnel' && /\b(\d{1,2})\s*(blocks? )?long\b/.test(text)) spec.length = Math.max(3, Math.min(48, Number(/\b(\d{1,2})\s*(blocks? )?long\b/.exec(text)![1])));
+  return spec;
+}

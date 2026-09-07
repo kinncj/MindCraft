@@ -1,11 +1,44 @@
 import type { BlockRegistry } from '../blocks/registry';
 import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
+import { ensureLivable, type BuildingLayout } from './livability';
+
+/** Where the generator reports its layout for callers and tests. */
+export type BuildingLayoutOut = { layout?: BuildingLayout };
 import { BlockState } from '../blocks/BlockState';
 import { DIR_NX, DIR_PX, rotationToDirection } from '../world/coords';
 
 /** Quarter turns that make a piston face +x and -x. */
 const PISTON_FACING_PX = [0, 1, 2, 3].find((r) => rotationToDirection(r) === DIR_PX) ?? 1;
 const PISTON_FACING_NX = [0, 1, 2, 3].find((r) => rotationToDirection(r) === DIR_NX) ?? 3;
+
+export type EarthworkKind = 'pool' | 'raisedPool' | 'lake' | 'pond' | 'pit' | 'bunker' | 'tunnel' | 'well' | 'moat';
+
+export type EarthworkKit = {
+  water: number;
+  sand: number;
+  stone: number;
+  tile: number;
+  ladder: number;
+  stairs: number;
+  fence: number;
+  roof: number;
+  bed: number;
+  table: number;
+  box: number;
+  glow: number;
+  lamp: number | null;
+  lantern: number | null;
+};
+
+export type EarthworkOptions = {
+  width: number;
+  length: number;
+  depth: number;
+  /** Natural, rounded outline (lakes, ponds). */
+  round: boolean;
+  stairRotationDown: number;
+  kit: EarthworkKit;
+};
 
 export type FurnitureItem = { id: number; state?: number; /** Something on top (a TV on a table). */ on?: number };
 
@@ -292,7 +325,7 @@ export class BuildTools {
    * foundation replaces the ground layer so the floor is walkable and the
    * door opens onto the grass.
    */
-  planHouse(x: number, y: number, z: number, opts: HouseOptions): BlockEdit[] {
+  planHouse(x: number, y: number, z: number, opts: HouseOptions, out?: BuildingLayoutOut): BlockEdit[] {
     const width = Math.max(5, Math.min(25, opts.width | 1));
     const depth = Math.max(5, Math.min(25, opts.depth | 1));
     const floors = Math.max(1, Math.min(10, opts.floors));
@@ -420,6 +453,18 @@ export class BuildTools {
             for (let h = 1; h < storey; h++) put(px, base + h, pz, opts.wall);
           }
         }
+        // The front door opens onto a lobby passage straight through to the corridor.
+        if (f === 0) {
+          for (let pz = z0 + 1; pz < corridorZ0; pz++) {
+            for (const px of [doorX, doorX + 1]) {
+              for (let h = 1; h < storey; h++) {
+                const here = cells.get(`${px},${base + h},${pz}`);
+                if (here && (here.id === opts.plate || here.id === opts.wire)) continue; // keep the door's plate
+                put(px, base + h, pz, air);
+              }
+            }
+          }
+        }
         // Corridor walls with a doorway into every room.
         const edges = [x0, ...walls, x1];
         for (let i = 0; i + 1 < edges.length; i++) {
@@ -441,13 +486,17 @@ export class BuildTools {
     }
     // Staircases: one flight per floor along the back wall, rising toward +x, with a hole above.
     const stairRotation = opts.stairRotation;
+    const stairFlights: Array<Array<{ x: number; y: number; z: number }>> = [];
     for (let f = 0; f < floors - 1; f++) {
       const base = groundY + f * storey;
       const sz = z1 - 2;
       const sx = x0 + 2;
+      const flight: Array<{ x: number; y: number; z: number }> = [];
+      stairFlights.push(flight);
       for (let i = 0; i < storey; i++) {
         const px = sx + i;
         const py = base + 1 + i;
+        flight.push({ x: px, y: py, z: sz });
         // Two blocks wide, filled in underneath, a railing on the open side.
         for (const pz of [sz, sz + 1]) {
           put(px, py, pz, opts.stairs, stairRotation);
@@ -488,6 +537,7 @@ export class BuildTools {
         for (let pz = room.z0; pz <= room.z1; pz += 2) {
           for (let px = room.x0; px <= room.x1; px += 2) {
             if (px === Math.floor((room.x0 + room.x1) / 2) && (pz === room.z0 || pz === room.z1)) continue; // leave the doorway free
+            if (room.base === groundY && pz < z && (px === doorX || px === doorX + 1 || px === doorX - 1)) continue; // and the lobby
             if (layout.shaft && Math.abs(px - layout.shaft.x - 0.5) < 2 && Math.abs(pz - layout.shaft.z - 0.5) < 2) continue; // and the lift
             const item = set[n++ % set.length];
             put(px, room.base + 1, pz, item.id, item.state ?? 0);
@@ -561,6 +611,23 @@ export class BuildTools {
         }
       }
     }
+    // The rules every building must pass: a clear, tall door on the ground; stairs that arrive; lit rooms with doorways.
+    const livability: BuildingLayout = {
+      groundY,
+      storey,
+      floors,
+      doorCells: opts.pistonDoor ? [doorX, doorX + 1] : doorCells,
+      doorZ: z0,
+      doorHeight: opts.pistonDoor ? 2 : doorH,
+      outward: -1,
+      rooms: roomRects,
+      stairs: stairFlights,
+      air,
+      lamp: opts.lamp,
+      wall: opts.wall,
+    };
+    ensureLivable(cells, livability, opts.door, new Set([opts.plate ?? -1, opts.wire ?? -1].filter((id) => id >= 0)));
+    if (out) out.layout = livability;
     // Outdoor features, laid out around the building: right, then left, then behind.
     const slots = [
       { x: x1 + 4, z: z0, dir: 1 },
@@ -679,6 +746,200 @@ export class BuildTools {
         break;
       }
     }
+  }
+
+  /**
+   * Digging jobs: villagers remove blocks as readily as they place them.
+   * In-ground pools, lakes, ponds, pits, bunkers with stairs down, tunnels,
+   * wells, moats. `y` is the ground surface (first air block); depth is how
+   * many blocks down.
+   */
+  planEarthwork(kind: EarthworkKind, x: number, y: number, z: number, opts: EarthworkOptions): BlockEdit[] {
+    const width = Math.max(3, Math.min(48, opts.width | 0));
+    const length = Math.max(3, Math.min(48, opts.length | 0));
+    const groundY = y - 1;
+    // Never dig below the world: keep at least two blocks of floor under the deepest point.
+    const depth = Math.max(1, Math.min(12, opts.depth | 0, Math.max(1, groundY - 3)));
+    const x0 = x - Math.floor(width / 2);
+    const z0 = z - Math.floor(length / 2);
+    const x1 = x0 + width - 1;
+    const z1 = z0 + length - 1;
+    const cells = new Map<string, BlockEdit>();
+    const put = (px: number, py: number, pz: number, id: number, state = 0): void => {
+      if (py < 0 || py >= WORLD_HEIGHT) return;
+      cells.set(`${px},${py},${pz}`, { x: px, y: py, z: pz, id, state, entity: null });
+    };
+    const k = opts.kit;
+    const inside = (px: number, pz: number): boolean => {
+      if (!opts.round) return px >= x0 && px <= x1 && pz >= z0 && pz <= z1;
+      const cx = (x0 + x1) / 2;
+      const cz = (z0 + z1) / 2;
+      const nx = (px - cx) / (width / 2);
+      const nz = (pz - cz) / (length / 2);
+      // A wobbly ellipse so lakes look natural.
+      const wobble = 1 + 0.12 * Math.sin(px * 0.9 + pz * 0.4) + 0.1 * Math.cos(pz * 0.7 - px * 0.3);
+      return nx * nx + nz * nz <= wobble;
+    };
+    const clearAbove = (px: number, pz: number): void => {
+      for (let h = 1; h <= 3; h++) put(px, groundY + h, pz, 0);
+    };
+    switch (kind) {
+      case 'pool': {
+        // A tiled in-ground pool: rim, lined walls and floor, water to the brim.
+        for (let px = x0 - 1; px <= x1 + 1; px++) for (let pz = z0 - 1; pz <= z1 + 1; pz++) {
+          const rim = px < x0 || px > x1 || pz < z0 || pz > z1;
+          clearAbove(px, pz);
+          if (rim) {
+            put(px, groundY, pz, k.tile);
+            for (let d = 1; d <= depth; d++) put(px, groundY - d, pz, k.tile);
+            continue;
+          }
+          for (let d = 0; d < depth; d++) put(px, groundY - d, pz, k.water);
+          put(px, groundY - depth, pz, k.tile);
+        }
+        // A ladder into the water and a lantern at the corner.
+        for (let d = 0; d < depth; d++) put(x0, groundY - d, z0 - 1, k.ladder);
+        if (k.lantern) put(x1 + 1, groundY + 1, z1 + 1, k.lantern);
+        break;
+      }
+      case 'raisedPool': {
+        // An above-ground pool: walls two high on the ground, water inside, a ladder.
+        for (let px = x0 - 1; px <= x1 + 1; px++) for (let pz = z0 - 1; pz <= z1 + 1; pz++) {
+          const rim = px < x0 || px > x1 || pz < z0 || pz > z1;
+          clearAbove(px, pz);
+          put(px, groundY, pz, k.tile);
+          if (rim) {
+            put(px, groundY + 1, pz, k.tile);
+            put(px, groundY + 2, pz, k.tile);
+          } else {
+            put(px, groundY + 1, pz, k.water);
+            put(px, groundY + 2, pz, k.water);
+          }
+        }
+        for (let h = 1; h <= 3; h++) put(x0 - 2, groundY + h, z0, k.ladder);
+        break;
+      }
+      case 'lake':
+      case 'pond': {
+        // A natural basin: sand shore, deeper toward the middle, water to ground level.
+        const cx = (x0 + x1) / 2;
+        const cz = (z0 + z1) / 2;
+        for (let px = x0 - 2; px <= x1 + 2; px++) for (let pz = z0 - 2; pz <= z1 + 2; pz++) {
+          if (!inside(px, pz)) {
+            if (inside(px - 1, pz) || inside(px + 1, pz) || inside(px, pz - 1) || inside(px, pz + 1)) put(px, groundY, pz, k.sand);
+            continue;
+          }
+          clearAbove(px, pz);
+          const nx = (px - cx) / (width / 2);
+          const nz = (pz - cz) / (length / 2);
+          const edge = Math.sqrt(nx * nx + nz * nz);
+          const here = Math.max(1, Math.round(depth * (1 - edge * 0.8)));
+          for (let d = 0; d < here; d++) put(px, groundY - d, pz, k.water);
+          put(px, groundY - here, pz, k.sand);
+        }
+        break;
+      }
+      case 'pit': {
+        for (let px = x0; px <= x1; px++) for (let pz = z0; pz <= z1; pz++) {
+          clearAbove(px, pz);
+          for (let d = 0; d < depth; d++) put(px, groundY - d, pz, 0);
+        }
+        // A ladder out, so nobody is stuck.
+        for (let d = 0; d < depth; d++) put(x0, groundY - d, z0, k.ladder);
+        break;
+      }
+      case 'bunker': {
+        // An underground room with a lit staircase down from a hatch on the surface.
+        const floorY = groundY - depth - 1;
+        for (let px = x0 - 1; px <= x1 + 1; px++) for (let pz = z0 - 1; pz <= z1 + 1; pz++) {
+          const wall = px < x0 || px > x1 || pz < z0 || pz > z1;
+          for (let py = floorY; py <= floorY + 4; py++) {
+            if (wall || py === floorY || py === floorY + 4) put(px, py, pz, k.stone);
+            else put(px, py, pz, 0);
+          }
+        }
+        for (let px = x0 + 1; px < x1; px += 3) {
+          put(px, floorY + 3, z0, k.lamp ?? k.glow);
+          put(px, floorY + 3, z1, k.lamp ?? k.glow);
+        }
+        // Stairs from the surface down into the room, along +x from the hatch.
+        const hatchX = x0 - 2;
+        const stairZ = z;
+        const steps = groundY - floorY;
+        for (let i = 0; i <= steps; i++) {
+          const px = hatchX + i;
+          const py = groundY - i;
+          if (py > floorY + 1) put(px, py, stairZ, k.stairs, opts.stairRotationDown);
+          for (let h = 1; h <= 2; h++) put(px, py + h, stairZ, 0);
+          for (let dz = -1; dz <= 1; dz += 2) for (let h = 0; h <= 2; h++) if (py + h <= groundY) put(px, py + h, stairZ + dz, k.stone);
+          put(px, py - 1, stairZ, k.stone);
+        }
+        for (let h = 1; h <= 3; h++) put(hatchX, groundY + h, stairZ, 0);
+        if (k.lantern) put(hatchX - 1, groundY + 1, stairZ - 1, k.lantern);
+        // A bed, a table and a chest to make it a den.
+        put(x0 + 1, floorY + 1, z1 - 1, k.bed);
+        put(x1 - 1, floorY + 1, z1 - 1, k.table);
+        put(x1 - 1, floorY + 1, z0 + 1, k.box);
+        break;
+      }
+      case 'tunnel': {
+        // A lit tunnel along +x at ground level, two wide and three high, lined below.
+        for (let px = x0; px <= x0 + length - 1; px++) {
+          for (let dz = 0; dz <= 1; dz++) {
+            const pz = z + dz;
+            for (let h = 1; h <= 3; h++) put(px, groundY + h, pz, 0);
+            put(px, groundY, pz, k.stone);
+            put(px, groundY + 4, pz, k.stone);
+          }
+          put(px, groundY + 1, z - 1, k.stone);
+          put(px, groundY + 2, z - 1, k.stone);
+          put(px, groundY + 3, z - 1, k.stone);
+          put(px, groundY + 1, z + 2, k.stone);
+          put(px, groundY + 2, z + 2, k.stone);
+          put(px, groundY + 3, z + 2, k.stone);
+          if ((px - x0) % 4 === 0) put(px, groundY + 3, z - 1, k.lamp ?? k.glow);
+        }
+        break;
+      }
+      case 'well': {
+        for (let px = x - 1; px <= x + 1; px++) for (let pz = z - 1; pz <= z + 1; pz++) {
+          const rim = px !== x || pz !== z;
+          clearAbove(px, pz);
+          if (rim) {
+            put(px, groundY + 1, pz, k.stone);
+            for (let d = 0; d <= depth; d++) put(px, groundY - d, pz, k.stone);
+          } else {
+            for (let d = 0; d < depth; d++) put(px, groundY - d, pz, d < 2 ? 0 : k.water);
+            put(px, groundY - depth, pz, k.stone);
+          }
+        }
+        for (let h = 2; h <= 3; h++) {
+          put(x - 1, groundY + h, z - 1, k.fence);
+          put(x + 1, groundY + h, z + 1, k.fence);
+        }
+        for (let px = x - 1; px <= x + 1; px++) for (let pz = z - 1; pz <= z + 1; pz++) put(px, groundY + 4, pz, k.roof);
+        break;
+      }
+      case 'moat': {
+        // A water ring around the footprint, two deep, with a bridge at the front.
+        for (let px = x0 - 3; px <= x1 + 3; px++) for (let pz = z0 - 3; pz <= z1 + 3; pz++) {
+          const outer = px < x0 - 1 || px > x1 + 1 || pz < z0 - 1 || pz > z1 + 1;
+          const inner = px >= x0 - 1 && px <= x1 + 1 && pz >= z0 - 1 && pz <= z1 + 1;
+          if (!outer || inner) continue;
+          const bridge = pz < z0 && Math.abs(px - x) <= 1;
+          clearAbove(px, pz);
+          if (bridge) {
+            put(px, groundY, pz, k.tile);
+            continue;
+          }
+          put(px, groundY, pz, k.water);
+          put(px, groundY - 1, pz, k.water);
+          put(px, groundY - 2, pz, k.stone);
+        }
+        break;
+      }
+    }
+    return [...cells.values()];
   }
 
   planShape(shape: string, x: number, y: number, z: number, id: number, size = 5): BlockEdit[] {

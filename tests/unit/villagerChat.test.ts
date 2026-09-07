@@ -185,7 +185,7 @@ describe('helper robustness', () => {
     const { WebLlmProvider, pickHelperModel } = await import('../../src/engine/chat/WebLlmProvider');
     const helper = new WebLlmProvider('t', async () => ({ chat: { completions: { create: async () => ({ choices: [] }) } }, unload: async () => undefined }));
     const prompt = helper.systemPrompt(ctx('hi'));
-    expect(prompt.length).toBeLessThan(3400); // under ~1000 tokens, inside the 2048 window with examples and history
+    expect(prompt.length).toBeLessThan(4000); // about a thousand tokens, inside the 2048 window with examples and history
     for (const tool of CHAT_TOOL_ALLOWLIST) expect(prompt).toContain(`"tool":"${tool}"`);
     expect(prompt).toContain('"kind":"plane"');
     expect(pickHelperModel('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', false)).toBe('Qwen2.5-0.5B-Instruct-q4f32_1-MLC');

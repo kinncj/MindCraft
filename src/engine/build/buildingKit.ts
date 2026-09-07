@@ -3,7 +3,7 @@ import type { BlockRegistry } from '../blocks/registry';
 import { resolveBlockId } from '../blocks/blocks';
 import { SHAPES } from '../blocks/shapes';
 import { DIR_PX } from '../world/coords';
-import type { FeatureKind, FeatureKit, FurnitureItem, HouseOptions } from './BuildTools';
+import type { EarthworkKind, EarthworkOptions, FeatureKind, FeatureKit, FurnitureItem, HouseOptions } from './BuildTools';
 
 /**
  * Everything the building generator needs beyond the kid's words: which
@@ -100,6 +100,50 @@ export function flagRows(registry: BlockRegistry, name: string): number[][] | nu
 export function stairRotationTowardPlusX(): number {
   for (let r = 0; r < 4; r++) if (SHAPES.stairs.occludes(DIR_PX, BlockState.withRotation(0, r))) return r;
   return 0;
+}
+
+export const EARTHWORK_KINDS: EarthworkKind[] = ['pool', 'raisedPool', 'lake', 'pond', 'pit', 'bunker', 'tunnel', 'well', 'moat'];
+
+/** Default sizes for digging jobs (width, length, depth). */
+export const EARTHWORK_SIZE: Record<EarthworkKind, [number, number, number]> = {
+  pool: [7, 5, 2],
+  raisedPool: [5, 5, 2],
+  lake: [16, 12, 3],
+  pond: [7, 5, 2],
+  pit: [3, 3, 4],
+  bunker: [7, 5, 4],
+  tunnel: [2, 12, 1],
+  well: [3, 3, 6],
+  moat: [11, 11, 2],
+};
+
+export function earthworkOptions(registry: BlockRegistry, a: { width?: number; length?: number; depth?: number; kind: EarthworkKind }): EarthworkOptions {
+  const id = (name: string, fallback: string): number => (registry.has(name) ? registry.numericOf(name) : registry.numericOf(fallback));
+  const maybe = (name: string): number | null => (registry.has(name) ? registry.numericOf(name) : null);
+  const [w, l, d] = EARTHWORK_SIZE[a.kind];
+  return {
+    width: a.width ?? w,
+    length: a.length ?? l,
+    depth: a.depth ?? d,
+    round: a.kind === 'lake' || a.kind === 'pond',
+    stairRotationDown: (stairRotationTowardPlusX() + 2) % 4,
+    kit: {
+      water: registry.numericOf('water'),
+      sand: registry.numericOf('sand'),
+      stone: id('stone_bricks', 'stone'),
+      tile: id('color_white', 'stone'),
+      ladder: id('ladder', 'planks'),
+      stairs: id('stone_stairs', 'planks_stairs'),
+      fence: id('fence', 'wood'),
+      roof: id('roof_tiles', 'planks'),
+      bed: id('bed', 'planks'),
+      table: id('table', 'planks'),
+      box: id('magic_box', 'planks'),
+      glow: id('glow_crystal', 'lantern'),
+      lamp: maybe('lantern'),
+      lantern: maybe('lantern'),
+    },
+  };
 }
 
 /** Fills in the generator's knobs from loose arguments, with safe block fallbacks. */

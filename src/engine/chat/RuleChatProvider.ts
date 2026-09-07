@@ -1,4 +1,4 @@
-import { buildActionsFor, parseBuildRequest } from './buildRequest';
+import { buildActionsFor, parseBuildRequest, parseEarthwork } from './buildRequest';
 import type { ChatAction, ChatContext, ChatProvider, ChatReply } from './types';
 
 /**
@@ -96,6 +96,13 @@ export class RuleChatProvider implements ChatProvider {
     if (spec && wantsBuild) {
       const extras = [spec.furnish ? 'furnished' : '', spec.people.length ? `with ${spec.people.map((p) => `${p.count} ${(p.name ?? p.job).toLowerCase()}${p.count > 1 ? 's' : ''}`).join(' and ')}` : '', spec.flag ? `and a ${spec.flag} flag` : ''].filter(Boolean).join(', ');
       return say(`A ${spec.label} with ${spec.floors} floor${spec.floors === 1 ? '' : 's'}${extras ? `, ${extras}` : ''}, coming right up! ${spec.kind === 'castle' ? '🏰' : '🏠'} Watch me build it!`, buildActionsFor(spec, ctx));
+    }
+    const dig = !spec ? parseEarthwork(text) : null;
+    if (dig && wantsBuild) {
+      const size = dig.width && dig.length ? ` ${dig.width} by ${dig.length}` : '';
+      return say(`Time to dig! ⛏️ A${size} ${dig.label}${dig.depth ? `, ${dig.depth} deep` : ''}, coming right up!`, [
+        { tool: 'build_dig', args: { x: at.x, y: at.y, z: at.z, kind: dig.kind, ...(dig.width ? { width: dig.width } : {}), ...(dig.length ? { length: dig.length } : {}), ...(dig.depth ? { depth: dig.depth } : {}) } },
+      ]);
     }
     for (const [pattern, blueprint, label] of BLUEPRINT_WORDS) {
       if (pattern.test(text) && wantsBuild) {
