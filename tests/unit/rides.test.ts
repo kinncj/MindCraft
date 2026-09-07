@@ -81,3 +81,29 @@ describe('ride requests in chat', () => {
     await expect(helper.reply(ctx('hello'))).rejects.toThrow(/took longer/);
   });
 });
+
+describe('a chatty model still gets things done', () => {
+  it('uses the rules for actions when the helper only talked', async () => {
+    const { EntitySystem } = await import('../../src/engine/entities/EntitySystem');
+    const { ChatAgent } = await import('../../src/engine/chat/ChatAgent');
+    const { BuildTools } = await import('../../src/engine/build/BuildTools');
+    const { CommandHistory } = await import('../../src/engine/commands/CommandHistory');
+    const { ToolRegistry } = await import('../../src/engine/tools/ToolRegistry');
+    const world = flat();
+    const player = new PlayerController(world, blocks, { x: 8, y: 4, z: 8 });
+    const entities = new EntitySystem(new THREE.Scene(), world, blocks, player);
+    const helper = new WebLlmProvider('t', async () => ({
+      chat: { completions: { create: async () => ({ choices: [{ message: { content: 'Sure, a cozy house coming up!' } }] }) } },
+      unload: async () => undefined,
+    }));
+    await helper.load();
+    helper.enabled = true;
+    const tools = new ToolRegistry();
+    const agent = new ChatAgent({ tools, entities, build: new BuildTools(world, blocks, new CommandHistory(world)), registry: blocks, player: () => ({ x: 8, y: 4, z: 8, yaw: 0 }), surface: (x, z) => world.height(x, z), say: () => undefined, helper });
+    const villager = entities.spawnVillager('builder', 5, 5, 'Ben');
+    const result = await agent.send(villager.id, 'build a house');
+    expect(result?.provider).toBe('helper');
+    expect(result?.say).toBe('Sure, a cozy house coming up!');
+    expect(result?.performed[0]).toMatch(/^build_stamp_blueprint:/);
+  });
+});

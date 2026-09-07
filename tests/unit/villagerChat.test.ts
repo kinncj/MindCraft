@@ -87,7 +87,8 @@ describe('built-in model reply parsing', () => {
     const reply = parseModelReply('Sure! {"say":"Let\'s build! 🏠","actions":[{"tool":"build_stamp_blueprint","args":{"blueprint":"cozy_house"}},{"tool":"world_delete_everything","args":{}}]}');
     expect(reply.say).toBe("Let's build! 🏠");
     expect(reply.actions).toHaveLength(1);
-    expect(() => parseModelReply('no json here')).toThrow();
+    expect(parseModelReply('"Hello, let\'s build a cozy house together!"')).toEqual({ say: "Hello, let's build a cozy house together!", actions: [] });
+    expect(() => parseModelReply('   ')).toThrow();
     expect(() => parseModelReply('{"say":"I will shoot the monster"}')).toThrow();
     expect(parseModelReply('{"say":"Visit https://example.com now!"}').say).toBe('Visit  now!');
   });

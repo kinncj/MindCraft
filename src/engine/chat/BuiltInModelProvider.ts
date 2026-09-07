@@ -71,13 +71,31 @@ export class BuiltInModelProvider implements ChatProvider {
 }
 
 /** Pulls a {say, actions} object out of a model reply, strictly. */
+const clean = (text: string): string => text.replace(/https?:\/\/\S+|www\.\S+|\S+@\S+/gi, '').replace(/[<>]/g, '').trim().slice(0, MAX_SAY);
+
+/**
+ * Small models often answer in plain words instead of the JSON we asked
+ * for. Plain text becomes the villager's line (filtered like everything
+ * else) with no actions; malformed JSON is treated the same way.
+ */
 export function parseModelReply(raw: string): ChatReply {
   const start = raw.indexOf('{');
   const end = raw.lastIndexOf('}');
-  if (start < 0 || end <= start) throw new Error('no JSON in reply');
-  const parsed = JSON.parse(raw.slice(start, end + 1)) as { say?: unknown; actions?: unknown };
+  let parsed: { say?: unknown; actions?: unknown } | null = null;
+  if (start >= 0 && end > start) {
+    try {
+      parsed = JSON.parse(raw.slice(start, end + 1)) as { say?: unknown; actions?: unknown };
+    } catch {
+      parsed = null;
+    }
+  }
+  if (!parsed) {
+    const plain = clean(raw.replace(/^[\s"'`]+|[\s"'`]+$/g, '').replace(/^(assistant|answer|reply)\s*:\s*/i, ''));
+    if (!plain || BLOCKED.test(plain)) throw new Error(plain ? 'reply not suitable' : 'empty reply');
+    return { say: plain, actions: [] };
+  }
   let say = typeof parsed.say === 'string' ? parsed.say : '';
-  say = say.replace(/https?:\/\/\S+|www\.\S+|\S+@\S+/gi, '').replace(/[<>]/g, '').trim().slice(0, MAX_SAY);
+  say = clean(say);
   if (!say || BLOCKED.test(say)) throw new Error('reply not suitable');
   const actions: ChatAction[] = [];
   if (Array.isArray(parsed.actions)) {

@@ -258,7 +258,11 @@ export class WebLlmProvider implements ChatProvider {
 
   async reply(ctx: ChatContext): Promise<ChatReply> {
     if (!this.engine) throw new Error('helper not loaded');
-    const messages: HelperRequest['messages'] = [{ role: 'system', content: this.systemPrompt(ctx) }];
+    const messages: HelperRequest['messages'] = [
+      { role: 'system', content: this.systemPrompt(ctx) },
+      { role: 'user', content: 'hi there' },
+      { role: 'assistant', content: `{"say":"Hi! I'm ${ctx.villager.name}, the ${ctx.villager.jobLabel}. What shall we make? 😊","actions":[]}` },
+    ];
     for (const turn of ctx.history.slice(-4)) messages.push({ role: turn.who === 'kid' ? 'user' : 'assistant', content: turn.text.slice(0, 160) });
     messages.push({ role: 'user', content: ctx.message });
     this.lastPrompt = messages.map((m) => `[${m.role}]\n${m.content}`).join('\n\n');

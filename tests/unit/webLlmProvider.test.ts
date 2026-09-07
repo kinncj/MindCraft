@@ -55,15 +55,17 @@ describe('the downloadable helper model', () => {
     expect(request.messages[0].role).toBe('system');
     expect(request.messages[0].content).toContain('build_stamp_blueprint');
     expect(request.messages[0].content).not.toContain('world_save');
-    expect(request.messages.map((m) => m.role)).toEqual(['system', 'user', 'assistant', 'user']);
+    // system, a worked example (user + assistant JSON), one history turn each way, then the child.
+    expect(request.messages.map((m) => m.role)).toEqual(['system', 'user', 'assistant', 'user', 'assistant', 'user']);
+    expect(request.messages[2].content).toMatch(/^\{"say":/);
     expect(request.max_tokens).toBeLessThanOrEqual(220);
   });
 
-  it('rejects unsafe or malformed answers so the agent falls back to rules', async () => {
+  it('keeps plain-text answers as the line, but rejects unsafe ones so the agent falls back to rules', async () => {
     const provider = new WebLlmProvider('test-model', async () => fakeEngine('I am not JSON', []));
     await provider.load();
     provider.enabled = true;
-    await expect(provider.reply(ctx('hi'))).rejects.toThrow();
+    expect(await provider.reply(ctx('hi'))).toEqual({ say: 'I am not JSON', actions: [] });
     const scary = new WebLlmProvider('test-model', async () => fakeEngine('{"say":"the monster will kill you"}', []));
     await scary.load();
     await expect(scary.reply(ctx('hi'))).rejects.toThrow();

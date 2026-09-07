@@ -119,6 +119,15 @@ export class ChatAgent {
         console.warn('[MindCraft chat]', this.lastError);
       }
     }
+    // A model that only chatted still gets the job done: the rules supply the actions.
+    if (provider !== 'rules' && reply.actions.length === 0) {
+      try {
+        const fallback = await this.rules.reply(ctx);
+        if (fallback.actions.length > 0) reply = { ...reply, actions: fallback.actions };
+      } catch {
+        // Rules never throw; keep the chat going regardless.
+      }
+    }
     const performed = await this.perform(villagerId, reply.actions, ctx);
     const turns = this.history(villagerId);
     turns.push({ who: 'kid', text: ctx.message }, { who: 'villager', text: reply.say });
