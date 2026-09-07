@@ -814,10 +814,11 @@ export class Engine {
     } else {
       this.framesSinceBlocked = 0;
     }
-    const h = this.interaction.state.highlight;
+    const h = this.interaction.state.highlight ?? this.interaction.state.flash;
     if (h) {
       this.highlight.position.set(h.x, h.y, h.z);
       this.highlight.visible = true;
+      (this.highlight.material as THREE.LineBasicMaterial).color.set(this.interaction.state.highlight ? '#ffffff' : '#ffd94a');
     } else {
       this.highlight.visible = false;
     }

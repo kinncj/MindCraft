@@ -127,5 +127,23 @@ export function GameCanvas() {
     );
   }
 
-  return <div ref={containerRef} className="game-canvas" data-testid="game-canvas" />;
+  return (
+    <div
+      ref={containerRef}
+      className="game-canvas"
+      data-testid="game-canvas"
+      onPointerDown={(event) => {
+        // Touch has no hover: a ripple shows exactly where the tap landed.
+        if (event.pointerType !== 'touch') return;
+        const host = event.currentTarget;
+        const rect = host.getBoundingClientRect();
+        const ripple = document.createElement('span');
+        ripple.className = 'tap-ripple';
+        ripple.style.left = `${event.clientX - rect.left}px`;
+        ripple.style.top = `${event.clientY - rect.top}px`;
+        host.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 500);
+      }}
+    />
+  );
 }

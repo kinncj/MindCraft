@@ -61,3 +61,31 @@ describe('camera and water', () => {
     expect(raycastBlocks(world, blocks, ray, 20, (def) => def.collision === 'solid')?.id).toBe(B.sand);
   });
 });
+
+describe('taps land where the finger is', () => {
+  it('in first person an off-center tap hits a different block than the crosshair', async () => {
+    const { B } = await import('../../src/engine/blocks/blocks');
+    const { InteractionSystem } = await import('../../src/engine/input/InteractionSystem');
+    const { BuildTools } = await import('../../src/engine/build/BuildTools');
+    const { CommandHistory } = await import('../../src/engine/commands/CommandHistory');
+    const world = new VoxelWorld(blocks);
+    for (let cx = -1; cx <= 1; cx++) for (let cz = -1; cz <= 1; cz++) {
+      const chunk = new Chunk(cx, cz);
+      for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) for (let y = 0; y <= 2; y++) chunk.set(x, y, z, B.grass);
+      world.addChunk(chunk);
+    }
+    const player = new PlayerController(world, blocks, { x: 8, y: 3, z: 8 });
+    const frame = { lookDX: 0, lookDY: 0, zoom: 0, pressed: new Set<string>(), taps: [], hover: null, commands: [], gamepadActive: false, pointerLocked: false } as unknown as InputFrame;
+    const cam = new CameraSystem(player, frame, world, blocks);
+    cam.setViewMode('first', false);
+    cam.pitch = 0.6; // looking down at the ground ahead
+    cam.resize(800, 600);
+    cam.update();
+    const sys = new InteractionSystem(world, blocks, frame, cam, player, { getSelectedBlockId: () => B.brick, getMode: () => 'place', openPanel: () => undefined }, new BuildTools(world, blocks, new CommandHistory(world)));
+    const center = sys.pickAt(0, 0);
+    const side = sys.pickAt(0.7, -0.5);
+    expect(center).not.toBeNull();
+    expect(side).not.toBeNull();
+    expect(`${side!.x},${side!.z}`).not.toBe(`${center!.x},${center!.z}`);
+  });
+});

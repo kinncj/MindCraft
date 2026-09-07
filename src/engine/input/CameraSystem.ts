@@ -67,6 +67,8 @@ export class CameraSystem implements System {
 
   /** A world-space ray through a normalized device coordinate. */
   ray(ndcX: number, ndcY: number): Ray {
+    // Taps are read before the frame renders: make sure the ray uses this frame's camera, not last frame's.
+    this.camera.updateMatrixWorld();
     const origin = new THREE.Vector3(ndcX, ndcY, -1).unproject(this.camera);
     const far = new THREE.Vector3(ndcX, ndcY, 1).unproject(this.camera);
     const dir = far.sub(origin).normalize();

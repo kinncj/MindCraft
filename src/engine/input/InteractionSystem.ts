@@ -33,6 +33,8 @@ export type PlacementTarget = { x: number; y: number; z: number; face: Direction
 
 export type InteractionState = {
   highlight: { x: number; y: number; z: number } | null;
+  /** The block a tap just hit, shown for a moment so touch screens get feedback. */
+  flash: { x: number; y: number; z: number; until: number } | null;
   /** Where the selected block would go if the player tapped now. */
   placement: PlacementTarget | null;
   /** A box being selected (room/fill/copy) or about to be pasted. */
@@ -50,7 +52,8 @@ const REACH = 7;
  */
 export class InteractionSystem implements System {
   readonly name = 'interaction';
-  readonly state: InteractionState = { highlight: null, placement: null, selection: null, lastTap: null };
+  readonly state: InteractionState = { highlight: null, placement: null, selection: null, lastTap: null, flash: null };
+  private clock = 0;
 
   constructor(
     private world: VoxelWorld,
@@ -68,14 +71,17 @@ export class InteractionSystem implements System {
   }
 
   /** Water is only a target when removing it; otherwise taps reach the ground beneath. */
+  /** A tap acts exactly where it lands, in every view; the crosshair is simply a tap at the center. */
   private pick(ndcX: number, ndcY: number, seeFluids: boolean): BlockHit | null {
-    const ray = this.camera.viewMode === 'first' ? this.camera.forwardRay() : this.camera.ray(ndcX, ndcY);
+    const ray = this.camera.ray(ndcX, ndcY);
     return raycastBlocks(this.world, this.registry, ray, this.camera.viewMode === 'first' ? REACH : REACH * 6, seeFluids ? undefined : (def) => def.collision !== 'fluid');
   }
 
-  update(): void {
+  update(dt = 1 / 60): void {
+    this.clock += dt;
+    if (this.state.flash && this.clock > this.state.flash.until) this.state.flash = null;
     for (const tap of this.input.taps) {
-      const ray = this.camera.viewMode === 'first' ? this.camera.forwardRay() : this.camera.ray(tap.ndcX, tap.ndcY);
+      const ray = this.camera.ray(tap.ndcX, tap.ndcY);
       if (this.bridge.tapEntity?.(ray)) continue;
       const mode = this.bridge.getMode();
       const removing = tap.button === 2 || mode === 'remove';
@@ -84,6 +90,7 @@ export class InteractionSystem implements System {
         this.state.lastTap = { hit: null, action: 'miss' };
         continue;
       }
+      this.state.flash = { x: hit.x, y: hit.y, z: hit.z, until: this.clock + 0.45 };
       if (removing) this.state.lastTap = { hit, action: this.removeAt(hit) ? 'removed' : 'remove-failed' };
       else if (mode === 'place') this.state.lastTap = { hit, action: this.placeOrInteract(hit) };
       else if (mode === 'interact') this.state.lastTap = { hit, action: this.interact(hit.x, hit.y, hit.z, hit.face) ? 'interacted' : 'nothing-to-interact' };
@@ -91,7 +98,8 @@ export class InteractionSystem implements System {
     }
     if (this.input.pressed.has('r')) this.build.rotateClipboard();
 
-    const hover = this.camera.viewMode === 'first' ? { ndcX: 0, ndcY: 0 } : this.input.hover;
+    // Mouse hover shows what a click will hit; with the mouse grabbed (or a pad) that is the crosshair.
+    const hover = this.input.hover ?? (this.camera.viewMode === 'first' || this.input.gamepadActive || this.input.pointerLocked ? { ndcX: 0, ndcY: 0 } : null);
     const mode = this.bridge.getMode();
     const hit = hover ? this.pick(hover.ndcX, hover.ndcY, mode === 'remove') : null;
     this.state.highlight = hit ? { x: hit.x, y: hit.y, z: hit.z } : null;

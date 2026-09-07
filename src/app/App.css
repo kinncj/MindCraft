@@ -2374,3 +2374,28 @@ h3 {
 .splash-reset:disabled {
   opacity: 0.6;
 }
+
+/* Touch feedback: a ripple where the finger landed. */
+.tap-ripple {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 4;
+  animation: tap-ripple 0.45s ease-out forwards;
+}
+
+@keyframes tap-ripple {
+  from {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
