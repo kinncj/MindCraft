@@ -203,6 +203,15 @@ export function MenuPanel() {
                   </KidButton>
                 </div>
               </>
+            ) : helper.status === 'napping' ? (
+              <>
+                <p className="sheet-hint">💤 The helper is napping while Cinema is on: phones and tablets do not have room for both. Pick another look and it wakes up.</p>
+                <div className="dialog-buttons">
+                  <KidButton tone="danger" onClick={() => void removeHelper()} aria-label="Remove the helper from this device">
+                    🗑️ Remove helper
+                  </KidButton>
+                </div>
+              </>
             ) : helper.status === 'downloading' || helper.status === 'loading' ? (
               <>
                 <p className="sheet-hint">{helper.status === 'loading' ? 'Loading the helper from this device…' : 'Downloading the helper…'} {Math.round(helper.progress * 100)}%</p>

@@ -823,7 +823,7 @@ export class Engine {
     this.chunkRenderer.setPbr(pbr);
     this.clouds.setVisible(!pbr);
     this.postFx.setEnabled(pbr && def.rendering.postFx && !this.mobile);
-    this.chunks.options.viewRadius = (this.lowPower ? 4 : this.mobile ? 5 : 7) + (this.mobile ? Math.min(1, def.rendering.viewRadiusBonus) : def.rendering.viewRadiusBonus);
+    this.chunks.options.viewRadius = (this.lowPower ? 4 : this.mobile ? 5 : 7) + (this.mobile ? 0 : def.rendering.viewRadiusBonus);
     const smooth = pbr && def.rendering.smooth;
     setBodyStyle({ rounded: smooth });
     if (this.mesher.smooth !== smooth) {

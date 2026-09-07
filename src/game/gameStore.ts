@@ -497,6 +497,11 @@ export const useGameStore = create<GameState>((set, get) => {
         set({ helper: { ...get().helper, status: 'error', text: error instanceof Error ? error.message : 'Could not load the helper.' } });
       }
     },
+    async napHelper() {
+      const engine = getEngine();
+      if (engine?.chat.helper.ready) await engine.chat.helper.unload();
+      set({ helper: { ...get().helper, status: 'napping', progress: 0, text: 'Napping while Cinema is on' } });
+    },
     setHelperEnabled(on) {
       const engine = getEngine();
       if (engine) engine.chat.helper.enabled = on;
@@ -539,9 +544,20 @@ export const useGameStore = create<GameState>((set, get) => {
 
     setVisualMode(mode) {
       set({ visualMode: mode });
-      getEngine()?.setVisualMode(mode);
+      const engine = getEngine();
+      engine?.setVisualMode(mode);
       scheduleAutosave();
       if (mode === 'claudeDream') get().showToast('Welcome to the dream world! ✨');
+      // Phones and tablets cannot hold the helper model and Cinema at once: the helper naps.
+      if (engine?.mobile) {
+        const helper = get().helper;
+        if (mode === 'cinema' && helper.enabled && helper.status !== 'napping' && helper.status !== 'none') {
+          void get().napHelper();
+          get().showToast('💤 The helper naps while Cinema is on, so the tablet has room for it.');
+        } else if (mode !== 'cinema' && helper.status === 'napping') {
+          void get().downloadHelper();
+        }
+      }
     },
     setTimeMode(mode) {
       set({ timeMode: mode });

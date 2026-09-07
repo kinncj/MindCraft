@@ -64,7 +64,9 @@ export function VillagerPanel() {
   const brain =
     helper.status === 'ready' && helper.enabled
       ? { icon: '🧠', text: 'Smart helper on' }
-      : helper.status === 'loading' || helper.status === 'downloading'
+      : helper.status === 'napping'
+        ? { icon: '💤', text: 'Smart helper napping while Cinema is on' }
+        : helper.status === 'loading' || helper.status === 'downloading'
         ? { icon: '⏳', text: `Smart helper loading… ${Math.round(helper.progress * 100)}%` }
         : helper.status === 'error'
           ? { icon: '⚠️', text: `Helper could not start: ${helper.text.slice(0, 80)}` }

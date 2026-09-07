@@ -81,7 +81,8 @@ export function GameCanvas() {
     engine.onAudioSettings = (settings) => useGameStore.getState().setAudio(settings);
     engine.chat.smart = store.smartChat;
     // A helper the parent chose earlier loads again (from the browser cache) in the background.
-    if (store.helper.enabled && store.helper.status !== 'ready') void useGameStore.getState().downloadHelper();
+    if (store.helper.enabled && engine.mobile && store.visualMode === 'cinema') void useGameStore.getState().napHelper();
+    else if (store.helper.enabled && store.helper.status !== 'ready') void useGameStore.getState().downloadHelper();
     else if (store.helper.enabled) engine.chat.helper.enabled = true;
 
     const unsubWorld = engine.world.subscribe({
