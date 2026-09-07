@@ -40,6 +40,7 @@ import type { GeneratorConfig, WorldGenerator } from '../world/generation/Genera
 import { VoxelWorld } from '../world/VoxelWorld';
 import { VISUAL_MODES, type VisualModeDefinition } from '../../shaders/visualModes';
 import { setBodyStyle } from '../entities/bodies';
+import { classifyGpu, pickProfile, rendererName, type DeviceProfile, type GpuClass } from './deviceProfile';
 import { VEHICLE_KINDS, VEHICLE_LABELS, type VehicleKind } from '../entities/vehicles';
 import type { TimeMode, VisualModeId, WeatherMode } from '../../types/game';
 import { GameLoop } from './GameLoop';
@@ -157,6 +158,11 @@ export class Engine {
   readonly renderer: THREE.WebGLRenderer;
   readonly loop = new GameLoop();
   readonly lowPower: boolean;
+  /** The graphics chip's name and class, and the budgets picked for it. */
+  readonly gpuName: string;
+  readonly gpuClass: GpuClass;
+  readonly profile: DeviceProfile;
+  private pixelRatio = 1;
   /** A phone or tablet: smaller budgets, no post-processing. */
   readonly mobile: boolean;
   readonly spawn: { x: number; y: number; z: number };
@@ -177,9 +183,14 @@ export class Engine {
     const { container, bridge } = options;
     this.lowPower = Engine.detectSoftwareRendering();
     this.mobile = Engine.detectMobile();
+    this.gpuName = rendererName();
+    const forced = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('power') : null;
+    this.gpuClass = forced === 'high' ? 'discrete' : classifyGpu(this.gpuName);
+    this.profile = pickProfile(this.gpuClass, this.mobile);
     this.renderer = new THREE.WebGLRenderer({ antialias: !this.lowPower, powerPreference: 'high-performance' });
-    // Phones render at most 1.5x: a 3x retina canvas costs more than it shows.
-    this.renderer.setPixelRatio(this.lowPower ? 0.5 : Math.min(window.devicePixelRatio, this.mobile ? 1.5 : 2));
+    // Fill rate is the first thing a small GPU runs out of: cap the canvas resolution by device class.
+    this.pixelRatio = Math.min(window.devicePixelRatio, this.profile.pixelRatioCap);
+    this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.shadowMap.enabled = !this.lowPower;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.domElement.style.display = 'block';
@@ -200,12 +211,11 @@ export class Engine {
     this.mesher = mesher;
 
     this.environment = new EnvironmentSystem(this.scene, this.renderer, VISUAL_MODES[options.settings.visualMode], !this.lowPower);
-    if (this.mobile) {
-      this.environment.maxShadowMap = 2048;
-      this.environment.bakeSeconds = 6;
-      this.atlas.hiResScale = 4;
-      this.atlas.anisotropy = 1;
-    }
+    this.environment.maxShadowMap = this.profile.shadowMap;
+    this.environment.bakeSeconds = this.profile.bakeSeconds;
+    this.applyProfileCadence();
+    this.atlas.hiResScale = this.profile.hiResScale;
+    this.atlas.anisotropy = this.profile.anisotropy;
     this.renderer.domElement.addEventListener('webglcontextlost', (event) => {
       event.preventDefault();
       this.fallbackFromCinema('The graphics memory ran out');
@@ -707,36 +717,59 @@ export class Engine {
   /** Rolling frame timing for the debug overlay. */
   private perf = { fps: 0, frameMs: 0, last: 0 };
   /** Cinema steps itself down, one notch at a time, on any device that cannot hold it. */
-  private quality = { tier: 0, since: 0, checkedAt: 0 };
-  static readonly QUALITY_TIERS = ['full', 'no post-processing', 'lighter shadows and sky', 'shorter draw distance', 'back to Ultra'] as const;
+  private quality = { tier: 0, since: 0, checkedAt: 0, radiusCut: 0, shadowEvery: 1 };
+  private applyProfileCadence(): void {
+    this.quality.shadowEvery = this.profile.shadowEvery;
+  }
+  static readonly QUALITY_TIERS = ['full', 'no post-processing', 'smaller canvas', 'lighter shadows', 'shorter draw distance', 'back to Ultra'] as const;
 
   get qualityTier(): string {
     return Engine.QUALITY_TIERS[this.quality.tier];
   }
 
+  private setPixelRatio(ratio: number): void {
+    this.pixelRatio = ratio;
+    this.renderer.setPixelRatio(ratio);
+    this.handleResize();
+  }
+
+  /**
+   * Every mode steps down one notch at a time while the frame rate stays under 34:
+   * post-processing off, a smaller canvas, lighter shadows, a shorter draw distance,
+   * and for Cinema finally Ultra. Only down, never up, so nothing flickers.
+   */
   private adaptQuality(now: number): void {
-    if (this.visualMode !== 'cinema' || this.input.blocked) {
+    if (this.input.blocked || !this.settled) {
       this.quality.since = now;
       return;
     }
     // Give the world five seconds to settle after any change, then judge every three.
     if (now - this.quality.since < 5000 || now - this.quality.checkedAt < 3000) return;
     this.quality.checkedAt = now;
-    if (this.perf.fps >= 34 || this.quality.tier >= Engine.QUALITY_TIERS.length - 1) return;
-    this.quality.tier += 1;
+    if (this.perf.fps >= 34) return;
+    const cinema = this.visualMode === 'cinema';
+    let tier = this.quality.tier + 1;
+    if (tier === 1 && !this.postFx.enabled) tier = 2; // nothing to turn off
+    if (tier === 2 && this.pixelRatio <= 1) tier = 3;
+    if (tier === 5 && !cinema) return; // flat modes stop at the shortest draw distance
+    if (tier > 5) return;
+    this.quality.tier = tier;
     this.quality.since = now;
-    const tier = this.quality.tier;
     if (tier === 1) this.postFx.setEnabled(false);
-    else if (tier === 2) {
-      this.environment.maxShadowMap = 2048;
-      this.environment.bakeSeconds = 6;
-      this.environment.applyVisualMode(VISUAL_MODES.cinema);
-    } else if (tier === 3) this.chunks.options.viewRadius = Math.max(4, this.chunks.options.viewRadius - 2);
-    else if (tier === 4) {
+    else if (tier === 2) this.setPixelRatio(Math.max(1, this.pixelRatio - 0.25));
+    else if (tier === 3) {
+      this.environment.maxShadowMap = Math.min(this.environment.maxShadowMap, 1024);
+      this.environment.bakeSeconds = Math.max(this.environment.bakeSeconds, 8);
+      this.quality.shadowEvery = 2;
+      this.environment.applyVisualMode(VISUAL_MODES[this.visualMode]);
+    } else if (tier === 4) {
+      this.quality.radiusCut = 2;
+      this.chunks.options.viewRadius = Math.max(4, this.chunks.options.viewRadius - 2);
+    } else if (tier === 5) {
       this.fallbackFromCinema(`This device could not hold Cinema at ${Math.round(this.perf.fps)} fps`);
       return;
     }
-    this.options.bridge.toast(`🎬 Cinema eased off (${Engine.QUALITY_TIERS[tier]}) to keep things smooth.`);
+    this.options.bridge.toast(`⚙️ Eased off (${Engine.QUALITY_TIERS[tier]}) to keep things smooth.`);
   }
   private shadowFrame = 0;
 
@@ -754,7 +787,7 @@ export class Engine {
     // Phones refresh the sun shadow every third frame; nobody notices, the GPU does.
     if (this.renderer.shadowMap.enabled) {
       this.renderer.shadowMap.autoUpdate = false;
-      this.renderer.shadowMap.needsUpdate = !this.mobile || this.shadowFrame++ % 3 === 0;
+      this.renderer.shadowMap.needsUpdate = this.shadowFrame++ % this.quality.shadowEvery === 0;
     }
     // A sheet is open: the world behind it is static. Skip GPU work so
     // phones with blurred glass panels do not crawl.
@@ -819,7 +852,7 @@ export class Engine {
       this.environment.applyVisualMode(def);
       this.applyRendering(def);
       this.visualMode = mode;
-      this.quality = { tier: 0, since: performance.now(), checkedAt: 0 };
+      this.quality = { tier: 0, since: performance.now(), checkedAt: 0, radiusCut: 0, shadowEvery: this.profile.shadowEvery };
       this.armProbation(mode);
     } catch (error) {
       this.fallbackFromCinema(`Cinema could not start (${error instanceof Error ? error.message : String(error)})`);
@@ -882,11 +915,11 @@ export class Engine {
   /** Materials, smooth surfaces, rounded bodies, and draw distance for a mode. */
   private applyRendering(def: VisualModeDefinition): void {
     const pbr = def.rendering.pbr && !this.lowPower;
-    this.renderer.shadowMap.type = pbr ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    this.renderer.shadowMap.type = pbr && (this.gpuClass === 'discrete' || this.gpuClass === 'apple') ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     this.chunkRenderer.setPbr(pbr);
     this.clouds.setVisible(!pbr);
-    this.postFx.setEnabled(pbr && def.rendering.postFx && !this.mobile);
-    this.chunks.options.viewRadius = (this.lowPower ? 4 : this.mobile ? 5 : 7) + (this.mobile ? 0 : def.rendering.viewRadiusBonus);
+    this.postFx.setEnabled(pbr && def.rendering.postFx && this.profile.postFx);
+    this.chunks.options.viewRadius = this.profile.viewRadius + Math.min(this.profile.cinemaBonus, def.rendering.viewRadiusBonus) - this.quality.radiusCut;
     const smooth = pbr && def.rendering.smooth;
     setBodyStyle({ rounded: smooth });
     if (this.mesher.smooth !== smooth) {
@@ -964,6 +997,10 @@ export class Engine {
         mobile: this.mobile,
         lowPower: this.lowPower,
         quality: this.qualityTier,
+        gpu: this.gpuName,
+        gpuClass: this.gpuClass,
+        profile: this.profile.name,
+        pixelRatio: this.pixelRatio,
       }),
       setPostFx: (on) => this.postFx.setEnabled(on),
       setPostFxOptions: (options) => this.postFx.setOptions(options),

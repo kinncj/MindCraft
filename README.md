@@ -131,6 +131,17 @@ are parsed too: a building request is always built from the words (type, size, f
 material, colours, furniture, people, flag), so a small model that copies its example
 still produces the right building.
 
+## Performance on older laptops
+
+The engine reads the graphics chip's name and starts on a budget that fits it: a 2022
+Ryzen or Intel laptop with integrated graphics gets a canvas at most 1.25× display
+scaling, a 2K shadow map refreshed every other frame, six chunks of draw distance,
+and no post-processing; graphics cards and Apple chips get everything. Chunk meshing
+runs in worker threads. If the frame rate still stays under 34 fps, every mode eases
+off one notch at a time (post-processing, canvas size, shadows, draw distance, and for
+Cinema finally Ultra) with a toast each time. `?debug=true` shows the chip, its class,
+the profile, and the live frame time.
+
 ## Debugging the helper
 
 Open the game with `?debug=true` to get a small overlay with the helper model that
