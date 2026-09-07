@@ -93,6 +93,8 @@ export type SettingsSlice = {
   helper: { status: 'none' | 'loading' | 'downloading' | 'ready' | 'error' | 'napping'; progress: number; text: string; enabled: boolean; model: string };
   /** Pick a helper size (model id); a loaded helper is downloaded again at the new size. */
   setHelperModel: (id: string) => Promise<void>;
+  /** Forget the helper: choice, size, cached files. Shown on the welcome screen. */
+  resetHelper: () => Promise<void>;
   napHelper: () => Promise<void>;
   downloadHelper: () => Promise<void>;
   setHelperEnabled: (on: boolean) => void;

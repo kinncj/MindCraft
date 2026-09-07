@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { blockIconDataUrl } from '../game/blockIcons';
 import { KidButton } from './KidButton';
 import { getEngine } from '../game/engineRef';
+import { useGameStore } from '../game/gameStore';
 
 const FLOATING: Array<{ type: string; left: string; delay: string; size: string }> = [
   { type: 'grass', left: '8%', delay: '0s', size: '3.2rem' },
@@ -18,7 +19,11 @@ const FLOATING: Array<{ type: string; left: string; delay: string; size: string 
  */
 export function WelcomePanel() {
   const [dismissed, setDismissed] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const helper = useGameStore((state) => state.helper);
+  const resetHelper = useGameStore((state) => state.resetHelper);
   if (dismissed) return null;
+  const showReset = helper.enabled || helper.status === 'error' || helper.status === 'loading';
 
   return (
     <div className="splash" role="dialog" aria-label="Welcome to MindCraft!" aria-modal="true">
@@ -74,6 +79,23 @@ export function WelcomePanel() {
         >
           Let&apos;s build! 🚀
         </KidButton>
+        {showReset && (
+          <button
+            type="button"
+            className="splash-reset"
+            disabled={resetting}
+            onClick={async () => {
+              setResetting(true);
+              try {
+                await resetHelper();
+              } finally {
+                setResetting(false);
+              }
+            }}
+          >
+            {resetting ? 'Resetting…' : '🔧 Reset friend model'}
+          </button>
+        )}
         <p className="splash-version">MindCraft 2.0 — no internet needed, everything stays here</p>
       </div>
     </div>

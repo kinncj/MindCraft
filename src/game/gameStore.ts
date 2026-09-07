@@ -29,6 +29,44 @@ const AUDIO_KEY = 'mindcraft-audio';
 const SMART_KEY = 'mindcraft-smart-chat';
 const HELPER_KEY = 'mindcraft-helper';
 const HELPER_MODEL_KEY = 'mindcraft-helper-model';
+/** Set while the helper loads; still set at the next start means the page died loading it. */
+const HELPER_LOADING_KEY = 'mindcraft-helper-loading';
+
+function helperCrashedWhileLoading(): boolean {
+  try {
+    const crashed = typeof localStorage !== 'undefined' && localStorage.getItem(HELPER_LOADING_KEY) === '1';
+    if (crashed) {
+      localStorage.removeItem(HELPER_LOADING_KEY);
+      localStorage.setItem(HELPER_KEY, '0');
+    }
+    return crashed;
+  } catch {
+    return false;
+  }
+}
+
+function markHelperLoading(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(HELPER_LOADING_KEY, '1');
+    else localStorage.removeItem(HELPER_LOADING_KEY);
+  } catch {
+    // fine
+  }
+}
+
+/** Forget the helper entirely: choice, size, cached files. The escape hatch from a crash loop. */
+export async function forgetHelperEverywhere(): Promise<void> {
+  try {
+    localStorage.removeItem(HELPER_KEY);
+    localStorage.removeItem(HELPER_MODEL_KEY);
+    localStorage.removeItem(HELPER_LOADING_KEY);
+    localStorage.removeItem('mindcraft-cinema-probation');
+  } catch {
+    // fine
+  }
+  const { deleteHelperModel, HELPER_MODELS: models } = await import('../engine/chat/WebLlmProvider');
+  for (const m of models) await deleteHelperModel(m.id).catch(() => undefined);
+}
 
 function loadHelperModel(): string {
   try {
@@ -490,7 +528,19 @@ export const useGameStore = create<GameState>((set, get) => {
       const engine = getEngine();
       if (engine) engine.chat.smart = on;
     },
-    helper: { status: loadHelperEnabled() ? 'loading' : 'none', progress: 0, text: '', enabled: loadHelperEnabled(), model: loadHelperModel() },
+    helper: helperCrashedWhileLoading()
+      ? { status: 'error', progress: 0, text: 'The helper did not finish loading last time (the page reloaded). Tap Download to try again, or reset it on the welcome screen.', enabled: false, model: loadHelperModel() }
+      : { status: loadHelperEnabled() ? 'loading' : 'none', progress: 0, text: '', enabled: loadHelperEnabled(), model: loadHelperModel() },
+    async resetHelper() {
+      const engine = getEngine();
+      if (engine) {
+        engine.chat.helper.enabled = false;
+        await engine.chat.helper.unload().catch(() => undefined);
+      }
+      await forgetHelperEverywhere();
+      set({ helper: { status: 'none', progress: 0, text: '', enabled: false, model: DEFAULT_HELPER_MODEL } });
+      get().showToast('The friend model was reset. The game starts without it now.');
+    },
     async setHelperModel(id) {
       const engine = getEngine();
       try {
@@ -518,13 +568,16 @@ export const useGameStore = create<GameState>((set, get) => {
       const resuming = get().helper.enabled;
       set({ helper: { ...get().helper, status: resuming ? 'loading' : 'downloading', progress: 0, text: resuming ? 'Loading the helper…' : 'Starting…' } });
       engine.chat.helper.onProgress = (p) => set({ helper: { ...get().helper, progress: p.progress, text: p.text } });
+      markHelperLoading(true);
       try {
         await engine.chat.helper.load();
+        markHelperLoading(false);
         engine.chat.helper.enabled = true;
         saveHelperEnabled(true);
         set({ helper: { ...get().helper, status: 'ready', progress: 1, text: 'Ready', enabled: true } });
         if (!resuming) get().showToast('✨ The smarter helper is ready! Villagers understand more now.');
       } catch (error) {
+        markHelperLoading(false);
         set({ helper: { ...get().helper, status: 'error', text: error instanceof Error ? error.message : 'Could not load the helper.' } });
       }
     },

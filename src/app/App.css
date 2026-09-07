@@ -2356,3 +2356,21 @@ h3 {
   z-index: 30;
   font-size: 18px;
 }
+
+/* Welcome screen: the escape hatch when the helper model will not load. */
+.splash-reset {
+  margin-top: 0.6rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--stroke-strong);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-dim);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.splash-reset:disabled {
+  opacity: 0.6;
+}
