@@ -830,6 +830,11 @@ export class Engine {
     const water = this.chunkRenderer.materials.water as THREE.MeshLambertMaterial;
     water.opacity = 0.78 + Math.sin(this.loopElapsed() * 1.4) * 0.06;
     this.chunkRenderer.time.value = this.loopElapsed();
+    // See-through camera: in third person, blocks between the camera and the kid fade away.
+    const cut = this.chunkRenderer.cutaway;
+    cut.cutFrom.value.copy(this.camera.camera.position);
+    cut.cutTo.value.set(this.player.x, this.player.y + 1.0, this.player.z);
+    cut.cutRadius.value = this.camera.viewMode === 'third' ? 1.4 : 0;
     try {
       if (this.postFx.enabled) this.postFx.render();
       else this.renderer.render(this.scene, this.camera.camera);

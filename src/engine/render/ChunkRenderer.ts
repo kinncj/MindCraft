@@ -5,6 +5,7 @@ import { chunkKey } from '../world/coords';
 import type { ChunkMeshes, MeshData } from './ChunkMesher';
 import { SMOOTH_KINDS, type SmoothMeshData } from './SmoothMesher';
 import { createSmoothMaterials } from './smoothMaterial';
+import { createCutaway } from './cutaway';
 import type { TextureAtlas } from './TextureAtlas';
 import { createBucketMaterials } from './voxelMaterial';
 import type { SmoothKind } from '../blocks/BlockDefinition';
@@ -18,6 +19,8 @@ export class ChunkRenderer {
   smoothMaterials: Record<SmoothKind, THREE.Material> | null = null;
   /** Seconds, for animated water. */
   readonly time = { value: 0 };
+  /** The see-through tube between camera and character. */
+  readonly cutaway = createCutaway();
   private meshes = new Map<string, Partial<Record<RenderBucket, THREE.Mesh>> & { smooth?: Partial<Record<SmoothKind, THREE.Mesh>> }>();
   private pbr = false;
 
@@ -26,7 +29,7 @@ export class ChunkRenderer {
     private dayLight: { value: number },
     private shadows: boolean,
   ) {
-    this.materials = createBucketMaterials(atlas, dayLight, { pbr: false });
+    this.materials = createBucketMaterials(atlas, dayLight, { pbr: false, cutaway: this.cutaway });
     this.group.name = 'chunks';
   }
 
@@ -35,7 +38,7 @@ export class ChunkRenderer {
     if (pbr === this.pbr) return;
     this.pbr = pbr;
     const old = this.materials;
-    this.materials = createBucketMaterials(this.atlas, this.dayLight, { pbr });
+    this.materials = createBucketMaterials(this.atlas, this.dayLight, { pbr, cutaway: this.cutaway });
     for (const entry of this.meshes.values()) {
       for (const bucket of BUCKETS) {
         const mesh = entry[bucket];
@@ -43,7 +46,7 @@ export class ChunkRenderer {
       }
     }
     for (const material of Object.values(old)) material.dispose();
-    if (pbr && !this.smoothMaterials) this.smoothMaterials = createSmoothMaterials(this.atlas, this.dayLight, this.time);
+    if (pbr && !this.smoothMaterials) this.smoothMaterials = createSmoothMaterials(this.atlas, this.dayLight, this.time, this.cutaway);
     this.applyEnvMap();
   }
 

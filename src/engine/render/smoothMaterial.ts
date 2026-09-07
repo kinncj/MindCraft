@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { SmoothKind } from '../blocks/BlockDefinition';
 import type { TextureAtlas } from './TextureAtlas';
+import { CUTAWAY_FRAG, CUTAWAY_PARS, CUTAWAY_VERTEX, type Cutaway } from './cutaway';
 
 /**
  * Materials for Cinema's smooth surfaces. Standard PBR, but textured
@@ -36,7 +37,7 @@ void triplanar(out vec3 weights, out vec4 topRect) {
 }
 `;
 
-export function createSmoothMaterials(atlas: TextureAtlas, dayLight: { value: number }, time: { value: number } = { value: 0 }): Record<SmoothKind, THREE.Material> {
+export function createSmoothMaterials(atlas: TextureAtlas, dayLight: { value: number }, time: { value: number } = { value: 0 }, cutaway?: Cutaway): Record<SmoothKind, THREE.Material> {
   atlas.buildHiRes();
   const map = atlas.hiResTexture ?? atlas.texture ?? undefined;
   const normalMap = atlas.normalTexture ?? undefined;
@@ -49,16 +50,19 @@ export function createSmoothMaterials(atlas: TextureAtlas, dayLight: { value: nu
       shader.uniforms.fillColor = { value: new THREE.Color(fill) };
       shader.uniforms.time = time;
       shader.uniforms.flowSpeed = { value: flowSpeed };
+      if (cutaway) Object.assign(shader.uniforms, cutaway);
       shader.vertexShader =
         'attribute vec4 tileTop;\nattribute vec4 tileSide;\nattribute float skylight;\nattribute float blocklight;\n' +
-        'flat varying vec4 vTileTop;\nflat varying vec4 vTileSide;\nvarying vec3 vWPos;\nvarying vec3 vWNormal;\nvarying float vSky;\nvarying float vBlock;\n' +
+        'flat varying vec4 vTileTop;\nflat varying vec4 vTileSide;\nvarying vec3 vWPos;\nvarying vec3 vWNormal;\nvarying float vSky;\nvarying float vBlock;\nvarying vec3 vCutPos;\n' +
         shader.vertexShader.replace(
           '#include <begin_vertex>',
-          '#include <begin_vertex>\nvTileTop = tileTop;\nvTileSide = tileSide;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWNormal = normalize(mat3(modelMatrix) * normal);\nvSky = skylight;\nvBlock = blocklight;',
+          `#include <begin_vertex>\nvTileTop = tileTop;\nvTileSide = tileSide;\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;\nvWNormal = normalize(mat3(modelMatrix) * normal);\nvSky = skylight;\nvBlock = blocklight;\n${CUTAWAY_VERTEX}`,
         );
       shader.fragmentShader =
         TRIPLANAR_PARS +
+        CUTAWAY_PARS +
         shader.fragmentShader
+          .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>\n${CUTAWAY_FRAG}`)
           .replace(
             '#include <map_fragment>',
             [

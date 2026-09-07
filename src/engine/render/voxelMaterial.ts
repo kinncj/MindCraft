@@ -1,24 +1,27 @@
 import * as THREE from 'three';
 import type { RenderBucket } from '../blocks/BlockDefinition';
 import type { TextureAtlas } from './TextureAtlas';
+import { CUTAWAY_FRAG, CUTAWAY_PARS, CUTAWAY_VERTEX, type Cutaway } from './cutaway';
 
 /**
  * Teaches a material about the baked voxel light attributes. The shared
  * dayLight uniform dims sky light at night while block light (torches,
  * campfires) keeps glowing warm.
  */
-export function patchVoxelLighting(material: THREE.Material, dayLight: { value: number }): void {
+export function patchVoxelLighting(material: THREE.Material, dayLight: { value: number }, cutaway?: Cutaway): void {
   material.onBeforeCompile = (shader) => {
     shader.uniforms.dayLight = dayLight;
+    if (cutaway) Object.assign(shader.uniforms, cutaway);
     shader.vertexShader =
-      'attribute float skylight;\nattribute float blocklight;\nvarying float vSky;\nvarying float vBlock;\n' +
+      'attribute float skylight;\nattribute float blocklight;\nvarying float vSky;\nvarying float vBlock;\nvarying vec3 vCutPos;\n' +
       shader.vertexShader.replace(
         '#include <begin_vertex>',
-        '#include <begin_vertex>\nvSky = skylight;\nvBlock = blocklight;',
+        `#include <begin_vertex>\nvSky = skylight;\nvBlock = blocklight;\n${CUTAWAY_VERTEX}`,
       );
     shader.fragmentShader =
       'uniform float dayLight;\nvarying float vSky;\nvarying float vBlock;\n' +
-      shader.fragmentShader.replace(
+      CUTAWAY_PARS +
+      shader.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>\n${CUTAWAY_FRAG}`).replace(
         '#include <dithering_fragment>',
         [
           'float voxelLight = max(vBlock, vSky * dayLight);',
@@ -34,7 +37,7 @@ export function patchVoxelLighting(material: THREE.Material, dayLight: { value: 
   material.customProgramCacheKey = () => 'voxel-light';
 }
 
-export type MaterialOptions = { pbr: boolean };
+export type MaterialOptions = { pbr: boolean; cutaway?: Cutaway };
 
 /** Flat (Lambert) or physically based (Standard) materials per bucket. */
 export function createBucketMaterials(atlas: TextureAtlas, dayLight: { value: number }, options: MaterialOptions = { pbr: false }): Record<RenderBucket, THREE.Material> {
@@ -60,7 +63,7 @@ export function createBucketMaterials(atlas: TextureAtlas, dayLight: { value: nu
       : lambert({ emissive: new THREE.Color('#fff3c0'), emissiveIntensity: 0.4, emissiveMap: map }),
   };
   for (const [bucket, material] of Object.entries(materials)) {
-    if (bucket !== 'glow') patchVoxelLighting(material, dayLight);
+    if (bucket !== 'glow') patchVoxelLighting(material, dayLight, options.cutaway);
   }
   return materials;
 }

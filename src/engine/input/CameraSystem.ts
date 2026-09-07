@@ -121,7 +121,10 @@ export class CameraSystem implements System {
       // Water and plants never push the camera: you can dive and see.
       (def) => def.collision === 'solid',
     );
-    const allowed = hit ? Math.max(0.6, hit.distance - 0.4) : this.distance;
+    // Blocks between the camera and the kid are cut away by the renderer, so the camera keeps its
+    // distance instead of diving in behind the head (a see-through tube beats a glued camera).
+    void hit;
+    const allowed = this.distance;
     const position = this.camera.position.copy(this.eye).add(offset.multiplyScalar(allowed));
     position.y = Math.max(position.y, 0.4);
     this.camera.lookAt(this.eye);
