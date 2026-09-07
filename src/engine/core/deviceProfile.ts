@@ -57,15 +57,21 @@ export function pickProfile(gpu: GpuClass, mobile: boolean): DeviceProfile {
   }
 }
 
-/** The GPU's own name, if the browser will say. */
-export function rendererName(): string {
+/**
+ * One look at the graphics chip: its name and whether WebGL exists. The probe
+ * context is released at once; Safari on iPhone keeps only a handful of WebGL
+ * contexts alive and would otherwise drop the game's own.
+ */
+export function probeGraphics(): { name: string; webgl: boolean } {
   try {
     const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
-    if (!gl) return '';
+    const gl = (canvas.getContext('webgl2') ?? canvas.getContext('webgl')) as WebGLRenderingContext | null;
+    if (!gl) return { name: '', webgl: false };
     const info = gl.getExtension('WEBGL_debug_renderer_info');
-    return info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER) ?? '');
+    const name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER) ?? '');
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    return { name, webgl: true };
   } catch {
-    return '';
+    return { name: '', webgl: false };
   }
 }

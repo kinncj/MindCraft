@@ -40,7 +40,7 @@ import type { GeneratorConfig, WorldGenerator } from '../world/generation/Genera
 import { VoxelWorld } from '../world/VoxelWorld';
 import { VISUAL_MODES, type VisualModeDefinition } from '../../shaders/visualModes';
 import { setBodyStyle } from '../entities/bodies';
-import { classifyGpu, pickProfile, rendererName, type DeviceProfile, type GpuClass } from './deviceProfile';
+import { classifyGpu, pickProfile, probeGraphics, type DeviceProfile, type GpuClass } from './deviceProfile';
 import { VEHICLE_KINDS, VEHICLE_LABELS, type VehicleKind } from '../entities/vehicles';
 import type { TimeMode, VisualModeId, WeatherMode } from '../../types/game';
 import { GameLoop } from './GameLoop';
@@ -181,13 +181,14 @@ export class Engine {
 
   constructor(private options: EngineOptions) {
     const { container, bridge } = options;
-    this.lowPower = Engine.detectSoftwareRendering();
-    this.mobile = Engine.detectMobile();
-    this.gpuName = rendererName();
+    const probe = probeGraphics();
     const forced = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('power') : null;
-    this.gpuClass = forced === 'high' ? 'discrete' : classifyGpu(this.gpuName);
+    this.gpuName = probe.name;
+    this.gpuClass = forced === 'high' ? 'discrete' : classifyGpu(probe.name);
+    this.lowPower = forced !== 'high' && (!probe.webgl || this.gpuClass === 'software');
+    this.mobile = Engine.detectMobile();
     this.profile = pickProfile(this.gpuClass, this.mobile);
-    this.renderer = new THREE.WebGLRenderer({ antialias: !this.lowPower, powerPreference: 'high-performance' });
+    this.renderer = Engine.createRenderer(!this.lowPower);
     // Fill rate is the first thing a small GPU runs out of: cap the canvas resolution by device class.
     this.pixelRatio = Math.min(window.devicePixelRatio, this.profile.pixelRatioCap);
     this.renderer.setPixelRatio(this.pixelRatio);
@@ -418,19 +419,30 @@ export class Engine {
     return coarse && Math.min(window.innerWidth, window.innerHeight) < 900;
   }
 
-  static detectSoftwareRendering(): boolean {
-    // `?power=high` forces the full renderer (testing on software GL).
-    if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('power') === 'high') return false;
-    try {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
-      if (!gl) return true;
-      const info = gl.getExtension('WEBGL_debug_renderer_info');
-      const name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
-      return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(name);
-    } catch {
-      return true;
+  /**
+   * Three reads shader precision while it builds the renderer; on a context
+   * that was lost before it started (Safari under memory pressure) that read
+   * returns null and throws. Try again on a fresh canvas with the plainest
+   * settings before giving up with a clear message.
+   */
+  static createRenderer(antialias: boolean): THREE.WebGLRenderer {
+    const attempts: THREE.WebGLRendererParameters[] = [
+      { antialias, powerPreference: 'high-performance' },
+      { antialias: false, powerPreference: 'default' },
+      { antialias: false, powerPreference: 'low-power', failIfMajorPerformanceCaveat: false },
+    ];
+    let lastError: unknown = null;
+    for (const params of attempts) {
+      try {
+        const canvas = document.createElement('canvas');
+        const gl = (canvas.getContext('webgl2', params) ?? canvas.getContext('webgl', params)) as WebGL2RenderingContext | WebGLRenderingContext | null;
+        if (!gl || gl.isContextLost() || !gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.HIGH_FLOAT)) continue;
+        return new THREE.WebGLRenderer({ ...params, canvas, context: gl as WebGL2RenderingContext });
+      } catch (error) {
+        lastError = error;
+      }
     }
+    throw new Error(`Graphics could not start${lastError instanceof Error ? ` (${lastError.message})` : ''}. Close other tabs and reload.`);
   }
 
   // --- Templates --------------------------------------------------------------
