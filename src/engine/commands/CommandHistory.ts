@@ -20,6 +20,14 @@ export class CommandHistory {
     this.notify();
   }
 
+  /** Adds an already-applied command (its before-state captured) so it can be undone. */
+  record(command: Command): void {
+    this.past.push(command);
+    if (this.past.length > this.limit) this.past.shift();
+    this.future = [];
+    this.notify();
+  }
+
   undo(): Command | null {
     const command = this.past.pop();
     if (!command) return null;

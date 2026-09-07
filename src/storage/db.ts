@@ -26,7 +26,7 @@ export type StoredWorld = {
     weather: WeatherMode;
     timeOfDay?: number;
     /** Dress-up colors and hat. */
-    look?: { shirt?: string; pants?: string; skin?: string; hair?: string; hat?: string };
+    look?: { shirt?: string; pants?: string; skin?: string; hair?: string; hat?: string; style?: string };
   };
   /** Pets, villagers, and vehicles living in this world. */
   entities?: Array<{

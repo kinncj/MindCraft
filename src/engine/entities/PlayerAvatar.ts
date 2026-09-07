@@ -5,9 +5,54 @@ import { box, disposeGroup } from './bodies';
 
 export type HatId = 'none' | 'cap' | 'crown' | 'cowboy' | 'party';
 
-export type PlayerLook = { shirt: string; pants: string; skin: string; hair: string; hat: HatId };
+export type StyleId = 'boy' | 'girl';
 
-export const DEFAULT_LOOK: PlayerLook = { shirt: '#ffb03c', pants: '#4a7fd6', skin: '#f2c79a', hair: '#6b4a26', hat: 'none' };
+export type PlayerLook = { shirt: string; pants: string; skin: string; hair: string; hat: HatId; style: StyleId };
+
+export const DEFAULT_LOOK: PlayerLook = { shirt: '#ffb03c', pants: '#4a7fd6', skin: '#f2c79a', hair: '#6b4a26', hat: 'none', style: 'boy' };
+
+export type AvatarParts = { group: THREE.Group; armLeft: THREE.Mesh; armRight: THREE.Mesh; legLeft: THREE.Mesh; legRight: THREE.Mesh };
+
+/** Builds the block kid for a look. Shared by the world avatar and the dress-up preview. */
+export function buildAvatarBody(colors: PlayerLook): AvatarParts {
+  const group = new THREE.Group();
+  const girl = colors.style === 'girl';
+  const body = box(0.5, 0.62, 0.3, colors.shirt);
+  body.position.y = 1.06;
+  const faceTexture = paintFace(colors.skin, colors.hair);
+  const headMaterials: THREE.Material[] = [];
+  for (let i = 0; i < 6; i++) {
+    if (i === 4 && faceTexture) headMaterials.push(new THREE.MeshLambertMaterial({ map: faceTexture }));
+    else if (i === 2) headMaterials.push(new THREE.MeshLambertMaterial({ color: colors.hair }));
+    else headMaterials.push(new THREE.MeshLambertMaterial({ color: colors.skin }));
+  }
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.46, 0.46), headMaterials);
+  head.position.y = 1.6;
+  head.castShadow = true;
+  const armLeft = limb(0.16, 0.55, 0.16, colors.shirt);
+  armLeft.position.set(-0.33, 1.35, 0);
+  const armRight = limb(0.16, 0.55, 0.16, colors.shirt);
+  armRight.position.set(0.33, 1.35, 0);
+  const legLeft = limb(0.18, 0.75, 0.2, colors.pants);
+  legLeft.position.set(-0.13, 0.75, 0);
+  const legRight = limb(0.18, 0.75, 0.2, colors.pants);
+  legRight.position.set(0.13, 0.75, 0);
+  group.add(body, head, armLeft, armRight, legLeft, legRight);
+  if (girl) {
+    // Longer hair down the back and sides, and a skirt over the legs.
+    const back = box(0.5, 0.5, 0.12, colors.hair);
+    back.position.set(0, 1.45, -0.2);
+    const sideL = box(0.1, 0.4, 0.4, colors.hair);
+    sideL.position.set(-0.28, 1.5, -0.03);
+    const sideR = sideL.clone();
+    sideR.position.x = 0.28;
+    const skirt = box(0.62, 0.26, 0.42, colors.pants);
+    skirt.position.y = 0.66;
+    group.add(back, sideL, sideR, skirt);
+  }
+  for (const part of hatParts(colors.hat)) group.add(part);
+  return { group, armLeft, armRight, legLeft, legRight };
+}
 
 function paintFace(skin: string, hair: string): THREE.Texture | null {
   if (typeof document === 'undefined') return null;
@@ -79,28 +124,12 @@ export class PlayerAvatar implements System {
     for (const child of [...this.group.children]) this.group.remove(child);
     for (const child of [...this.firstPersonArm.children]) this.firstPersonArm.remove(child);
     const colors = this.look;
-    const body = box(0.5, 0.62, 0.3, colors.shirt);
-    body.position.y = 1.06;
-    const faceTexture = paintFace(colors.skin, colors.hair);
-    const headMaterials: THREE.Material[] = [];
-    for (let i = 0; i < 6; i++) {
-      if (i === 4 && faceTexture) headMaterials.push(new THREE.MeshLambertMaterial({ map: faceTexture }));
-      else if (i === 2) headMaterials.push(new THREE.MeshLambertMaterial({ color: colors.hair }));
-      else headMaterials.push(new THREE.MeshLambertMaterial({ color: colors.skin }));
-    }
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.46, 0.46), headMaterials);
-    head.position.y = 1.6;
-    head.castShadow = true;
-    this.armLeft = limb(0.16, 0.55, 0.16, colors.shirt);
-    this.armLeft.position.set(-0.33, 1.35, 0);
-    this.armRight = limb(0.16, 0.55, 0.16, colors.shirt);
-    this.armRight.position.set(0.33, 1.35, 0);
-    this.legLeft = limb(0.18, 0.75, 0.2, colors.pants);
-    this.legLeft.position.set(-0.13, 0.75, 0);
-    this.legRight = limb(0.18, 0.75, 0.2, colors.pants);
-    this.legRight.position.set(0.13, 0.75, 0);
-    this.group.add(body, head, this.armLeft, this.armRight, this.legLeft, this.legRight);
-    for (const part of hatParts(colors.hat)) this.group.add(part);
+    const parts = buildAvatarBody(colors);
+    for (const child of [...parts.group.children]) this.group.add(child);
+    this.armLeft = parts.armLeft;
+    this.armRight = parts.armRight;
+    this.legLeft = parts.legLeft;
+    this.legRight = parts.legRight;
 
     const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.4), new THREE.MeshBasicMaterial({ color: colors.shirt }));
     sleeve.position.z = 0.14;

@@ -35,18 +35,22 @@ export class SetBlocksCommand implements Command {
     return this.edits.length;
   }
 
+  /** Remember what is there now, so a later `record` can still undo. */
+  capture(world: VoxelWorld): void {
+    if (this.captured) return;
+    this.before = this.edits.map(({ x, y, z }) => ({
+      x,
+      y,
+      z,
+      id: world.getBlock(x, y, z),
+      state: world.getState(x, y, z),
+      entity: world.getEntity(x, y, z) ?? null,
+    }));
+    this.captured = true;
+  }
+
   execute(world: VoxelWorld): void {
-    if (!this.captured) {
-      this.before = this.edits.map(({ x, y, z }) => ({
-        x,
-        y,
-        z,
-        id: world.getBlock(x, y, z),
-        state: world.getState(x, y, z),
-        entity: world.getEntity(x, y, z) ?? null,
-      }));
-      this.captured = true;
-    }
+    this.capture(world);
     apply(world, this.edits);
   }
 

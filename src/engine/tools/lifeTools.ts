@@ -43,6 +43,56 @@ export function registerLifeTools(engine: Engine): void {
     },
   });
   tools.register({
+    name: 'villager_chat',
+    description: 'Say something to a villager as the child would. Returns what they answer and what they did.',
+    inputSchema: { type: 'object', properties: { id: str, message: str }, required: ['id', 'message'] },
+    execute: async ({ id, message }: { id: string; message: string }) => {
+      const result = await engine.chat.send(id, message);
+      if (!result) throw new Error(`no villager ${id}`);
+      return result;
+    },
+  });
+  tools.register({
+    name: 'villager_say',
+    description: 'Make a villager say a line (for outside agents answering chats).',
+    inputSchema: { type: 'object', properties: { id: str, text: str }, required: ['id', 'text'] },
+    execute: ({ id, text }: { id: string; text: string }) => {
+      const e = entities.byId(id);
+      if (!e || e.kind !== 'villager') throw new Error(`no villager ${id}`);
+      e.happyTimer = 0.5;
+      engine.sayAs(id, text.slice(0, 220));
+      return { said: true };
+    },
+  });
+  tools.register({
+    name: 'villager_stay',
+    description: 'A villager waits where it is for a while.',
+    inputSchema: { type: 'object', properties: { id: str, seconds: num }, required: ['id'] },
+    execute: ({ id, seconds }: { id: string; seconds?: number }) => {
+      const e = entities.byId(id);
+      if (!e || e.kind !== 'villager') throw new Error(`no villager ${id}`);
+      entities.stay(e, seconds ?? 60);
+      return describe(e);
+    },
+  });
+  tools.register({
+    name: 'villager_build',
+    description: 'A villager walks over and builds a blueprint (or fills a box with a block) by hand, block by block. One undo step when done.',
+    inputSchema: { type: 'object', properties: { id: str, blueprint: str, block: str, x: num, y: num, z: num, x2: num, y2: num, z2: num, rotation: num }, required: ['id', 'x', 'y', 'z'] },
+    execute: (a: { id: string; blueprint?: string; block?: string; x: number; y: number; z: number; x2?: number; y2?: number; z2?: number; rotation?: number }) => {
+      const e = entities.byId(a.id);
+      if (!e || e.kind !== 'villager') throw new Error(`no villager ${a.id}`);
+      const ctx = { player: engine.playerState(), site: { x: Math.round(a.x), y: Math.round(a.y), z: Math.round(a.z) } };
+      const action = a.blueprint
+        ? { tool: 'build_stamp_blueprint', args: { blueprint: a.blueprint, x: a.x, y: a.y, z: a.z, rotation: a.rotation } }
+        : { tool: 'world_fill', args: { x1: a.x, y1: a.y, z1: a.z, x2: a.x2 ?? a.x, y2: a.y2 ?? a.y, z2: a.z2 ?? a.z, block: a.block ?? 'planks' } };
+      const plan = engine.chat.plan(action, ctx as never);
+      if (!plan) throw new Error('nothing to build');
+      entities.assignWork(a.id, plan.label, plan.edits);
+      return { blocks: plan.edits.length, label: plan.label };
+    },
+  });
+  tools.register({
     name: 'villager_walk_to',
     description: 'Send a villager (or pet) walking to (x, z).',
     inputSchema: { type: 'object', properties: { id: str, x: num, z: num }, required: ['id', 'x', 'z'] },
@@ -129,9 +179,9 @@ export function registerLifeTools(engine: Engine): void {
 
   tools.register({
     name: 'player_set_look',
-    description: 'Dress up the player: hex colors for shirt, pants, skin, hair; hat none/cap/crown/cowboy/party.',
-    inputSchema: { type: 'object', properties: { shirt: str, pants: str, skin: str, hair: str, hat: { type: 'string', enum: ['none', 'cap', 'crown', 'cowboy', 'party'] } } },
-    execute: (look: { shirt?: string; pants?: string; skin?: string; hair?: string; hat?: 'none' | 'cap' | 'crown' | 'cowboy' | 'party' }) => {
+    description: 'Dress up the player: hex colors for shirt, pants, skin, hair; hat none/cap/crown/cowboy/party; style boy/girl.',
+    inputSchema: { type: 'object', properties: { shirt: str, pants: str, skin: str, hair: str, hat: { type: 'string', enum: ['none', 'cap', 'crown', 'cowboy', 'party'] }, style: { type: 'string', enum: ['boy', 'girl'] } } },
+    execute: (look: { shirt?: string; pants?: string; skin?: string; hair?: string; hat?: 'none' | 'cap' | 'crown' | 'cowboy' | 'party'; style?: 'boy' | 'girl' }) => {
       for (const v of [look.shirt, look.pants, look.skin, look.hair]) if (v !== undefined && !/^#[0-9a-fA-F]{6}$/.test(v)) throw new Error(`"${v}" is not a hex color`);
       engine.setLook(look);
       return engine.avatar.look;

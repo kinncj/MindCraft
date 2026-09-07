@@ -30,7 +30,9 @@
 - Life layer: sit on chairs, switch TVs and lamps, a fridge that stores, a stove that
   sizzles, ladders; a drivable car and boat; puppies and kitties that follow or stay;
   villagers with eight pretend jobs, picture dialogue, gifts, and "let's play"
-- Dress-up: shirt, pants, skin, hair, hats
+- Dress-up with a live 3D preview: boy/girl style, shirt, pants/skirt, skin, hair, hats
+- Villager chat (ADR-0011): rules, the browser's built-in on-device model behind a
+  parent toggle, or an outside agent; villagers build requests by hand, undoable
 - Crafting: a picture recipe book (36 recipes) with a tap-to-fill grid; crafting table
 - Logic: lever, button, pressure plate, wire (fades over 15 blocks), logic lamp, piston
   and sticky piston (push/pull up to 8 blocks), powered doors, note blocks; a 10 Hz tick

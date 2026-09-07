@@ -126,6 +126,10 @@ export class BuildTools {
   room(a: Vec3, b: Vec3, id: number): number {
     const def = this.registry.get(id);
     if (!def) return 0;
+    return this.run(`Room of ${def.label}`, this.planRoom(a, b, id));
+  }
+
+  planRoom(a: Vec3, b: Vec3, id: number): BlockEdit[] {
     const x0 = Math.min(a.x, b.x);
     const x1 = Math.max(a.x, b.x);
     const z0 = Math.min(a.z, b.z);
@@ -145,19 +149,30 @@ export class BuildTools {
     if (x1 - x0 >= 2 && z1 - z0 >= 2) {
       for (const e of edits) if (e.x === dx && e.z === z0 && (e.y === y + 1 || e.y === y + 2)) e.id = 0;
     }
-    return this.run(`Room of ${def.label}`, edits);
+    return edits;
   }
 
   fill(a: Vec3, b: Vec3, id: number): number {
     const def = id === 0 ? { label: 'air' } : this.registry.get(id);
     if (!def) return 0;
+    return this.run(`Fill ${def.label}`, this.planFill(a, b, id));
+  }
+
+  planFill(a: Vec3, b: Vec3, id: number): BlockEdit[] {
     const edits: BlockEdit[] = [];
     for (let x = Math.min(a.x, b.x); x <= Math.max(a.x, b.x); x++) {
       for (let y = Math.min(a.y, b.y); y <= Math.max(a.y, b.y); y++) {
         for (let z = Math.min(a.z, b.z); z <= Math.max(a.z, b.z); z++) edits.push({ x, y, z, id, state: 0, entity: null });
       }
     }
-    return this.run(`Fill ${def.label}`, edits);
+    return edits;
+  }
+
+  /** Edits for a stamp centered on (x, z) with its bottom at y, rotated. */
+  planStamp(stamp: Stamp, x: number, y: number, z: number, rotation: number): BlockEdit[] {
+    const rotated = rotateStamp(stamp, rotation, this.registry);
+    const origin = centeredOrigin(rotated, x, y, z);
+    return stampToEdits(rotated, origin.x, origin.y, origin.z);
   }
 
   copy(a: Vec3, b: Vec3): boolean {

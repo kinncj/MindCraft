@@ -25,6 +25,15 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null;
 let changeSeq = 0;
 
 const AUDIO_KEY = 'mindcraft-audio';
+const SMART_KEY = 'mindcraft-smart-chat';
+
+function loadSmartChat(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(SMART_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 function loadAudio(): AudioState {
   const fallback: AudioState = { muted: false, music: true, volume: 0.7 };
@@ -50,7 +59,7 @@ function saveAudio(audio: AudioState): void {
   }
 }
 
-const DEFAULT_LOOK: PlayerLookState = { shirt: '#ffb03c', pants: '#4a7fd6', skin: '#f2c79a', hair: '#6b4a26', hat: 'none' };
+const DEFAULT_LOOK: PlayerLookState = { shirt: '#ffb03c', pants: '#4a7fd6', skin: '#f2c79a', hair: '#6b4a26', hat: 'none', style: 'boy' };
 
 function lookOf(raw: StoredWorld['settings']['look']): PlayerLookState {
   const hex = (v: unknown, fallback: string): string => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v : fallback);
@@ -61,6 +70,7 @@ function lookOf(raw: StoredWorld['settings']['look']): PlayerLookState {
     skin: hex(raw?.skin, DEFAULT_LOOK.skin),
     hair: hex(raw?.hair, DEFAULT_LOOK.hair),
     hat: (hats.includes(raw?.hat ?? '') ? raw!.hat : 'none') as PlayerLookState['hat'],
+    style: raw?.style === 'girl' ? 'girl' : 'boy',
   };
 }
 
@@ -352,6 +362,12 @@ export const useGameStore = create<GameState>((set, get) => {
       if (def) get().selectBlockType(def.id);
       get().showToast(`🎁 You got ${label}! It's in your hotbar.`);
     },
+    villagerLines: {},
+    pushVillagerLine(id, who, text) {
+      const lines = [...(get().villagerLines[id] ?? []), { who, text }].slice(-12);
+      set({ villagerLines: { ...get().villagerLines, [id]: lines } });
+      if (who === 'villager') get().showToast(text);
+    },
     receiveCrafted(blockId, label, count) {
       const def = registry.get(blockId);
       if (def) get().selectBlockType(def.id);
@@ -413,6 +429,17 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     // --- settings slice ---
+    smartChat: loadSmartChat(),
+    setSmartChat(on) {
+      set({ smartChat: on });
+      try {
+        localStorage.setItem(SMART_KEY, on ? '1' : '0');
+      } catch {
+        // fine
+      }
+      const engine = getEngine();
+      if (engine) engine.chat.smart = on;
+    },
     audio: loadAudio(),
     setAudio(audio) {
       const next = { ...get().audio, ...audio };

@@ -44,7 +44,14 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   drive, **puppies and kitties** that follow you (rename them, tell them to stay),
   and **villagers with jobs** (baker, farmer, builder, doctor, teacher, firefighter,
   shopkeeper, musician) who chat in pictures, hand out gifts, and play along.
-- **Dress up**: shirt, pants, skin, hair, and a hat (cap, crown, cowboy, party).
+- **Dress up** with a live spinning 3D preview: boy or girl style, shirt, pants or
+  skirt, skin, hair, and a hat (cap, crown, cowboy, party).
+- **Chat with villagers.** Tap a neighbor and type or tap a chip: "build a house",
+  "make a castle", "follow me", "make it night", "can I have a puppy". The villager
+  answers and walks over to build it block by block (Undo removes the whole thing).
+  Answers come from the game's own rules, from your browser's built-in on-device AI
+  if a grown-up turns that on in Menu → Friends, or from an outside agent that
+  registers on `window.mindcraftChat`. Nothing is ever downloaded or sent anywhere.
 - **Crafting**: a picture recipe book with a tap-to-fill 3×3 grid and a crafting
   table. Recipes teach "this is made of that"; the result lands in the hotbar.
 - **Logic and automation**: levers, buttons, pressure plates, wire that fades over
@@ -89,7 +96,8 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 | Pick a block | `1`–`9`, hotbar, `E` for all blocks | hotbar, ➕ More | LB / RB, D-pad up |
 | Build tools | Tools button, `R` turns a paste | Tools button | D-pad down cycles, D-pad left turns |
 | Interact only | Tools → Interact | Tools → Interact | D-pad down to it |
-| Ride / hop off | tap the car or boat, `Space` to hop off | tap | RT, A to hop off |
+| Ride / hop off | tap the car or boat, `Space` to hop off (camera follows behind) | tap | RT, A to hop off |
+| Chat with a villager | tap them, then type or tap a chip | tap, chips | RT on them, chips |
 | Crafting | `C`, a crafting table, or Menu → Crafting | Menu → Crafting | Start → Crafting |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Shift+Z` or buttons | buttons | B |
 | Menu | `Escape` or the Menu button | Menu button | Start |

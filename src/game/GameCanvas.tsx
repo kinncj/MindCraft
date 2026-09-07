@@ -54,6 +54,7 @@ export function GameCanvas() {
         onEntityTapped: (entity) => useGameStore.getState().setOpenPanel(entity.kind === 'pet' ? 'pet' : entity.kind === 'robot' ? 'robot' : 'villager', entity),
         onCrafted: (blockId, label, count) => useGameStore.getState().receiveCrafted(blockId, label, count),
         onGift: (blockId, label) => useGameStore.getState().receiveGift(blockId, label),
+        onVillagerSay: (id, text) => useGameStore.getState().pushVillagerLine(id, 'villager', text),
         onGamepadActive: (active) => useGameStore.getState().setControllerActive(active),
         onCommand: (command) => {
           const s = useGameStore.getState();
@@ -70,6 +71,7 @@ export function GameCanvas() {
     setEngine(engine);
     engine.setViewMode(store.viewMode);
     engine.onAudioSettings = (settings) => useGameStore.getState().setAudio(settings);
+    engine.chat.smart = store.smartChat;
 
     const unsubWorld = engine.world.subscribe({
       onBlockChanged: () => useGameStore.getState().markDirty(),

@@ -1,4 +1,6 @@
 import type { ToolRegistry } from './ToolRegistry';
+import type { ChatAgent } from '../chat/ChatAgent';
+import type { ChatProvider } from '../chat/types';
 
 /**
  * Exposes the tool registry to agents.
@@ -29,6 +31,22 @@ export type ToolBridge = {
   call(name: string, input?: Record<string, unknown>): Promise<unknown>;
 };
 
+/**
+ * `window.mindcraftChat`: an outside agent (a WebMCP client, a bridge to
+ * an MCP server) can answer villager chats by registering a provider:
+ * `{ name, available: async () => true, reply: async (ctx) => ({ say, actions }) }`.
+ */
+export type ChatBridge = {
+  register(provider: ChatProvider): () => void;
+  provider(): string;
+};
+
+declare global {
+  interface Window {
+    mindcraftChat?: ChatBridge;
+  }
+}
+
 declare global {
   interface Navigator {
     modelContext?: ModelContext;
@@ -38,12 +56,21 @@ declare global {
   }
 }
 
-export function exposeTools(registry: ToolRegistry): () => void {
+export function exposeTools(registry: ToolRegistry, chat?: ChatAgent): () => void {
   const bridge: ToolBridge = {
     list: () => registry.list().map(({ name, description, inputSchema }) => ({ name, description, inputSchema })),
     call: (name, input) => registry.call(name, input),
   };
   window.mindcraftTools = bridge;
+  if (chat) {
+    window.mindcraftChat = {
+      register: (provider) => {
+        chat.registerProvider(provider);
+        return () => chat.registerProvider(null);
+      },
+      provider: () => chat.providerName,
+    };
+  }
 
   const sync = (): void => publishToModelContext(registry);
   sync();
@@ -52,6 +79,7 @@ export function exposeTools(registry: ToolRegistry): () => void {
   return () => {
     unsubscribe();
     delete window.mindcraftTools;
+    delete window.mindcraftChat;
     const mc = navigator.modelContext;
     if (mc?.unregisterTool) for (const name of registry.names()) mc.unregisterTool(name);
     else mc?.provideContext?.({ tools: [] });

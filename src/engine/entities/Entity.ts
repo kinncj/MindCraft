@@ -39,6 +39,8 @@ export type Entity = {
   vehicle?: Vehicle;
   /** Robots carry their program runner. */
   robot?: RobotRunner;
+  /** Blocks this villager is laying by hand, one at a time. */
+  work?: { label: string; edits: import('../commands/Command').BlockEdit[]; index: number; timer: number; command: import('../commands/Command').SetBlocksCommand };
   /** Temporary brain swap (a villager playing along) ends at this time. */
   brainUntil?: number;
   savedBrain?: Brain;

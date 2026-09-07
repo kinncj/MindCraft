@@ -16,6 +16,7 @@ ads, no tracking, no external requests at runtime. Original art generated in cod
   - `commands/` undoable edits; `tools/` the tool registry + WebMCP adapter
   - `build/` room/fill/paint/copy/paste/mirror + blueprints; `crafting/` recipes
   - `logic/` the 10 Hz power system and pistons; `audio/` Tone.js music and effects
+  - `chat/` villager chat providers (rules, browser built-in model, outside agents)
   - `core/Engine.ts` composes everything and runs the `GameLoop`
 - `src/game/` is the app layer: zustand store (slices in `store/`), `GameCanvas`.
 - `src/storage/` Dexie v2: `worlds` + `chunks` rows, RLE codec, v1 migration.

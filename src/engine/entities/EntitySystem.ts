@@ -8,6 +8,8 @@ import { FollowBrain, WanderBrain, createBrain, type Brain, type BrainSense } fr
 import { NeuralBrain } from '../ai/NeuralBrain';
 import { buildBunny, buildButterfly, buildCat, buildChick, buildDog, buildRobot, buildVillager, disposeGroup } from './bodies';
 import { RobotRunner, validateProgram, type RobotProgram } from './robot';
+import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
+import { StayBrain } from './Brain';
 import type { Entity, EntityKind, StoredEntity } from './Entity';
 import { Vehicle, type DriveInput, type VehicleKind } from './vehicles';
 import { PET_NAMES, VILLAGER_NAMES, jobById, randomJob, randomName, type TalkChoice } from './villagers';
@@ -30,6 +32,10 @@ export class EntitySystem implements System {
   private elapsed = 0;
   /** Supplied by the engine so brains know about day and night. */
   timeOfDay: () => number = () => 0.3;
+  /** A villager placed a block by hand (particles, sound). */
+  onWorkBlock: ((x: number, y: number, z: number, id: number) => void) | null = null;
+  /** A villager finished a job: the command to record for undo. */
+  onWorkDone: ((entity: Entity, command: SetBlocksCommand) => void) | null = null;
 
   constructor(
     private scene: THREE.Scene,
@@ -218,6 +224,75 @@ export class EntitySystem implements System {
     }
   }
 
+  /** Give a villager a list of blocks to lay by hand. Queues behind current work. */
+  assignWork(villagerId: string, label: string, edits: BlockEdit[]): boolean {
+    const entity = this.byId(villagerId);
+    if (!entity || entity.kind !== 'villager' || edits.length === 0) return false;
+    if (entity.work) {
+      entity.work.edits.push(...edits);
+      return true;
+    }
+    const command = new SetBlocksCommand(label, edits);
+    command.capture(this.world);
+    entity.work = { label, edits, index: 0, timer: 0, command };
+    entity.mood = 'busy';
+    entity.savedBrain = entity.savedBrain ?? entity.brain;
+    entity.brain = new StayBrain();
+    entity.brainUntil = undefined;
+    return true;
+  }
+
+  /** Make a villager wait where it is for a while. */
+  stay(entity: Entity, seconds = 60): void {
+    entity.savedBrain = entity.savedBrain ?? entity.brain;
+    entity.brain = new StayBrain();
+    entity.brainUntil = this.elapsed + seconds;
+    entity.targetX = entity.x;
+    entity.targetZ = entity.z;
+    entity.restTimer = 0;
+    entity.mood = 'patient';
+  }
+
+  private updateWork(entity: Entity, dt: number): void {
+    const work = entity.work!;
+    if (work.index >= work.edits.length) {
+      entity.work = undefined;
+      entity.brain = entity.savedBrain ?? entity.brain;
+      entity.savedBrain = undefined;
+      entity.mood = 'proud';
+      entity.happyTimer = 1.2;
+      this.onWorkDone?.(entity, work.command);
+      return;
+    }
+    const next = work.edits[work.index];
+    const dx = next.x - entity.x;
+    const dz = next.z - entity.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance > 4) {
+      // Walk toward the job site first.
+      const step = Math.min(distance - 3, entity.speed * dt);
+      entity.x += (dx / distance) * step;
+      entity.z += (dz / distance) * step;
+      entity.group.rotation.y = Math.atan2(dz, dx) * -1 + Math.PI / 2;
+      const groundY = this.groundY(entity.x, entity.z);
+      entity.y += (groundY - entity.y) * Math.min(1, dt * 10);
+      entity.group.position.set(entity.x, entity.y + Math.abs(Math.sin(this.elapsed * 7)) * 0.1, entity.z);
+      return;
+    }
+    entity.group.rotation.y = Math.atan2(dz, dx) * -1 + Math.PI / 2;
+    work.timer += dt;
+    while (work.timer >= 0.12 && work.index < work.edits.length) {
+      work.timer -= 0.12;
+      const e = work.edits[work.index++];
+      if (!this.world.isLoaded(e.x, e.z)) continue;
+      this.world.setBlock(e.x, e.y, e.z, e.id, e.state);
+      if (e.entity !== undefined) this.world.setEntity(e.x, e.y, e.z, e.entity);
+      if (e.id !== 0) this.onWorkBlock?.(e.x, e.y, e.z, e.id);
+    }
+    // Hammering bob.
+    entity.group.position.set(entity.x, entity.y + Math.abs(Math.sin(this.elapsed * 12)) * 0.12, entity.z);
+  }
+
   setPetBrain(entity: Entity, brainName: 'follow' | 'stay' | 'wander' | 'neural'): void {
     entity.brain = createBrain(brainName, undefined, entity.variant);
     entity.data = { ...entity.data, brain: brainName };
@@ -344,8 +419,13 @@ export class EntitySystem implements System {
         if (riding) {
           const seat = entity.vehicle.seat();
           this.player.teleport(seat.x, seat.y, seat.z);
-          this.player.facing = entity.vehicle.yaw - Math.PI / 2;
+          this.player.facing = entity.vehicle.yaw + Math.PI / 2;
         }
+        continue;
+      }
+
+      if (entity.work) {
+        this.updateWork(entity, dt);
         continue;
       }
 

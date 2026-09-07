@@ -27,6 +27,8 @@ export function RobotPanel() {
   const markDirty = useGameStore((state) => state.markDirty);
   const [, bump] = useState(0);
   const [repeatTimes, setRepeatTimes] = useState(3);
+  const [allBlocks, setAllBlocks] = useState(false);
+  const hotbar = useGameStore((state) => state.hotbar);
   const [building, setBuilding] = useState<RobotCard[] | null>(null); // cards inside a repeat being built
   if (openPanel !== 'robot' || !payload) return null;
   const engine = getEngine();
@@ -34,8 +36,13 @@ export function RobotPanel() {
   if (!engine || !robot?.robot) return null;
   const runner = robot.robot;
   const program: RobotProgram = runner.program;
-  const blockDef = blocks.get(runner.blockId) ?? blocks.byId(selectedBlockType);
+  if (runner.blockId === 0) {
+    const def = blocks.byId(selectedBlockType);
+    if (def) runner.blockId = def.numericId;
+  }
+  const blockDef = blocks.get(runner.blockId);
   const blockIcon = blockDef ? blockIconDataUrl(blockDef.id) : null;
+  const choices = (allBlocks ? blocks.palette().filter((d) => !d.spawns).map((d) => d.id) : hotbar);
   const refresh = (): void => {
     markDirty();
     bump((n) => n + 1);
@@ -133,16 +140,39 @@ export function RobotPanel() {
         <KidButton onClick={() => setRepeatTimes(Math.min(20, repeatTimes + 1))} aria-label="More repeats">
           ➕ More
         </KidButton>
-        <KidButton
-          onClick={() => {
-            const def = blocks.byId(selectedBlockType);
-            if (def) runner.blockId = def.numericId;
-            refresh();
-          }}
-          aria-label="Use the selected block for placing"
-        >
-          <span className="craft-cell craft-cell-mini" style={blockIcon ? { backgroundImage: `url(${blockIcon})` } : undefined} aria-hidden="true" /> Build with {blockDef?.label ?? 'nothing'}
+      </div>
+      <h3>Builds with</h3>
+      <div className="robot-block-row">
+        <span className="craft-cell craft-cell-mini" style={blockIcon ? { backgroundImage: `url(${blockIcon})`, backgroundColor: blockDef?.color } : undefined} aria-hidden="true" />
+        <span className="robot-block-label" role="status">{blockDef?.label ?? 'Nothing yet'}</span>
+        <KidButton onClick={() => setAllBlocks((v) => !v)} aria-label={allBlocks ? 'Show my hotbar blocks' : 'Show all blocks'}>
+          {allBlocks ? '🎒 My blocks' : '🧱 All blocks'}
         </KidButton>
+      </div>
+      <div className="palette-grid ingredient-grid" role="group" aria-label="Pick a block for the robot">
+        {choices.map((id) => {
+          const def = blocks.byId(id);
+          if (!def) return null;
+          const icon = blockIconDataUrl(id);
+          const active = runner.blockId === def.numericId;
+          return (
+            <button
+              key={id}
+              type="button"
+              className={`craft-cell ${active ? 'craft-cell-selected' : ''}`}
+              style={icon ? { backgroundImage: `url(${icon})`, backgroundColor: def.color } : { background: def.color }}
+              aria-label={`Robot builds with ${def.label}`}
+              aria-pressed={active}
+              onClick={() => {
+                runner.blockId = def.numericId;
+                showToast(`🤖 ${robot.name ?? 'Robot'} will build with ${def.label}!`);
+                refresh();
+              }}
+            >
+              {!icon && <span aria-hidden="true">{def.emoji}</span>}
+            </button>
+          );
+        })}
       </div>
     </Sheet>
   );

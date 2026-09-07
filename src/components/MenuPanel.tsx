@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../game/gameStore';
+import { getEngine } from '../game/engineRef';
 import { ExportWorldButton } from './ExportWorldButton';
 import { ImportWorldDialog } from './ImportWorldDialog';
 import { ResetWorldDialog } from './ResetWorldDialog';
@@ -10,13 +11,14 @@ import { KidButton } from './KidButton';
 import { MenuRow } from './ui/MenuRow';
 import { Sheet } from './ui/Sheet';
 
-type Page = 'main' | 'help' | 'looks' | 'sound' | 'worlds' | 'share' | 'reset' | 'about';
+type Page = 'main' | 'help' | 'looks' | 'sound' | 'friends' | 'worlds' | 'share' | 'reset' | 'about';
 
 const TITLES: Record<Page, { title: string; emoji: string }> = {
   main: { title: 'Menu', emoji: '🧱' },
   help: { title: 'How to play', emoji: '❓' },
   looks: { title: 'World looks', emoji: '🌈' },
   sound: { title: 'Sound', emoji: '🔊' },
+  friends: { title: 'Friends', emoji: '🧑' },
   worlds: { title: 'Your worlds', emoji: '🌍' },
   share: { title: 'Save & share', emoji: '💾' },
   reset: { title: 'Start over', emoji: '🔄' },
@@ -35,7 +37,19 @@ export function MenuPanel() {
   const worldName = useGameStore((state) => state.worldName);
   const audio = useGameStore((state) => state.audio);
   const setAudio = useGameStore((state) => state.setAudio);
+  const smartChat = useGameStore((state) => state.smartChat);
+  const setSmartChat = useGameStore((state) => state.setSmartChat);
   const [page, setPage] = useState<Page>('main');
+  const [builtIn, setBuiltIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (page !== 'friends') return;
+    const engine = getEngine();
+    if (!engine) {
+      setBuiltIn(false);
+      return;
+    }
+    void engine.chat.builtInAvailable().then(setBuiltIn);
+  }, [page]);
 
   const open = openPanel === 'menu' || openPanel === 'worlds';
   useEffect(() => {
@@ -58,6 +72,7 @@ export function MenuPanel() {
           <MenuRow tone="pink" emoji="👕" label="Dress up" hint="Shirt, pants, hair, and a hat" onClick={() => setOpenPanel('dressup')} ariaLabel="Dress up your character" />
           <MenuRow tone="violet" emoji="🌈" label="World looks" hint="Visual mode, sky, and weather" onClick={() => setPage('looks')} />
           <MenuRow tone="teal" emoji="🔊" label="Sound" hint={audio.muted ? 'Muted' : audio.music ? 'Music and effects on' : 'Effects only'} onClick={() => setPage('sound')} />
+          <MenuRow tone="teal" emoji="🧑" label="Friends" hint={smartChat ? 'Chats use the built-in AI' : 'How villagers answer chats'} onClick={() => setPage('friends')} />
           <MenuRow tone="primary" emoji="🌍" label="My worlds" hint={`Playing: ${worldName}`} onClick={() => setPage('worlds')} ariaLabel="See all your worlds" />
           <MenuRow tone="default" emoji="💾" label="Save & share" hint="Export and import world files" onClick={() => setPage('share')} />
           <MenuRow tone="danger" emoji="🔄" label="Start over" hint="Fresh meadow, Toy Land, or Sunny Town" onClick={() => setPage('reset')} />
@@ -117,6 +132,24 @@ export function MenuPanel() {
               </KidButton>
             ))}
           </div>
+        </div>
+      )}
+      {page === 'friends' && (
+        <div className="menu-list">
+          <p className="sheet-hint">Tap a villager and chat. Ask for a house, a castle, a pool, a puppy, night time… and watch them build it.</p>
+          <div className="setting-group" role="group" aria-label="Villager chat">
+            <KidButton tone={!smartChat ? 'primary' : 'default'} aria-pressed={!smartChat} onClick={() => setSmartChat(false)}>
+              🧠 Built into the game
+              <span className="setting-hint">Understands building, weather, pets, and friends. Always works, always safe.</span>
+            </KidButton>
+            <KidButton tone={smartChat ? 'primary' : 'default'} aria-pressed={smartChat} onClick={() => setSmartChat(true)} disabled={builtIn === false}>
+              ✨ Your browser's built-in AI
+              <span className="setting-hint">
+                {builtIn === null ? 'Checking…' : builtIn ? 'On-device model found. Answers are filtered and kept short.' : 'Not available in this browser (nothing is downloaded).'}
+              </span>
+            </KidButton>
+          </div>
+          <p className="menu-footer">Grown-ups: an outside agent can answer chats too, through window.mindcraftChat and the WebMCP tools. Nothing here ever talks to the internet on its own.</p>
         </div>
       )}
       {page === 'worlds' && <WorldsList />}

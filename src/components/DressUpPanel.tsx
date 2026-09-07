@@ -1,6 +1,7 @@
 import { useGameStore } from '../game/gameStore';
 import type { PlayerLookState } from '../game/store/types';
 import { KidButton } from './KidButton';
+import { AvatarPreview } from './AvatarPreview';
 import { Sheet } from './ui/Sheet';
 
 const COLORS = ['#ffb03c', '#e8574f', '#4a7fd6', '#67c23a', '#9b6bd8', '#f291bb', '#ffd94a', '#f3efe7', '#3a3a3a', '#8a6238', '#4fa8e8', '#2f9149'];
@@ -35,9 +36,21 @@ export function DressUpPanel() {
   const closePanels = useGameStore((state) => state.closePanels);
   if (openPanel !== 'dressup') return null;
   return (
-    <Sheet title="Dress up" emoji="👕" onClose={closePanels}>
+    <Sheet title="Dress up" emoji="👕" onClose={closePanels} hint="Tap colors and hats. Your character changes right away.">
+        <div className="dressup-top">
+          <AvatarPreview look={look} />
+          <div className="setting-group dressup-style" role="group" aria-label="Style">
+            <h3>Style</h3>
+            <KidButton tone={look.style === 'boy' ? 'primary' : 'default'} aria-pressed={look.style === 'boy'} onClick={() => setLook({ style: 'boy' })}>
+              👦 Boy
+            </KidButton>
+            <KidButton tone={look.style === 'girl' ? 'primary' : 'default'} aria-pressed={look.style === 'girl'} onClick={() => setLook({ style: 'girl' })}>
+              👧 Girl
+            </KidButton>
+          </div>
+        </div>
         <Swatches label="Shirt" colors={COLORS} value={look.shirt} onPick={(shirt) => setLook({ shirt })} />
-        <Swatches label="Pants" colors={COLORS} value={look.pants} onPick={(pants) => setLook({ pants })} />
+        <Swatches label={look.style === 'girl' ? 'Skirt & tights' : 'Pants'} colors={COLORS} value={look.pants} onPick={(pants) => setLook({ pants })} />
         <Swatches label="Skin" colors={SKINS} value={look.skin} onPick={(skin) => setLook({ skin })} />
         <Swatches label="Hair" colors={HAIRS} value={look.hair} onPick={(hair) => setLook({ hair })} />
         <div className="setting-group" role="group" aria-label="Hat">

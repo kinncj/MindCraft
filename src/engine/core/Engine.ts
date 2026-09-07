@@ -9,6 +9,8 @@ import { registerLifeTools } from '../tools/lifeTools';
 import { registerAutomationTools } from '../tools/automationTools';
 import { LogicSystem, type LogicEvent } from '../logic/LogicSystem';
 import { AudioSystem } from '../audio/AudioSystem';
+import { ChatAgent } from '../chat/ChatAgent';
+import type { ChatProvider } from '../chat/types';
 import type { AudioSettings } from '../audio/music';
 import { InfiniteGenerator } from '../world/generation/InfiniteGenerator';
 import { recipeById } from '../crafting/recipes';
@@ -65,6 +67,8 @@ export type EngineBridge = {
   onEntityTapped?(entity: { id: string; kind: string; name?: string; variant?: string }): void;
   /** A villager handed over a block: put it in the hotbar. */
   onGift?(blockId: number, label: string): void;
+  /** A villager said something (chat reply or villager_say). */
+  onVillagerSay?(villagerId: string, text: string): void;
   /** Something crafted: put it in the hotbar. */
   onCrafted?(blockId: number, label: string, count: number): void;
   /** Logic events the app may react to (a note block playing). */
@@ -114,6 +118,7 @@ export class Engine {
   readonly build: BuildTools;
   readonly logic: LogicSystem;
   readonly audio = new AudioSystem();
+  readonly chat: ChatAgent;
   readonly tools = new ToolRegistry();
   readonly generator: WorldGenerator;
   readonly player: PlayerController;
@@ -189,6 +194,15 @@ export class Engine {
     this.avatar = new PlayerAvatar(this.scene, this.player, this.camera.camera, { ...DEFAULT_LOOK_IMPORT, ...(options.settings.look ?? {}) });
     this.entities = new EntitySystem(this.scene, this.world, registry, this.player);
     this.entities.timeOfDay = () => this.environment.time;
+    this.entities.onWorkBlock = (x, y, z, id) => {
+      this.particles.burst(x, y, z, registry.get(id)?.color ?? '#ffffff', 6, 0.4);
+      this.audio.play('place', 3);
+    };
+    this.entities.onWorkDone = (entity, command) => {
+      this.history.record(command);
+      this.audio.play('craft');
+      bridge.toast(`🔨 ${entity.name ?? 'Your friend'} finished building! (Undo works too.)`);
+    };
     this.particles = new ParticleSystem(this.scene);
     this.logic.pressers = () => {
       const boxes = [this.player.box()];
@@ -296,7 +310,16 @@ export class Engine {
       .add({ name: 'mood', update: (_dt, elapsed) => this.updateMood(elapsed) })
       .add({ name: 'render', update: () => this.render() });
 
-    this.disposeTools = exposeTools(this.tools);
+    this.chat = new ChatAgent({
+      tools: this.tools,
+      entities: this.entities,
+      build: this.build,
+      registry,
+      player: () => this.playerState(),
+      surface: (x, z) => this.world.height(x, z),
+      say: (id, text) => bridge.onVillagerSay?.(id, text),
+    });
+    this.disposeTools = exposeTools(this.tools, this.chat);
     registerCoreTools(this);
     registerBuildTools(this);
     registerLifeTools(this);
@@ -414,6 +437,15 @@ export class Engine {
     if (this.entities.mounted) {
       this.entities.driveInput = { forward: f.forward, back: f.back, left: f.left, right: f.right };
       if (f.pressed.has(' ')) this.entities.dismount();
+      // The camera settles behind the vehicle unless the kid is dragging to look.
+      const vehicle = this.entities.mounted.vehicle;
+      if (vehicle && f.lookDX === 0 && f.lookDY === 0) {
+        const wanted = vehicle.yaw - Math.PI / 2;
+        let delta = wanted - this.camera.yaw;
+        while (delta > Math.PI) delta -= Math.PI * 2;
+        while (delta < -Math.PI) delta += Math.PI * 2;
+        this.camera.yaw += delta * Math.min(1, dt * 3);
+      }
       return;
     }
     this.entities.driveInput = null;
@@ -518,6 +550,16 @@ export class Engine {
     this.audio.play('craft');
     this.options.bridge.onCrafted?.(def.numericId, def.label, recipe.count);
     return true;
+  }
+
+  /** Show a villager line in the UI. */
+  sayAs(villagerId: string, text: string): void {
+    this.options.bridge.onVillagerSay?.(villagerId, text);
+  }
+
+  /** Let an outside agent answer villager chats. */
+  registerChatProvider(provider: ChatProvider | null): void {
+    this.chat.registerProvider(provider);
   }
 
   setLook(look: Partial<PlayerLook>): void {

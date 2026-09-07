@@ -58,19 +58,25 @@ export type UiSlice = {
   receiveGift: (blockId: number, label: string) => void;
   /** Something was crafted. */
   receiveCrafted: (blockId: number, label: string, count: number) => void;
+  /** The latest thing each villager said, for the chat panel. */
+  villagerLines: Record<string, Array<{ who: 'kid' | 'villager'; text: string }>>;
+  pushVillagerLine: (id: string, who: 'kid' | 'villager', text: string) => void;
   undo: () => void;
   redo: () => void;
   petAnimal: (kind: string, name?: string) => void;
   sleepUntilMorning: () => void;
 };
 
-export type PlayerLookState = { shirt: string; pants: string; skin: string; hair: string; hat: 'none' | 'cap' | 'crown' | 'cowboy' | 'party' };
+export type PlayerLookState = { shirt: string; pants: string; skin: string; hair: string; hat: 'none' | 'cap' | 'crown' | 'cowboy' | 'party'; style: 'boy' | 'girl' };
 
 export type AudioState = { muted: boolean; music: boolean; volume: number };
 
 export type SettingsSlice = {
   audio: AudioState;
   setAudio: (audio: Partial<AudioState>) => void;
+  /** Let villager chats use the browser's built-in on-device model when it has one. */
+  smartChat: boolean;
+  setSmartChat: (on: boolean) => void;
   look: PlayerLookState;
   setLook: (look: Partial<PlayerLookState>) => void;
   visualMode: VisualModeId;
