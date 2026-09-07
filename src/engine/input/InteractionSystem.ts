@@ -1,7 +1,6 @@
 import type { BlockRegistry } from '../blocks/registry';
 import type { BlockDefinition } from '../blocks/BlockDefinition';
-import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
-import type { CommandHistory } from '../commands/CommandHistory';
+import type { BlockEdit } from '../commands/Command';
 import type { System } from '../core/System';
 import { boxOverlaps, shapeBoxToWorld } from '../physics/collision';
 import type { PlayerController } from '../physics/PlayerController';
@@ -11,8 +10,9 @@ import { DIRECTIONS, DIR_NY, DIR_PY, type Direction } from '../world/coords';
 import type { VoxelWorld } from '../world/VoxelWorld';
 import type { CameraSystem } from './CameraSystem';
 import type { InputFrame } from './InputSystem';
+import type { BuildTools } from '../build/BuildTools';
 
-export type InteractionMode = 'place' | 'remove';
+export type InteractionMode = 'place' | 'remove' | 'room' | 'fill' | 'paint' | 'copy' | 'paste';
 
 /** What the interaction system needs from the app layer. */
 export type InteractionBridge = {
@@ -31,6 +31,8 @@ export type InteractionState = {
   highlight: { x: number; y: number; z: number } | null;
   /** Where the selected block would go if the player tapped now. */
   placement: PlacementTarget | null;
+  /** A box being selected (room/fill/copy) or about to be pasted. */
+  selection: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number }; kind: 'select' | 'paste' } | null;
   /** Test hook: what the last tap did. */
   lastTap: { hit: BlockHit | null; action: string } | null;
 };
@@ -44,7 +46,7 @@ const REACH = 7;
  */
 export class InteractionSystem implements System {
   readonly name = 'interaction';
-  readonly state: InteractionState = { highlight: null, placement: null, lastTap: null };
+  readonly state: InteractionState = { highlight: null, placement: null, selection: null, lastTap: null };
 
   constructor(
     private world: VoxelWorld,
@@ -52,8 +54,8 @@ export class InteractionSystem implements System {
     private input: InputFrame,
     private camera: CameraSystem,
     private player: PlayerController,
-    private history: CommandHistory,
     private bridge: InteractionBridge,
+    private build: BuildTools,
   ) {}
 
   /** What a tap at these normalized coords would hit. Public for tests. */
@@ -75,15 +77,39 @@ export class InteractionSystem implements System {
         this.state.lastTap = { hit: null, action: 'miss' };
         continue;
       }
-      const removing = tap.button === 2 || this.bridge.getMode() === 'remove';
+      const mode = this.bridge.getMode();
+      const removing = tap.button === 2 || mode === 'remove';
       if (removing) this.state.lastTap = { hit, action: this.removeAt(hit) ? 'removed' : 'remove-failed' };
-      else this.state.lastTap = { hit, action: this.placeOrInteract(hit) };
+      else if (mode === 'place') this.state.lastTap = { hit, action: this.placeOrInteract(hit) };
+      else this.state.lastTap = { hit, action: this.build.handleTap(mode, hit, this.bridge.getSelectedBlockId()) };
     }
+    if (this.input.pressed.has('r')) this.build.rotateClipboard();
 
     const hover = this.camera.viewMode === 'first' ? { ndcX: 0, ndcY: 0 } : this.input.hover;
     const hit = hover ? this.pick(hover.ndcX, hover.ndcY) : null;
     this.state.highlight = hit ? { x: hit.x, y: hit.y, z: hit.z } : null;
-    this.state.placement = hit && this.bridge.getMode() === 'place' ? this.placementFor(hit) : null;
+    const mode = this.bridge.getMode();
+    this.state.placement = hit && mode === 'place' ? this.placementFor(hit) : null;
+    this.state.selection = hit ? this.selectionFor(hit, mode) : null;
+  }
+
+  private selectionFor(hit: BlockHit, mode: InteractionMode): InteractionState['selection'] {
+    if (mode === 'paste') {
+      const d = DIRECTIONS[hit.face];
+      const bounds = this.build.pasteBounds({ x: hit.x + d.x, y: hit.y + d.y, z: hit.z + d.z });
+      return bounds ? { ...bounds, kind: 'paste' } : null;
+    }
+    if ((mode === 'room' || mode === 'fill' || mode === 'copy') && this.build.corner) {
+      const a = this.build.corner;
+      const d = DIRECTIONS[hit.face];
+      const b = mode === 'copy' ? { x: hit.x, y: hit.y, z: hit.z } : { x: hit.x + d.x, y: hit.y + d.y, z: hit.z + d.z };
+      return {
+        min: { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), z: Math.min(a.z, b.z) },
+        max: { x: Math.max(a.x, b.x), y: Math.max(a.y, b.y), z: Math.max(a.z, b.z) },
+        kind: 'select',
+      };
+    }
+    return null;
   }
 
   /** The cell a tap on this hit would fill, and whether that is allowed. */
@@ -136,7 +162,7 @@ export class InteractionSystem implements System {
         if (boxOverlaps(shapeBoxToWorld(b, x, y, z), body)) return false;
       }
     }
-    this.history.run(new SetBlocksCommand(`Place ${def.label}`, [{ x, y, z, id, state }, ...extras]));
+    this.build.run(`Place ${def.label}`, [{ x, y, z, id, state }, ...extras]);
     this.bridge.onBlockPlaced?.(def, x, y, z);
     return true;
   }
@@ -147,7 +173,7 @@ export class InteractionSystem implements System {
     const def = this.registry.get(id);
     if (!def) return false;
     const state = this.world.getState(x, y, z);
-    this.history.run(new SetBlocksCommand(`Remove ${def.label}`, [{ x, y, z, id: 0, state: 0, entity: null }]));
+    this.build.run(`Remove ${def.label}`, [{ x, y, z, id: 0, state: 0, entity: null }]);
     def.behavior?.onRemove?.({ world: this.world, position: { x, y, z }, state });
     this.bridge.onBlockRemoved?.(def, x, y, z);
     return true;

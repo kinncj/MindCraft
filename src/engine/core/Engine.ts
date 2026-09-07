@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { blocks as registry, resolveBlockId } from '../blocks/blocks';
 import { CommandHistory } from '../commands/CommandHistory';
+import { BuildTools } from '../build/BuildTools';
 import { EntitySystem } from '../entities/EntitySystem';
 import { PlayerAvatar } from '../entities/PlayerAvatar';
 import { CameraSystem, type ViewMode } from '../input/CameraSystem';
@@ -18,6 +19,7 @@ import { TextureAtlas } from '../render/TextureAtlas';
 import { ToolRegistry } from '../tools/ToolRegistry';
 import { exposeTools } from '../tools/webmcp';
 import { registerCoreTools } from '../tools/coreTools';
+import { registerBuildTools } from '../tools/buildTools';
 import { ChunkManager, type ChunkStorage } from '../world/ChunkManager';
 import { CHUNK_SIZE, toChunkCoord, toLocal } from '../world/coords';
 import { createGenerator } from '../world/generation/createGenerator';
@@ -90,6 +92,7 @@ export class Engine {
   readonly registry = registry;
   readonly world: VoxelWorld;
   readonly history: CommandHistory;
+  readonly build: BuildTools;
   readonly tools = new ToolRegistry();
   readonly generator: WorldGenerator;
   readonly player: PlayerController;
@@ -134,6 +137,8 @@ export class Engine {
     this.spawn = options.spawn;
     this.world = new VoxelWorld(registry);
     this.history = new CommandHistory(this.world);
+    this.build = new BuildTools(this.world, registry, this.history);
+    this.build.onHint = (message) => bridge.toast(message);
     const lighting = new LightEngine(this.world, registry);
     this.atlas = new TextureAtlas();
     const mesher = new ChunkMesher(this.world, registry, this.atlas);
@@ -183,7 +188,7 @@ export class Engine {
       },
     });
 
-    this.interaction = new InteractionSystem(this.world, registry, this.input.frame, this.camera, this.player, this.history, {
+    this.interaction = new InteractionSystem(this.world, registry, this.input.frame, this.camera, this.player, {
       getSelectedBlockId: () => bridge.getSelectedBlockId(),
       getMode: () => bridge.getMode(),
       openPanel: (kind, payload) => bridge.openPanel(kind, payload),
@@ -197,7 +202,7 @@ export class Engine {
       },
       onBlockPlaced: (def, x, y, z) => this.particles.burst(x, y, z, def.color, 10, 0.4),
       onBlockRemoved: (def, x, y, z) => this.particles.burst(x, y, z, def.color, 16, 0.7),
-    });
+    }, this.build);
     this.ghost = new GhostPreview(this.scene, registry, this.interaction.state, () => bridge.getSelectedBlockId());
 
     const highlightGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, 1.02, 1.02));
@@ -224,6 +229,7 @@ export class Engine {
 
     this.disposeTools = exposeTools(this.tools);
     registerCoreTools(this);
+    registerBuildTools(this);
     this.installDebugHooks();
     this.handleResize();
     window.addEventListener('resize', this.handleResize);
@@ -308,6 +314,7 @@ export class Engine {
     }
     for (const command of this.input.frame.commands) {
       if (command === 'toggle_view') this.camera.toggleViewMode();
+      else if (command === 'rotate') this.build.rotateClipboard();
       else this.options.bridge.onCommand?.(command);
     }
     // In first person a controller "tap" aims at the crosshair; in third
@@ -380,6 +387,11 @@ export class Engine {
 
   setWeather(weather: WeatherMode): void {
     this.environment.setWeather(weather);
+  }
+
+  /** Mirror every edit across the player's current x, or turn it off. */
+  setMirror(enabled: boolean): void {
+    this.build.setMirror(enabled ? Math.round(this.player.x) : null);
   }
 
   /** Block the world input while a panel is open. */

@@ -9,6 +9,8 @@ import { DEFAULT_SETTINGS, normalizeSettings } from '../storage/settingsReposito
 import { WorldStore } from '../storage/worldStore';
 import { getEngine } from './engineRef';
 import { createWorldRecord } from './store/worldRecords';
+import { blueprintById } from '../engine/build/blueprints';
+import type { InteractionMode } from '../types/game';
 import type { GameState, ViewMode } from './store/types';
 
 export type { GameState, PanelId, ViewMode, WorldPreset } from './store/types';
@@ -261,6 +263,7 @@ export const useGameStore = create<GameState>((set, get) => {
     canUndo: false,
     canRedo: false,
     controllerActive: false,
+    mirror: false,
     containerVersion: 0,
 
     setOpenPanel(panel, payload = null) {
@@ -276,6 +279,34 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     setMode(mode) {
       set({ mode });
+      getEngine()?.build.cancel();
+      const hints: Partial<Record<InteractionMode, string>> = {
+        room: 'Room tool: tap one corner, then the other! 🏠',
+        fill: 'Fill tool: tap one corner, then the other! 🧱',
+        copy: 'Copy tool: tap one corner, then the other! 📋',
+        paste: getEngine()?.build.clipboard ? 'Tap where to put it. Press R to turn it! 🔄' : 'Copy something or pick a blueprint first! 📋',
+        paint: 'Paint tool: tap a block to change it! 🎨',
+      };
+      const hint = hints[mode];
+      if (hint) get().showToast(hint);
+    },
+    setMirror(enabled) {
+      set({ mirror: enabled });
+      getEngine()?.setMirror(enabled);
+      get().showToast(enabled ? 'Mirror on! Everything you build is doubled. 🪞' : 'Mirror off.');
+    },
+    nextTool() {
+      const order: InteractionMode[] = ['place', 'remove', 'room', 'fill', 'paint', 'copy', 'paste'];
+      const index = order.indexOf(get().mode);
+      get().setMode(order[(index + 1) % order.length]);
+    },
+    selectBlueprint(id) {
+      const bp = blueprintById(id);
+      const engine = getEngine();
+      if (!bp || !engine) return;
+      engine.build.setClipboard(bp.stamp);
+      set({ openPanel: 'none', panelPayload: null, mode: 'paste' });
+      get().showToast(`${bp.emoji} ${bp.label}: tap where to build it! Press R to turn it.`);
     },
     setViewMode(mode) {
       set({ viewMode: mode });

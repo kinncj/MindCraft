@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { B, blocks } from '../../src/engine/blocks/blocks';
 import { CommandHistory } from '../../src/engine/commands/CommandHistory';
+import { BuildTools } from '../../src/engine/build/BuildTools';
 import { InteractionSystem } from '../../src/engine/input/InteractionSystem';
 import { PlayerController, type PlayerInput } from '../../src/engine/physics/PlayerController';
 import { ParticleSystem } from '../../src/engine/render/ParticleSystem';
@@ -25,11 +26,12 @@ function flatWorld(): VoxelWorld {
 function interaction(world: VoxelWorld, player: PlayerController, selected: () => number) {
   const frame = { taps: [], hover: null } as unknown as InputFrame;
   const camera = { viewMode: 'third', rotationQuarter: () => 0 } as unknown as CameraSystem;
-  return new InteractionSystem(world, blocks, frame, camera, player, new CommandHistory(world), {
+  const history = new CommandHistory(world);
+  return new InteractionSystem(world, blocks, frame, camera, player, {
     getSelectedBlockId: selected,
     getMode: () => 'place',
     openPanel: () => undefined,
-  });
+  }, new BuildTools(world, blocks, history));
 }
 
 describe('replaceable plants', () => {

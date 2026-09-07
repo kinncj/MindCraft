@@ -1,0 +1,80 @@
+import { blueprintById, BLUEPRINTS } from '../build/blueprints';
+import type { Engine } from '../core/Engine';
+import { resolveBlockId } from '../blocks/blocks';
+
+/** build_* tools: the same room/fill/paint/copy/paste/mirror the UI has. */
+export function registerBuildTools(engine: Engine): void {
+  const { tools, build } = engine;
+  const int = { type: 'integer' };
+  const blockId = (name: string): number => {
+    if (name === 'air') return 0;
+    const def = resolveBlockId(name);
+    if (!def) throw new Error(`unknown block "${name}"`);
+    return def.numericId;
+  };
+  const box = { x1: int, y1: int, z1: int, x2: int, y2: int, z2: int };
+
+  tools.register({
+    name: 'build_room',
+    description: 'Build a room: a floor from corner to corner and hollow walls three high, with a doorway. One undo step.',
+    inputSchema: { type: 'object', properties: { ...box, block: { type: 'string' } }, required: ['x1', 'y1', 'z1', 'x2', 'z2', 'block'] },
+    execute: (a: { x1: number; y1: number; z1: number; x2: number; z2: number; block: string }) => ({
+      blocks: build.room({ x: a.x1, y: a.y1, z: a.z1 }, { x: a.x2, y: a.y1, z: a.z2 }, blockId(a.block)),
+    }),
+  });
+  tools.register({
+    name: 'build_paint',
+    description: 'Change one block into another kind, keeping its rotation when the shape matches.',
+    inputSchema: { type: 'object', properties: { x: int, y: int, z: int, block: { type: 'string' } }, required: ['x', 'y', 'z', 'block'] },
+    execute: ({ x, y, z, block }: { x: number; y: number; z: number; block: string }) => {
+      const id = engine.world.getBlock(x, y, z);
+      if (id === 0) return { painted: false };
+      return { painted: build.paint({ x, y, z, id, face: 2, px: x, py: y, pz: z, distance: 0 }, blockId(block)) };
+    },
+  });
+  tools.register({
+    name: 'build_copy',
+    description: 'Copy a box of blocks to the clipboard.',
+    inputSchema: { type: 'object', properties: box, required: ['x1', 'y1', 'z1', 'x2', 'y2', 'z2'] },
+    execute: (a: { x1: number; y1: number; z1: number; x2: number; y2: number; z2: number }) => ({
+      copied: build.copy({ x: a.x1, y: a.y1, z: a.z1 }, { x: a.x2, y: a.y2, z: a.z2 }),
+      blocks: build.clipboard?.blocks.length ?? 0,
+    }),
+  });
+  tools.register({
+    name: 'build_paste',
+    description: 'Paste the clipboard centered on (x, z) with its bottom at y. rotation = quarter turns.',
+    inputSchema: { type: 'object', properties: { x: int, y: int, z: int, rotation: int }, required: ['x', 'y', 'z'] },
+    execute: ({ x, y, z, rotation }: { x: number; y: number; z: number; rotation?: number }) => {
+      if (rotation !== undefined) build.rotation = ((rotation % 4) + 4) % 4;
+      return { blocks: build.paste({ x, y, z }) };
+    },
+  });
+  tools.register({
+    name: 'build_list_blueprints',
+    description: 'The blueprint cards you can stamp: id, label, size.',
+    inputSchema: { type: 'object', properties: {} },
+    execute: () => BLUEPRINTS.map((b) => ({ id: b.id, label: b.label, description: b.description, width: b.stamp.width, height: b.stamp.height, depth: b.stamp.depth })),
+  });
+  tools.register({
+    name: 'build_stamp_blueprint',
+    description: 'Stamp a blueprint (see build_list_blueprints) centered on (x, z) with its floor at y.',
+    inputSchema: { type: 'object', properties: { blueprint: { type: 'string' }, x: int, y: int, z: int, rotation: int }, required: ['blueprint', 'x', 'y', 'z'] },
+    execute: ({ blueprint, x, y, z, rotation }: { blueprint: string; x: number; y: number; z: number; rotation?: number }) => {
+      const bp = blueprintById(blueprint);
+      if (!bp) throw new Error(`unknown blueprint "${blueprint}"`);
+      build.setClipboard(bp.stamp);
+      build.rotation = ((rotation ?? 0) % 4 + 4) % 4;
+      return { blocks: build.paste({ x, y, z }) };
+    },
+  });
+  tools.register({
+    name: 'build_mirror',
+    description: 'Mirror every edit across the plane x = mirrorX (defaults to the player). enabled=false turns it off.',
+    inputSchema: { type: 'object', properties: { enabled: { type: 'boolean' }, mirrorX: int }, required: ['enabled'] },
+    execute: ({ enabled, mirrorX }: { enabled: boolean; mirrorX?: number }) => {
+      build.setMirror(enabled ? (mirrorX ?? Math.round(engine.player.x)) : null);
+      return { mirrorX: build.mirrorX };
+    },
+  });
+}

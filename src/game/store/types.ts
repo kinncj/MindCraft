@@ -1,7 +1,7 @@
 import type { StoredWorld } from '../../storage/db';
 import type { InteractionMode, SaveState, TimeMode, VisualModeId, WeatherMode } from '../../types/game';
 
-export type PanelId = 'none' | 'menu' | 'container' | 'sleep' | 'palette' | 'worlds';
+export type PanelId = 'none' | 'menu' | 'container' | 'sleep' | 'palette' | 'worlds' | 'blueprints';
 export type ViewMode = 'third' | 'first';
 export type WorldPreset = 'meadow' | 'toyland';
 
@@ -37,6 +37,8 @@ export type UiSlice = {
   canRedo: boolean;
   /** A game controller is in use: show a reticle in third person too. */
   controllerActive: boolean;
+  /** Build-mode mirror across the player's x. */
+  mirror: boolean;
   /** Bumped whenever a container's contents change, so panels re-render. */
   containerVersion: number;
   setOpenPanel: (panel: PanelId, payload?: unknown) => void;
@@ -47,6 +49,10 @@ export type UiSlice = {
   toggleViewMode: () => void;
   setHistoryState: (canUndo: boolean, canRedo: boolean) => void;
   setControllerActive: (active: boolean) => void;
+  setMirror: (enabled: boolean) => void;
+  nextTool: () => void;
+  /** Load a blueprint into the clipboard and switch to paste mode. */
+  selectBlueprint: (id: string) => void;
   undo: () => void;
   redo: () => void;
   petAnimal: (kind: string, name?: string) => void;

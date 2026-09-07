@@ -4,6 +4,8 @@ import { useGameStore } from '../game/gameStore';
 import { blocks } from '../engine/blocks/blocks';
 import { blockIconDataUrl } from '../game/blockIcons';
 import { BlockPalette } from '../components/BlockPalette';
+import { BlueprintsPanel } from '../components/BlueprintsPanel';
+import { ToolsBar } from '../components/ToolsBar';
 import { Hotbar } from '../components/Hotbar';
 import { SaveIndicator } from '../components/SaveIndicator';
 import { MagicDeliveryBoxPanel } from '../components/MagicDeliveryBoxPanel';
@@ -19,8 +21,6 @@ import './App.css';
 export function App() {
   const ready = useGameStore((state) => state.ready);
   const storageAvailable = useGameStore((state) => state.storageAvailable);
-  const mode = useGameStore((state) => state.mode);
-  const setMode = useGameStore((state) => state.setMode);
   const selectedBlockType = useGameStore((state) => state.selectedBlockType);
   const viewMode = useGameStore((state) => state.viewMode);
   const toggleViewMode = useGameStore((state) => state.toggleViewMode);
@@ -110,16 +110,11 @@ export function App() {
             {!selectedIcon && <span aria-hidden="true">{selectedDef.emoji}</span>} {selectedDef.label}
           </div>
         )}
-        <KidButton tone={mode === 'place' ? 'primary' : 'default'} onClick={() => setMode('place')} aria-pressed={mode === 'place'} aria-label="Place blocks mode">
-          ✨ Place
-        </KidButton>
-        <KidButton tone={mode === 'remove' ? 'primary' : 'default'} onClick={() => setMode('remove')} aria-pressed={mode === 'remove'} aria-label="Remove blocks mode">
-          🧽 Remove
-        </KidButton>
         <KidButton onClick={toggleViewMode} aria-label="Change camera view">
           {viewMode === 'third' ? '👀 My eyes' : '🧍 Behind me'}
         </KidButton>
       </div>
+      <ToolsBar />
 
       {(viewMode === 'first' || controllerActive) && (
         <div className="crosshair" aria-hidden="true">
@@ -130,6 +125,7 @@ export function App() {
       <Hotbar />
       <VirtualControls />
       <BlockPalette />
+      <BlueprintsPanel />
       <MagicDeliveryBoxPanel />
       <SleepPanel />
       <WorldsPanel />

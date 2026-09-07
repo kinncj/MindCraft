@@ -14,6 +14,7 @@ export class GhostPreview implements System {
   private group = new THREE.Group();
   private material = new THREE.MeshBasicMaterial({ color: '#8ed75f', transparent: true, opacity: 0.35, depthWrite: false });
   private lastKey = '';
+  private selectionBox: THREE.LineSegments;
 
   constructor(
     private scene: THREE.Scene,
@@ -23,9 +24,31 @@ export class GhostPreview implements System {
   ) {
     scene.add(this.group);
     this.group.visible = false;
+    this.selectionBox = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
+      new THREE.LineBasicMaterial({ color: '#ffd94a', linewidth: 2 }),
+    );
+    this.selectionBox.visible = false;
+    scene.add(this.selectionBox);
+  }
+
+  private updateSelection(): void {
+    const sel = this.state.selection;
+    if (!sel) {
+      this.selectionBox.visible = false;
+      return;
+    }
+    const w = sel.max.x - sel.min.x + 1.04;
+    const h = sel.max.y - sel.min.y + 1.04;
+    const d = sel.max.z - sel.min.z + 1.04;
+    this.selectionBox.scale.set(w, h, d);
+    this.selectionBox.position.set((sel.min.x + sel.max.x) / 2, (sel.min.y + sel.max.y) / 2, (sel.min.z + sel.max.z) / 2);
+    (this.selectionBox.material as THREE.LineBasicMaterial).color.set(sel.kind === 'paste' ? '#8ed75f' : '#ffd94a');
+    this.selectionBox.visible = true;
   }
 
   update(): void {
+    this.updateSelection();
     const target = this.state.placement;
     if (!target) {
       this.group.visible = false;
@@ -58,6 +81,9 @@ export class GhostPreview implements System {
   }
 
   dispose(): void {
+    this.scene.remove(this.selectionBox);
+    this.selectionBox.geometry.dispose();
+    (this.selectionBox.material as THREE.Material).dispose();
     this.scene.remove(this.group);
     for (const child of this.group.children) (child as THREE.Mesh).geometry.dispose();
     this.material.dispose();

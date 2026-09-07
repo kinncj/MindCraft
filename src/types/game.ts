@@ -12,6 +12,6 @@ export type BoxItem = {
   quantity: number;
 };
 
-export type InteractionMode = 'place' | 'remove';
+export type InteractionMode = 'place' | 'remove' | 'room' | 'fill' | 'paint' | 'copy' | 'paste';
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
