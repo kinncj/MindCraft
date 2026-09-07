@@ -66,7 +66,7 @@ describe('MagicDeliveryBoxPanel', () => {
     await user.type(input, 'Treasure Box');
     await user.click(screen.getByRole('button', { name: 'Save box name' }));
     expect(world.getEntity(POS.x, POS.y, POS.z)?.data.name).toBe('Treasure Box');
-    await user.click(screen.getByRole('button', { name: 'Close Magic Delivery Box' }));
+    await user.click(screen.getByRole('button', { name: /^Close / }));
     expect(useGameStore.getState().openPanel).toBe('none');
   });
 });
