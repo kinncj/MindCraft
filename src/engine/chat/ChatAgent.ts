@@ -8,6 +8,7 @@ import { resolveBlockId } from '../blocks/blocks';
 import type { ToolRegistry } from '../tools/ToolRegistry';
 import { BuiltInModelProvider } from './BuiltInModelProvider';
 import { RuleChatProvider, rotationFromYaw } from './RuleChatProvider';
+import { houseOptions } from '../tools/buildTools';
 import type { WebLlmProvider } from './WebLlmProvider';
 import { sharedHelper } from './helperSingleton';
 import { CHAT_TOOL_ALLOWLIST, HANDS_ON_TOOLS, type ChatAction, type ChatContext, type ChatProvider, type ChatReply, type ChatTurn } from './types';
@@ -128,7 +129,17 @@ export class ChatAgent {
         // Rules never throw; keep the chat going regardless.
       }
     }
-    const performed = await this.perform(villagerId, reply.actions, ctx);
+    let performed = await this.perform(villagerId, reply.actions, ctx);
+    // The model asked for something that could not be done (unknown blueprint, bad args):
+    // the rules know how to do what the child asked, so do that instead.
+    if (provider !== 'rules' && reply.actions.length > 0 && performed.length === 0) {
+      try {
+        const fallback = await this.rules.reply(ctx);
+        if (fallback.actions.length > 0) performed = await this.perform(villagerId, fallback.actions, ctx);
+      } catch {
+        // Rules never throw.
+      }
+    }
     const turns = this.history(villagerId);
     turns.push({ who: 'kid', text: ctx.message }, { who: 'villager', text: reply.say });
     this.histories.set(villagerId, turns.slice(-12));
@@ -180,6 +191,18 @@ export class ChatAgent {
         const planks = this.deps.registry.numericOf('planks');
         const remap = paint ? (id: number) => (id === planks ? paint : id) : undefined;
         return { label: `Build ${bp.label}`, edits: this.deps.build.planStamp(bp.stamp, num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), rotation, remap) };
+      }
+      case 'build_house': {
+        const opts = houseOptions(this.deps.registry, {
+          width: typeof a.width === 'number' ? a.width : undefined,
+          depth: typeof a.depth === 'number' ? a.depth : undefined,
+          floors: typeof a.floors === 'number' ? a.floors : undefined,
+          wall: typeof a.wall === 'string' ? a.wall : undefined,
+          roof: typeof a.roof === 'string' ? a.roof : undefined,
+          colorful: a.colorful === true,
+          castle: a.castle === true,
+        });
+        return { label: opts.castle ? 'Build a castle' : 'Build a house', edits: this.deps.build.planHouse(num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), opts) };
       }
       case 'build_shape': {
         const id = blockId(a.block) ?? this.deps.registry.numericOf('sandstone');

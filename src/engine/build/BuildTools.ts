@@ -1,5 +1,21 @@
 import type { BlockRegistry } from '../blocks/registry';
 import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
+
+export type HouseOptions = {
+  width: number;
+  depth: number;
+  floors: number;
+  wall: number;
+  roof: number;
+  floor: number;
+  glass: number;
+  chimney: number;
+  colorful: boolean;
+  /** Castle: taller storeys, battlements, corner towers. */
+  castle: boolean;
+  /** Colour blocks for pillars and roof when colourful. */
+  palette: number[];
+};
 import type { CommandHistory } from '../commands/CommandHistory';
 import type { BlockHit } from '../physics/raycast';
 import { DIRECTIONS, WORLD_HEIGHT } from '../world/coords';
@@ -172,6 +188,86 @@ export class BuildTools {
    * Simple shapes a kid asks for by name: pyramid, tower, cube, platform,
    * wall, ring, tree, line. Centered on (x, z), bottom at y.
    */
+  /**
+   * A house of any size: floors with windows, a door in front, a stepped
+   * roof, a chimney on big ones, and corner towers for castles. `colorful`
+   * cycles the palette over pillars and roof, so "a colourful brick
+   * mansion" is exactly that. Everything a kid can describe maps onto
+   * these knobs; nothing is a fixed blueprint.
+   */
+  planHouse(x: number, y: number, z: number, opts: HouseOptions): BlockEdit[] {
+    const width = Math.max(5, Math.min(25, opts.width | 1));
+    const depth = Math.max(5, Math.min(25, opts.depth | 1));
+    const floors = Math.max(1, Math.min(5, opts.floors));
+    const palette = opts.palette.length > 0 ? opts.palette : [opts.roof];
+    const x0 = x - Math.floor(width / 2);
+    const z0 = z - Math.floor(depth / 2);
+    const x1 = x0 + width - 1;
+    const z1 = z0 + depth - 1;
+    const edits: BlockEdit[] = [];
+    const put = (px: number, py: number, pz: number, id: number): void => {
+      edits.push({ x: px, y: py, z: pz, id, state: 0, entity: null });
+    };
+    const doorX = Math.floor((x0 + x1) / 2);
+    const paint = (i: number): number => palette[((i % palette.length) + palette.length) % palette.length];
+    const storey = opts.castle ? 5 : 4;
+
+    // Foundation and every floor slab; the top slab is the roof deck.
+    for (let f = 0; f <= floors; f++) {
+      const py = y + f * storey;
+      const last = f === floors;
+      for (let px = x0; px <= x1; px++) for (let pz = z0; pz <= z1; pz++) put(px, py, pz, last ? opts.roof : opts.floor);
+    }
+    // Walls with windows; corner pillars take the palette when colourful.
+    for (let f = 0; f < floors; f++) {
+      const base = y + f * storey;
+      for (let px = x0; px <= x1; px++) {
+        for (let pz = z0; pz <= z1; pz++) {
+          const onX = px === x0 || px === x1;
+          const onZ = pz === z0 || pz === z1;
+          if (!onX && !onZ) continue;
+          const corner = onX && onZ;
+          const along = onZ ? px - x0 : pz - z0;
+          for (let h = 1; h < storey; h++) {
+            const py = base + h;
+            const window = !corner && (h === 2 || h === 3) && along % 2 === 0 && along > 0;
+            const door = f === 0 && pz === z0 && px === doorX && h <= 2;
+            let id = opts.wall;
+            if (corner && opts.colorful) id = paint(f);
+            if (window) id = opts.glass;
+            if (door) id = 0;
+            put(px, py, pz, id);
+          }
+        }
+      }
+    }
+    const top = y + floors * storey;
+    if (opts.castle) {
+      // Battlements around the roof deck and a tower on every corner.
+      for (let px = x0; px <= x1; px++) for (const pz of [z0, z1]) if ((px - x0) % 2 === 0) put(px, top + 1, pz, opts.wall);
+      for (let pz = z0; pz <= z1; pz++) for (const px of [x0, x1]) if ((pz - z0) % 2 === 0) put(px, top + 1, pz, opts.wall);
+      for (const [cx, cz] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]] as const) {
+        for (let h = 1; h <= 4; h++) {
+          for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) put(cx + dx, top + h, cz + dz, opts.colorful ? paint(h) : opts.wall);
+        }
+        put(cx, top + 5, cz, opts.colorful ? paint(0) : opts.roof);
+      }
+      return edits;
+    }
+    // Stepped roof.
+    let k = 1;
+    while (x0 + k <= x1 - k && z0 + k <= z1 - k && k <= 5) {
+      const id = opts.colorful ? paint(k + floors) : opts.roof;
+      for (let px = x0 + k; px <= x1 - k; px++) for (let pz = z0 + k; pz <= z1 - k; pz++) put(px, top + k, pz, id);
+      k++;
+    }
+    // Chimney on the big ones.
+    if (width >= 9) {
+      for (let h = 1; h <= k + 1; h++) put(x1 - 1, top + h, z1 - 1, opts.chimney);
+    }
+    return edits;
+  }
+
   planShape(shape: string, x: number, y: number, z: number, id: number, size = 5): BlockEdit[] {
     const edits: BlockEdit[] = [];
     const put = (px: number, py: number, pz: number, bid = id, state = 0): void => {

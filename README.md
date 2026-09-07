@@ -51,7 +51,11 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   shopkeeper, musician) who chat in pictures, hand out gifts, and play along.
 - **Dress up** with a live spinning 3D preview: boy or girl style, shirt, pants or
   skirt, skin, hair, and a hat (cap, crown, cowboy, party).
-- **Chat with villagers.** Tap a neighbor and type or tap a chip: "build a house",
+- **Chat with villagers.** Say what you want in your own words: "a beautiful and
+  colourful brick mansion, like a massive house" becomes a three-floor brick house
+  with rainbow pillars, glass windows, a door, a stepped roof, and a chimney. Houses
+  and castles are built to order (size, floors, material, colours) rather than from
+  fixed blueprints, and villagers lay the blocks by hand. Tap a neighbor and type or tap a chip: "build a house",
   "make a castle", "follow me", "make it night", "can I have a puppy". The villager
   answers and walks over to build it block by block (Undo removes the whole thing).
   Answers come from the game's own rules, from a **small language model a grown-up

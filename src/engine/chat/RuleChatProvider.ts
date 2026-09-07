@@ -1,3 +1,4 @@
+import { parseBuildRequest } from './buildRequest';
 import type { ChatAction, ChatContext, ChatProvider, ChatReply } from './types';
 
 /**
@@ -91,6 +92,12 @@ export class RuleChatProvider implements ChatProvider {
     const sizeWord = /\b(huge|giant|big|large|tall)\b/.test(text) ? 9 : /\b(tiny|small|little|mini)\b/.test(text) ? 3 : 5;
     const numberMatch = /\b(\d{1,2})\b/.exec(text);
     const size = numberMatch ? Math.max(2, Math.min(16, Number(numberMatch[1]))) : sizeWord;
+    const spec = parseBuildRequest(text);
+    if (spec && wantsBuild) {
+      return say(`A ${spec.label} with ${spec.floors} floor${spec.floors === 1 ? '' : 's'}, coming right up! ${spec.kind === 'castle' ? '🏰' : '🏠'} Watch me build it!`, [
+        { tool: 'build_house', args: { x: at.x, y: at.y, z: at.z, width: spec.width, depth: spec.depth, floors: spec.floors, wall: spec.wall, roof: spec.roof, colorful: spec.colorful, castle: spec.kind === 'castle' } },
+      ]);
+    }
     for (const [pattern, blueprint, label] of BLUEPRINT_WORDS) {
       if (pattern.test(text) && wantsBuild) {
         const paint = color && COLOR_WORDS[color].startsWith('color_') ? COLOR_WORDS[color] : undefined;

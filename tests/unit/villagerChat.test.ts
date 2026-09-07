@@ -42,9 +42,9 @@ describe('rule chat provider', () => {
 
   it('turns building requests into hands-on actions', async () => {
     const house = await rules.reply(ctx('please build me a house'));
-    expect(house.actions[0]).toMatchObject({ tool: 'build_stamp_blueprint', args: { blueprint: 'cozy_house', x: 8, y: 3, z: 1 } });
+    expect(house.actions[0]).toMatchObject({ tool: 'build_house', args: { x: 8, y: 3, z: 1, width: 7, floors: 1, wall: 'planks' } });
     const castle = await rules.reply(ctx('can you make a big castle'));
-    expect(castle.actions[0].args.blueprint).toBe('castle_tower');
+    expect(castle.actions[0]).toMatchObject({ tool: 'build_house', args: { castle: true, width: 9, floors: 2 } });
     const brick = await rules.reply(ctx('put a brick here'));
     expect(brick.actions[0]).toMatchObject({ tool: 'world_place_block', args: { block: 'brick' } });
     const wall = await rules.reply(ctx('make a wall of glass'));
@@ -75,7 +75,7 @@ describe('rule chat provider', () => {
     const bigGlass = await rules.reply(ctx('make a big glass pyramid'));
     expect(bigGlass.actions[0].args).toMatchObject({ shape: 'pyramid', block: 'glass', size: 9 });
     const pinkHouse = await rules.reply(ctx('build a pink house'));
-    expect(pinkHouse.actions[0]).toMatchObject({ tool: 'build_stamp_blueprint', args: { blueprint: 'cozy_house', color: 'color_pink' } });
+    expect(pinkHouse.actions[0]).toMatchObject({ tool: 'build_house', args: { wall: 'color_pink', castle: false } });
     const trees = await rules.reply(ctx('plant a tree please'));
     expect(trees.actions[0].args).toMatchObject({ shape: 'tree' });
     expect(findBlock('put a wood stairs please', blocks.palette().map((d) => ({ id: d.id, label: d.label })))?.id).toBe('planks_stairs');
@@ -122,7 +122,7 @@ describe('chat agent and villager work', () => {
     expect(said[0]).toContain('🌙');
 
     const result = await agent.send(villager.id, 'build a house');
-    expect(result?.performed[0]).toMatch(/^build_stamp_blueprint:\d+/);
+    expect(result?.performed[0]).toMatch(/^build_house:\d+/);
     expect(villager.work).toBeDefined();
     expect(villager.mood).toBe('busy');
     // The villager walks over and lays the blocks; nothing is placed yet.
@@ -132,7 +132,7 @@ describe('chat agent and villager work', () => {
     expect(world.getBlock(first.x, first.y, first.z)).not.toBe(first.id);
     for (let i = 0; i < 60 * 40 && villager.work; i++) entities.update(1 / 60, i / 60);
     expect(villager.work).toBeUndefined();
-    expect(done).toEqual(['Build Cozy House']);
+    expect(done).toEqual(['Build a house']);
     expect(history.canUndo).toBe(true);
     expect(world.getBlock(first.x, first.y, first.z)).toBe(first.id);
     history.undo();

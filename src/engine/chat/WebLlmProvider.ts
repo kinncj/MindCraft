@@ -153,7 +153,8 @@ export async function deleteHelperModel(modelId = DEFAULT_HELPER_MODEL): Promise
  * builds in front of the child. Kept short for a 0.5B model.
  */
 export const TOOL_TEMPLATES: Record<string, string> = {
-  build_stamp_blueprint: '{"tool":"build_stamp_blueprint","args":{"blueprint":"cozy_house","color":"color_pink"}}  (color optional; blueprints listed below)',
+  build_house: '{"tool":"build_house","args":{"width":13,"depth":11,"floors":3,"wall":"brick","colorful":true,"castle":false}}  (ANY house, mansion, cottage, or castle; width/depth 5-25, floors 1-5; wall: brick|stone_bricks|planks|glass|sandstone|ice|snow|color_red|color_blue...)',
+  build_stamp_blueprint: '{"tool":"build_stamp_blueprint","args":{"blueprint":"bridge","color":"color_pink"}}  (only for bridge, pool, garden, treehouse; color optional)',
   build_shape: '{"tool":"build_shape","args":{"shape":"pyramid","block":"sandstone","size":6}}  (shape: pyramid|tower|cube|platform|wall|ring|line|tree|arch; size 2-16)',
   build_room: '{"tool":"build_room","args":{"block":"planks"}}  (a small room with a doorway)',
   world_place_block: '{"tool":"world_place_block","args":{"block":"brick"}}',
@@ -178,7 +179,8 @@ export const TOOL_TEMPLATES: Record<string, string> = {
 export const PROMPT_EXAMPLES: Array<{ user: string; say: string; actions: string }> = [
   { user: 'hi there', say: "Hi! I'm {name}, the {job}. What shall we make? 😊", actions: '[]' },
   { user: 'go fly an airplane', say: 'Watch me take off! ✈️ Wheee!', actions: '[{"tool":"vehicle_ride","args":{"kind":"plane"}}]' },
-  { user: 'build a big pink castle', say: 'A pink castle, coming right up! 🏰', actions: '[{"tool":"build_stamp_blueprint","args":{"blueprint":"castle_tower","color":"color_pink"}}]' },
+  { user: 'build me a beautiful and colourful brick and mortar mansion, like a massive house', say: 'A massive colourful brick mansion! 🏠 Watch me build it!', actions: '[{"tool":"build_house","args":{"width":13,"depth":11,"floors":3,"wall":"brick","colorful":true,"castle":false}}]' },
+  { user: 'a small pink castle please', say: 'A little pink castle! 🏰', actions: '[{"tool":"build_house","args":{"width":7,"depth":7,"floors":1,"wall":"color_pink","colorful":false,"castle":true}}]' },
   { user: 'make it rain and give me a puppy', say: 'Rain and a puppy! 🌧️🐶', actions: '[{"tool":"weather_set","args":{"weather":"rain"}},{"tool":"pet_adopt","args":{"kind":"dog"}}]' },
 ];
 

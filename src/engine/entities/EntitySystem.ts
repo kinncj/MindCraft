@@ -335,7 +335,9 @@ export class EntitySystem implements System {
     }
     const command = new SetBlocksCommand(label, edits);
     command.capture(this.world);
-    entity.work = { label, edits, index: 0, timer: 0, command };
+    // Small jobs go block by block; a mansion should still finish in about fifteen seconds.
+    const interval = Math.max(0.012, Math.min(0.12, 15 / Math.max(1, edits.length)));
+    entity.work = { label, edits, index: 0, timer: 0, command, interval };
     entity.mood = 'busy';
     entity.savedBrain = entity.savedBrain ?? entity.brain;
     entity.brain = new StayBrain();
@@ -398,9 +400,11 @@ export class EntitySystem implements System {
     const dx = next.x - entity.x;
     const dz = next.z - entity.z;
     const distance = Math.hypot(dx, dz);
-    if (distance > 4) {
+    // Big jobs are laid from the middle of the site: a builder with a long reach.
+    const reach = Math.max(4, Math.min(12, Math.sqrt(work.edits.length) / 2));
+    if (distance > reach) {
       // Walk toward the job site first.
-      const step = Math.min(distance - 3, entity.speed * dt);
+      const step = Math.min(distance - reach + 1, entity.speed * dt);
       entity.x += (dx / distance) * step;
       entity.z += (dz / distance) * step;
       entity.group.rotation.y = Math.atan2(dz, dx) * -1 + Math.PI / 2;
@@ -411,8 +415,8 @@ export class EntitySystem implements System {
     }
     entity.group.rotation.y = Math.atan2(dz, dx) * -1 + Math.PI / 2;
     work.timer += dt;
-    while (work.timer >= 0.12 && work.index < work.edits.length) {
-      work.timer -= 0.12;
+    while (work.timer >= work.interval && work.index < work.edits.length) {
+      work.timer -= work.interval;
       const e = work.edits[work.index++];
       if (!this.world.isLoaded(e.x, e.z)) continue;
       this.world.setBlock(e.x, e.y, e.z, e.id, e.state);

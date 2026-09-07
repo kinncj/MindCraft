@@ -104,6 +104,6 @@ describe('a chatty model still gets things done', () => {
     const result = await agent.send(villager.id, 'build a house');
     expect(result?.provider).toBe('helper');
     expect(result?.say).toBe('Sure, a cozy house coming up!');
-    expect(result?.performed[0]).toMatch(/^build_stamp_blueprint:/);
+    expect(result?.performed[0]).toMatch(/^build_house:/);
   });
 });

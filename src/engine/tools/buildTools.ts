@@ -1,4 +1,6 @@
 import { blueprintById, BLUEPRINTS } from '../build/blueprints';
+import type { HouseOptions } from '../build/BuildTools';
+import type { BlockRegistry } from '../blocks/registry';
 import type { Engine } from '../core/Engine';
 import { resolveBlockId } from '../blocks/blocks';
 
@@ -51,6 +53,15 @@ export function registerBuildTools(engine: Engine): void {
     },
   });
   tools.register({
+    name: 'build_house',
+    description: 'Build a house or castle of any size at (x, z) with its floor at y: width and depth 5-25, floors 1-5, wall and roof block ids, colorful pillars and roof, castle towers.',
+    inputSchema: { type: 'object', properties: { x: int, y: int, z: int, width: int, depth: int, floors: int, wall: { type: 'string' }, roof: { type: 'string' }, colorful: { type: 'boolean' }, castle: { type: 'boolean' } }, required: ['x', 'y', 'z'] },
+    execute: (a: { x: number; y: number; z: number; width?: number; depth?: number; floors?: number; wall?: string; roof?: string; colorful?: boolean; castle?: boolean }) => {
+      const edits = build.planHouse(a.x, a.y, a.z, houseOptions(engine.registry, a));
+      return { blocks: build.run(a.castle ? 'Build a castle' : 'Build a house', edits) };
+    },
+  });
+  tools.register({
     name: 'build_shape',
     description: 'Build a simple shape centered on (x, z) with its bottom at y: pyramid, tower, cube, platform, wall, ring, line, tree, arch. size 2-16.',
     inputSchema: { type: 'object', properties: { shape: { type: 'string' }, block: { type: 'string' }, x: int, y: int, z: int, size: int }, required: ['shape', 'x', 'y', 'z'] },
@@ -87,4 +98,27 @@ export function registerBuildTools(engine: Engine): void {
       return { mirrorX: build.mirrorX };
     },
   });
+}
+
+/** Fills in the house knobs from loose arguments, with safe block fallbacks. */
+export function houseOptions(registry: BlockRegistry, a: { width?: number; depth?: number; floors?: number; wall?: string; roof?: string; colorful?: boolean; castle?: boolean }): HouseOptions {
+  const id = (name: string | undefined, fallback: string): number => {
+    const def = name ? resolveBlockId(name) : undefined;
+    return def?.numericId ?? registry.numericOf(fallback);
+  };
+  const castle = a.castle === true;
+  const wall = id(a.wall, castle ? 'stone_bricks' : 'planks');
+  return {
+    width: a.width ?? 7,
+    depth: a.depth ?? 7,
+    floors: a.floors ?? 1,
+    wall,
+    roof: id(a.roof, castle ? 'stone_bricks' : 'roof_tiles'),
+    floor: registry.numericOf('planks'),
+    glass: registry.numericOf('glass'),
+    chimney: registry.numericOf('brick'),
+    colorful: a.colorful === true,
+    castle,
+    palette: ['color_red', 'color_orange', 'color_yellow', 'color_green', 'color_blue', 'color_purple', 'color_pink'].map((c) => registry.numericOf(c)),
+  };
 }
