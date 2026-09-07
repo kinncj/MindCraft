@@ -147,28 +147,40 @@ export async function deleteHelperModel(modelId = DEFAULT_HELPER_MODEL): Promise
   }
 }
 
-/** Short one-line hints for the tools the model may call; descriptions from the registry are too long for a 0.5B model. */
-const TOOL_HINTS: Record<string, string> = {
-  build_stamp_blueprint: 'build a blueprint {blueprint, x, y, z, color?}',
-  build_shape: 'build a shape {shape: pyramid|tower|cube|wall|platform|ring|line|tree|arch, block, size, x, y, z}',
-  build_room: 'build a room {x, y, z, width, height, depth, block}',
-  world_place_block: 'place one block {block, x, y, z}',
-  world_fill: 'fill a box {block, x1, y1, z1, x2, y2, z2}',
-  villager_talk: 'react {choice: play|gift|work}',
-  villager_walk_to: 'walk {x, z}',
-  villager_stay: 'stay put {}',
-  villager_dance: 'you dance {}',
-  player_dance: 'the child dances {}',
-  player_fly: 'the child flies {on: true|false}',
-  vehicle_ride: 'you drive or fly a ride around {kind: car|motorcycle|boat|plane|helicopter}',
-  vehicle_stop: 'you hop off your ride {}',
-  time_set: 'set time {mode: day|night|sunset}',
-  weather_set: 'set weather {weather: sunny|rain|snow}',
-  pet_adopt: 'give a pet {kind: dog|cat|bunny}',
-  vehicle_spawn: 'give a ride {kind: car|motorcycle|boat|plane|helicopter}',
-  entity_spawn: 'spawn an animal {kind: chick|butterfly|cow|sheep}',
-  audio_play: 'play a sound {sound}',
+/**
+ * Exact JSON templates for every tool the model may call, matching the
+ * real tool schemas. Positions are optional: without x, y, z the villager
+ * builds in front of the child. Kept short for a 0.5B model.
+ */
+export const TOOL_TEMPLATES: Record<string, string> = {
+  build_stamp_blueprint: '{"tool":"build_stamp_blueprint","args":{"blueprint":"cozy_house","color":"color_pink"}}  (color optional; blueprints listed below)',
+  build_shape: '{"tool":"build_shape","args":{"shape":"pyramid","block":"sandstone","size":6}}  (shape: pyramid|tower|cube|platform|wall|ring|line|tree|arch; size 2-16)',
+  build_room: '{"tool":"build_room","args":{"block":"planks"}}  (a small room with a doorway)',
+  world_place_block: '{"tool":"world_place_block","args":{"block":"brick"}}',
+  world_fill: '{"tool":"world_fill","args":{"block":"water","x1":0,"y1":1,"z1":0,"x2":4,"y2":1,"z2":4}}',
+  villager_talk: '{"tool":"villager_talk","args":{"choice":"play"}}  (play = follow the child; gift = hand over a present)',
+  villager_walk_to: '{"tool":"villager_walk_to","args":{"x":10,"z":10}}',
+  villager_stay: '{"tool":"villager_stay","args":{}}',
+  villager_dance: '{"tool":"villager_dance","args":{}}  (you dance)',
+  player_dance: '{"tool":"player_dance","args":{}}  (the child dances)',
+  player_fly: '{"tool":"player_fly","args":{"on":true}}  (the child flies; on:false lands)',
+  vehicle_ride: '{"tool":"vehicle_ride","args":{"kind":"plane"}}  (YOU drive or fly it around; kind: car|motorcycle|boat|plane|helicopter; one appears if none is near)',
+  vehicle_stop: '{"tool":"vehicle_stop","args":{}}  (you hop off)',
+  time_set: '{"tool":"time_set","args":{"mode":"night"}}  (mode: day|night|cycle)',
+  weather_set: '{"tool":"weather_set","args":{"weather":"rain"}}  (sunny|rain|snow)',
+  pet_adopt: '{"tool":"pet_adopt","args":{"kind":"dog"}}  (dog|cat)',
+  vehicle_spawn: '{"tool":"vehicle_spawn","args":{"kind":"car"}}  (a ride for the CHILD; car|motorcycle|boat|plane|helicopter)',
+  entity_spawn: '{"tool":"entity_spawn","args":{"kind":"bunny"}}  (bunny|chick|butterfly)',
+  audio_play: '{"tool":"audio_play","args":{"sound":"happy"}}  (happy|pop|vroom|splash|gift|click)',
 };
+
+/** Worked examples shown to the model before the child's message. */
+export const PROMPT_EXAMPLES: Array<{ user: string; say: string; actions: string }> = [
+  { user: 'hi there', say: "Hi! I'm {name}, the {job}. What shall we make? 😊", actions: '[]' },
+  { user: 'go fly an airplane', say: 'Watch me take off! ✈️ Wheee!', actions: '[{"tool":"vehicle_ride","args":{"kind":"plane"}}]' },
+  { user: 'build a big pink castle', say: 'A pink castle, coming right up! 🏰', actions: '[{"tool":"build_stamp_blueprint","args":{"blueprint":"castle_tower","color":"color_pink"}}]' },
+  { user: 'make it rain and give me a puppy', say: 'Rain and a puppy! 🌧️🐶', actions: '[{"tool":"weather_set","args":{"weather":"rain"}},{"tool":"pet_adopt","args":{"kind":"dog"}}]' },
+];
 
 export class WebLlmProvider implements ChatProvider {
   readonly name = 'helper';
@@ -249,20 +261,20 @@ export class WebLlmProvider implements ChatProvider {
       `It is ${time}, the weather is ${ctx.world.weather}, we are in a ${ctx.world.biome} in the world "${ctx.world.worldName}".`,
       'Reply with ONE JSON object: {"say": "...", "actions": []}.',
       '"say": one or two short, kind, simple sentences with an emoji. Never scary, never mean, no links.',
-      '"actions": a list of {"tool", "args"}; empty unless the child asks you to do something. Tools:',
-      ...tools.map((name) => `- ${name}: ${TOOL_HINTS[name] ?? ''}`),
+      '"actions": a list of tool calls, empty unless the child asks you to do something. Copy these templates exactly and change only the values:',
+      ...tools.map((name) => `- ${TOOL_TEMPLATES[name] ?? `{"tool":"${name}","args":{}}`}`),
       `Blueprints: ${ctx.blueprints.map((b) => b.id).join(', ')}. Blocks: ${ctx.blocks.slice(0, 28).map((b) => b.id).join(', ')}.`,
-      `Build at x=${ctx.site.x}, y=${ctx.site.y}, z=${ctx.site.z}. Example: {"say":"On it! 🏠","actions":[{"tool":"build_stamp_blueprint","args":{"blueprint":"cozy_house","x":${ctx.site.x},"y":${ctx.site.y},"z":${ctx.site.z}}}]}`,
+      `Leave out x, y, z to build right in front of the child (that spot is x=${ctx.site.x}, y=${ctx.site.y}, z=${ctx.site.z}).`,
     ].join('\n');
   }
 
   async reply(ctx: ChatContext): Promise<ChatReply> {
     if (!this.engine) throw new Error('helper not loaded');
-    const messages: HelperRequest['messages'] = [
-      { role: 'system', content: this.systemPrompt(ctx) },
-      { role: 'user', content: 'hi there' },
-      { role: 'assistant', content: `{"say":"Hi! I'm ${ctx.villager.name}, the ${ctx.villager.jobLabel}. What shall we make? 😊","actions":[]}` },
-    ];
+    const messages: HelperRequest['messages'] = [{ role: 'system', content: this.systemPrompt(ctx) }];
+    for (const ex of PROMPT_EXAMPLES) {
+      messages.push({ role: 'user', content: ex.user });
+      messages.push({ role: 'assistant', content: `{"say":"${ex.say.replace('{name}', ctx.villager.name).replace('{job}', ctx.villager.jobLabel)}","actions":${ex.actions}}` });
+    }
     for (const turn of ctx.history.slice(-4)) messages.push({ role: turn.who === 'kid' ? 'user' : 'assistant', content: turn.text.slice(0, 160) });
     messages.push({ role: 'user', content: ctx.message });
     this.lastPrompt = messages.map((m) => `[${m.role}]\n${m.content}`).join('\n\n');

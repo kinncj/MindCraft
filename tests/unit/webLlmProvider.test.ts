@@ -55,9 +55,12 @@ describe('the downloadable helper model', () => {
     expect(request.messages[0].role).toBe('system');
     expect(request.messages[0].content).toContain('build_stamp_blueprint');
     expect(request.messages[0].content).not.toContain('world_save');
-    // system, a worked example (user + assistant JSON), one history turn each way, then the child.
-    expect(request.messages.map((m) => m.role)).toEqual(['system', 'user', 'assistant', 'user', 'assistant', 'user']);
-    expect(request.messages[2].content).toMatch(/^\{"say":/);
+    // system, four worked examples, one history turn each way, then the child.
+    const roles = request.messages.map((m) => m.role);
+    expect(roles[0]).toBe('system');
+    expect(roles.slice(1, 9)).toEqual(['user', 'assistant', 'user', 'assistant', 'user', 'assistant', 'user', 'assistant']);
+    expect(roles[roles.length - 1]).toBe('user');
+    expect(request.messages[4].content).toContain('"tool":"vehicle_ride","args":{"kind":"plane"}');
     expect(request.max_tokens).toBeLessThanOrEqual(220);
   });
 

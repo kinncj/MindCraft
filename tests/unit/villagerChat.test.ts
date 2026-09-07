@@ -5,7 +5,7 @@ import { BuildTools } from '../../src/engine/build/BuildTools';
 import { ChatAgent } from '../../src/engine/chat/ChatAgent';
 import { parseModelReply } from '../../src/engine/chat/BuiltInModelProvider';
 import { RuleChatProvider, findBlock } from '../../src/engine/chat/RuleChatProvider';
-import type { ChatContext, ChatProvider } from '../../src/engine/chat/types';
+import { CHAT_TOOL_ALLOWLIST, type ChatContext, type ChatProvider } from '../../src/engine/chat/types';
 import { CommandHistory } from '../../src/engine/commands/CommandHistory';
 import { EntitySystem } from '../../src/engine/entities/EntitySystem';
 import { PlayerController } from '../../src/engine/physics/PlayerController';
@@ -185,8 +185,9 @@ describe('helper robustness', () => {
     const { WebLlmProvider, pickHelperModel } = await import('../../src/engine/chat/WebLlmProvider');
     const helper = new WebLlmProvider('t', async () => ({ chat: { completions: { create: async () => ({ choices: [] }) } }, unload: async () => undefined }));
     const prompt = helper.systemPrompt(ctx('hi'));
-    expect(prompt.length).toBeLessThan(2200); // roughly 600 tokens, well inside the 2048 window
-    expect(prompt).toContain('build_shape');
+    expect(prompt.length).toBeLessThan(3400); // under ~1000 tokens, inside the 2048 window with examples and history
+    for (const tool of CHAT_TOOL_ALLOWLIST) expect(prompt).toContain(`"tool":"${tool}"`);
+    expect(prompt).toContain('"kind":"plane"');
     expect(pickHelperModel('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', false)).toBe('Qwen2.5-0.5B-Instruct-q4f32_1-MLC');
     expect(pickHelperModel('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', true)).toBe('Qwen2.5-0.5B-Instruct-q4f16_1-MLC');
     const rules = new RuleChatProvider();
