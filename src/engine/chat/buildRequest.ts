@@ -143,7 +143,8 @@ const FLAGS: Array<[RegExp, string]> = [
 ];
 
 export function parseBuildRequest(raw: string): BuildSpec | null {
-  const text = raw.toLowerCase();
+  // "tree house" is a feature of its own, not a house: the word must not make a building.
+  const text = raw.toLowerCase().replace(/\btree ?house(s)?\b/g, 'treehouse');
   let type: BuildingType | null = null;
   for (const [pattern, t] of TYPE_WORDS) {
     if (pattern.test(text)) {
@@ -276,6 +277,46 @@ export function buildActionsFor(spec: BuildSpec, ctx: ChatContext): ChatAction[]
     }
   }
   return actions;
+}
+
+/** Things built beside a building, asked for on their own: a bridge, a treehouse, a playground. */
+export type FeatureSpec = { kind: 'court' | 'playground' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse'; width?: number; length?: number; color?: string; label: string };
+
+const STANDALONE_FEATURES: Array<[RegExp, FeatureSpec['kind'], string]> = [
+  [/\b(tree ?house(s)?)\b/, 'treehouse', 'treehouse'],
+  [/\b(bridges?|walkways?|footbridges?)\b/, 'bridge', 'bridge'],
+  [/\b(playgrounds?|play ?structures?|play ?areas?|swings?|slides?|climbing frames?|jungle gyms?)\b/, 'playground', 'playground'],
+  [/\b(sports? (courts?|fields?|grounds?)|football (pitch|field)|soccer (pitch|field)|basketball courts?|tennis courts?|courts?)\b/, 'court', 'sports court'],
+  [/\b(gardens?|flower ?beds?)\b/, 'garden', 'flower garden'],
+  [/\b(fountains?)\b/, 'fountain', 'fountain'],
+  [/\b(parking( lots?)?|car ?parks?)\b/, 'parking', 'car park'],
+];
+
+/** A feature asked for on its own. Null when the words are about something else. */
+export function parseFeature(raw: string): FeatureSpec | null {
+  const text = raw.toLowerCase();
+  for (const [pattern, kind, label] of STANDALONE_FEATURES) {
+    if (!pattern.test(text)) continue;
+    const spec: FeatureSpec = { kind, label };
+    const sizeMatch = /\b(\d{1,2})\s*(x|by)\s*(\d{1,2})\b/.exec(text);
+    if (sizeMatch) {
+      spec.width = Math.max(3, Math.min(48, Number(sizeMatch[1])));
+      spec.length = Math.max(3, Math.min(48, Number(sizeMatch[3])));
+    } else if (/\b(huge|massive|giant|enormous|gigantic|biggest|long)\b/.test(text)) {
+      spec.width = kind === 'bridge' ? 21 : 15;
+      spec.length = kind === 'bridge' ? 5 : 11;
+    } else if (/\b(big|large|wide)\b/.test(text)) {
+      spec.width = kind === 'bridge' ? 15 : 13;
+      spec.length = kind === 'bridge' ? 5 : 9;
+    } else if (/\b(tiny|small|little|mini)\b/.test(text)) {
+      spec.width = 5;
+      spec.length = 5;
+    }
+    const color = COLORS.find((c) => new RegExp(`\\b${c}\\b`).test(text));
+    if (color) spec.color = `color_${color}`;
+    return spec;
+  }
+  return null;
 }
 
 /** Digging jobs: what kind, how big, how deep. Null when the words are not about digging. */

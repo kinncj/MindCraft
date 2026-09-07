@@ -1,8 +1,8 @@
 import { blueprintById, BLUEPRINTS } from '../build/blueprints';
 import type { Engine } from '../core/Engine';
 import { resolveBlockId } from '../blocks/blocks';
-import { earthworkOptions, houseOptions, type BuildingArgs } from '../build/buildingKit';
-import type { EarthworkKind } from '../build/BuildTools';
+import { earthworkOptions, featureOptions, houseOptions, type BuildingArgs } from '../build/buildingKit';
+import type { EarthworkKind, FeatureKind } from '../build/BuildTools';
 import { houseLayout } from '../build/BuildTools';
 
 /** build_* tools: the same room/fill/paint/copy/paste/mirror the UI has. */
@@ -73,6 +73,15 @@ export function registerBuildTools(engine: Engine): void {
     execute: (a: { x: number; y: number; z: number; kind: EarthworkKind; width?: number; length?: number; depth?: number }) => {
       const edits = build.planEarthwork(a.kind, a.x, a.y, a.z, earthworkOptions(engine.registry, a));
       return { blocks: build.run(`Dig a ${a.kind}`, edits) };
+    },
+  });
+  tools.register({
+    name: 'build_feature',
+    description: 'Build one thing beside a building, centred on (x, z) with the ground at y: bridge (a plank deck with railings and a step at each end), treehouse (a platform on log stilts with a ladder), playground, court, garden, fountain, parking, fence. width and length in blocks, color a block id for its planks.',
+    inputSchema: { type: 'object', properties: { x: int, y: int, z: int, kind: { type: 'string', enum: ['bridge', 'treehouse', 'playground', 'court', 'garden', 'fountain', 'parking', 'fence'] }, width: int, length: int, color: { type: 'string' } }, required: ['x', 'y', 'z', 'kind'] },
+    execute: (a: { x: number; y: number; z: number; kind: FeatureKind; width?: number; length?: number; color?: string }) => {
+      const edits = build.planFeature(a.kind, a.x, a.y, a.z, featureOptions(engine.registry, a));
+      return { blocks: build.run(`Build a ${a.kind}`, edits) };
     },
   });
   tools.register({

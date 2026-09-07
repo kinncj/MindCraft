@@ -55,7 +55,8 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   (doors on the ground and clear, stairs with real clearance, lit rooms with doorways)
   and tests drive the actual character up the stairs, through the doors, down into
   bunkers, and along tunnels. Villagers dig too: pools, lakes, ponds, bunkers, tunnels,
-  wells, moats.
+  wells, moats. Bridges, treehouses, playgrounds, courts, and gardens come out any size and
+  any colour, beside a building or on their own.
 - **Chat with villagers.** Say what you want in your own words: "a beautiful and
   colourful brick mansion, like a massive house" becomes a three-floor brick house
   with rainbow pillars, glass windows, a door, a stepped roof, and a chimney. Houses

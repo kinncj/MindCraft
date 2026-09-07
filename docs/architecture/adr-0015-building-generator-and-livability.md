@@ -40,6 +40,16 @@ on one lever, an elevator shaft with a lift entity, and outdoor features
 serve the UI, the helper model, and outside agents (`build_house`,
 `build_dig`).
 
+**Features are generated too.** Bridges, treehouses, playgrounds, courts,
+gardens, fountains, car parks, and fences are drawn by the same code whether
+they stand beside a building or on their own (`build_feature`, any size, any
+colour). A bridge gets a plank deck a block up, railings, log posts, and a
+step at each end; a treehouse gets log stilts, a platform, a ladder through
+the middle, a railing with a gap, and a roof. Both go through the livability
+pass, so the deck is walkable end to end and the ladder reaches a clear
+platform. The blueprint cards stay as stamp buttons in the UI; the words no
+longer route to them.
+
 **Livability rules, enforced and proven.** `engine/build/livability.ts`
 fixes what it can (`ensureLivable`) and reports what it cannot
 (`checkLivability`): doors on the ground, tall and wide enough, three deep

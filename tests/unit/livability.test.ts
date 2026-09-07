@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { B, blocks } from '../../src/engine/blocks/blocks';
 import { BuildTools, type BuildingLayoutOut } from '../../src/engine/build/BuildTools';
-import { earthworkOptions, houseOptions } from '../../src/engine/build/buildingKit';
+import { earthworkOptions, featureOptions, houseOptions } from '../../src/engine/build/buildingKit';
 import { BLUEPRINTS } from '../../src/engine/build/blueprints';
 import { checkLivability } from '../../src/engine/build/livability';
-import { parseEarthwork } from '../../src/engine/chat/buildRequest';
+import { parseEarthwork, parseFeature } from '../../src/engine/chat/buildRequest';
 import { CommandHistory } from '../../src/engine/commands/CommandHistory';
 import { PlayerController } from '../../src/engine/physics/PlayerController';
 import { Chunk } from '../../src/engine/world/Chunk';
@@ -231,5 +231,40 @@ describe('the character really walks through', () => {
     const player = new PlayerController(world, blocks, { x: layout.doorCells[0] + 1, y: layout.groundY + 1, z: layout.doorZ - 3 });
     walk(player, TOWARD_PLUS_Z, 4);
     expect(player.z, `stopped at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThan(layout.doorZ + 1);
+  });
+});
+
+describe('bridges and treehouses are built, not stamped', () => {
+  const FORWARD = { forward: true, back: false, left: false, right: false, jump: false, sprint: false, sneak: false } as Parameters<PlayerController['update']>[1];
+  const HOLD_JUMP = { ...FORWARD, forward: false, jump: true } as Parameters<PlayerController['update']>[1];
+  const TOWARD_PLUS_X = -Math.PI / 2;
+
+  it('reads the size and the colour out of the words', () => {
+    expect(parseFeature('build a long bridge over the water')).toMatchObject({ kind: 'bridge', width: 21 });
+    expect(parseFeature('make me a pink tree house')).toMatchObject({ kind: 'treehouse', color: 'color_pink' });
+    expect(parseFeature('a 15 by 11 playground')).toMatchObject({ kind: 'playground', width: 15, length: 11 });
+    expect(parseFeature('hello there')).toBeNull();
+  });
+
+  it('walks the whole length of a bridge of any size, up one end and down the other', () => {
+    for (const width of [11, 21]) {
+      const world = flat();
+      const build = new BuildTools(world, blocks, new CommandHistory(world));
+      build.run('bridge', build.planFeature('bridge', 8, 13, 8, featureOptions(blocks, { kind: 'bridge', width, length: 5 })));
+      const x0 = 8 - Math.floor(width / 2);
+      const player = new PlayerController(world, blocks, { x: x0 - 1.5, y: 13, z: 8.5 });
+      for (let i = 0; i < 60 * 10; i++) player.update(1 / 60, FORWARD, TOWARD_PLUS_X);
+      expect(player.x, `bridge ${width}: stopped at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThan(x0 + width);
+      expect(player.y, 'the deck carried the character, not the ground').toBeGreaterThan(12.5);
+    }
+  });
+
+  it('climbs the treehouse ladder and stands on the platform', () => {
+    const world = flat();
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    build.run('treehouse', build.planFeature('treehouse', 8, 13, 8, featureOptions(blocks, { kind: 'treehouse', width: 7, length: 7 })));
+    const player = new PlayerController(world, blocks, { x: 8.2, y: 13, z: 7.8 });
+    for (let i = 0; i < 60 * 8; i++) player.update(1 / 60, HOLD_JUMP, 0);
+    expect(player.y, `treehouse: at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThanOrEqual(17);
   });
 });

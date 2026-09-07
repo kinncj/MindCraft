@@ -36,6 +36,7 @@ export const CHAT_TOOL_ALLOWLIST = [
   'build_stamp_blueprint',
   'build_house',
   'build_dig',
+  'build_feature',
   'build_shape',
   'build_room',
   'world_place_block',
@@ -59,4 +60,5 @@ export const CHAT_TOOL_ALLOWLIST = [
 ] as const;
 
 /** Tools whose edits the villager performs by hand, block by block. */
-export const HANDS_ON_TOOLS = ['build_stamp_blueprint', 'build_house', 'build_dig', 'build_shape', 'build_room', 'world_place_block', 'world_fill'] as const;
+export const HANDS_ON_TOOLS = ['build_stamp_blueprint', 'build_house', 'build_dig',
+  'build_feature', 'build_shape', 'build_room', 'world_place_block', 'world_fill'] as const;

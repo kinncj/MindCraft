@@ -1,4 +1,4 @@
-import { buildActionsFor, parseBuildRequest, parseEarthwork } from './buildRequest';
+import { buildActionsFor, parseBuildRequest, parseEarthwork, parseFeature } from './buildRequest';
 import type { ChatAction, ChatContext, ChatProvider, ChatReply } from './types';
 
 /**
@@ -7,14 +7,9 @@ import type { ChatAction, ChatContext, ChatProvider, ChatReply } from './types';
  * fallback when a smarter provider fails.
  */
 
-const BLUEPRINT_WORDS: Array<[RegExp, string, string]> = [
-  [/\b(house|home|cottage|hut|cabin)\b/, 'cozy_house', '🏠 a cozy house'],
-  [/\b(castle|fort|palace)\b/, 'castle_tower', '🏰 a castle tower'],
-  [/\bbridge\b/, 'bridge', '🌉 a bridge'],
-  [/\b(garden|flower ?bed)\b/, 'garden', '🌷 a flower garden'],
-  [/\b(pool|swimming)\b/, 'pool', '🏊 a swimming pool'],
-  [/\b(tree ?house|treehouse)\b/, 'treehouse', '🌳 a treehouse'],
-];
+// Blueprint cards stay for the stamp buttons; the words go to the generator instead,
+// so a bridge or a treehouse comes out any size, any colour, and always walkable.
+const FEATURE_EMOJI: Record<string, string> = { bridge: '🌉', treehouse: '🌳', playground: '🛝', court: '🏀', garden: '🌷', fountain: '⛲', parking: '🅿️', fence: '🧱' };
 
 const SHAPE_WORDS: Array<[RegExp, string, string, string]> = [
   [/\bpyramid\b/, 'pyramid', '🔺 a pyramid', 'sandstone'],
@@ -104,13 +99,13 @@ export class RuleChatProvider implements ChatProvider {
         { tool: 'build_dig', args: { x: at.x, y: at.y, z: at.z, kind: dig.kind, ...(dig.width ? { width: dig.width } : {}), ...(dig.length ? { length: dig.length } : {}), ...(dig.depth ? { depth: dig.depth } : {}) } },
       ]);
     }
-    for (const [pattern, blueprint, label] of BLUEPRINT_WORDS) {
-      if (pattern.test(text) && wantsBuild) {
-        const paint = color && COLOR_WORDS[color].startsWith('color_') ? COLOR_WORDS[color] : undefined;
-        return say(`On it! I'll build ${label}${paint ? ` in ${color}` : ''} right over there. Watch me go! 🔨`, [
-          { tool: 'build_stamp_blueprint', args: { blueprint, x: at.x, y: at.y, z: at.z, rotation: rotationFromYaw(ctx.player.yaw), ...(paint ? { color: paint } : {}) } },
-        ]);
-      }
+    const feature = !spec && !dig ? parseFeature(text) : null;
+    if (feature && wantsBuild) {
+      const paint = feature.color ?? (color && COLOR_WORDS[color].startsWith('color_') ? COLOR_WORDS[color] : undefined);
+      const size = feature.width && feature.length ? ` ${feature.width} by ${feature.length}` : '';
+      return say(`On it! ${FEATURE_EMOJI[feature.kind] ?? '🔨'} A${size} ${feature.label}${paint ? ` in ${color ?? 'colour'}` : ''}, right over there. Watch me go!`, [
+        { tool: 'build_feature', args: { x: at.x, y: at.y, z: at.z, kind: feature.kind, ...(feature.width ? { width: feature.width } : {}), ...(feature.length ? { length: feature.length } : {}), ...(paint ? { color: paint } : {}) } },
+      ]);
     }
     for (const [pattern, shape, label, defaultBlock] of SHAPE_WORDS) {
       if (pattern.test(text) && wantsBuild) {
@@ -176,9 +171,9 @@ export class RuleChatProvider implements ChatProvider {
     if (/\b(bye|goodbye|see you|later)\b/.test(text)) return say(`Bye bye! Come back soon! 👋`);
     if (/\b(joke|funny)\b/.test(text)) return say(`Why did the block go to school? To get a little smarter! 😆`);
     if (/\b(help|what can (you|we) do|what should we do|what (do|can) we do|what to do|what now|ideas|bored)\b/.test(text)) {
-      return say(`I can build a house, a castle, a pyramid, a tower, a bridge, a pool, a tree… any color you like! Or say "follow me", "dance", or "make it night". 🏠🏰🔺`);
+      return say(`I can build a house, a school, a hospital, a castle, a bridge, a treehouse, a playground, a pyramid… and I can dig pools, lakes, and bunkers! Any size, any color. Or say "follow me", "dance", or "make it night". 🏠🏰🌉`);
     }
-    return say(`Hmm, I'm not sure about "${ctx.message.slice(0, 40)}". Try "build a pink house", "make a pyramid", "what color is the sky", or "let's dance"! 😊`);
+    return say(`Hmm, I'm not sure about "${ctx.message.slice(0, 40)}". Try "build a pink house", "make a big treehouse", "dig a 30 by 20 lake", or "let's dance"! 😊`);
   }
 }
 

@@ -42,7 +42,7 @@ export type EarthworkOptions = {
 
 export type FurnitureItem = { id: number; state?: number; /** Something on top (a TV on a table). */ on?: number };
 
-export type FeatureKind = 'court' | 'playground' | 'pool' | 'garden' | 'parking' | 'fountain' | 'fence';
+export type FeatureKind = 'court' | 'playground' | 'pool' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse';
 
 /** Footprints of the outdoor features. */
 export const FEATURE_SIZE: Record<FeatureKind, { w: number; d: number }> = {
@@ -53,6 +53,8 @@ export const FEATURE_SIZE: Record<FeatureKind, { w: number; d: number }> = {
   parking: { w: 11, d: 7 },
   fountain: { w: 7, d: 7 },
   fence: { w: 1, d: 1 },
+  bridge: { w: 11, d: 5 },
+  treehouse: { w: 5, d: 5 },
 };
 
 /** Blocks the features are made of. */
@@ -71,7 +73,15 @@ export type FeatureKit = {
   flowers: number[];
   parkingFloor: number;
   lamp: number | null;
+  /** Logs for bridge posts and treehouse stilts. */
+  wood: number;
+  roof: number;
 };
+
+/** What a feature drawn on its own needs from the generator. */
+export type FeatureContext = { kit: FeatureKit; palette: number[]; stairRotation: number; ladderState: number };
+
+export type FeatureOptions = FeatureContext & { width: number; depth: number };
 
 export type HouseOptions = {
   width: number;
@@ -701,15 +711,39 @@ export class BuildTools {
       const size = FEATURE_SIZE[feature];
       const fx0 = at.dir === 1 ? at.x : at.dir === -1 ? at.x - size.w + 1 : at.x;
       const fz0 = at.z;
-      this.planFeature(feature, fx0, groundY, fz0, size.w, size.d, opts, put);
+      this.drawFeature(feature, fx0, groundY, fz0, size.w, size.d, opts, put);
       if (at.dir === 0) at.x += size.w + 3;
       else at.z += size.d + 3;
     }
     return [...cells.values()];
   }
 
-  /** A sports court, playground, pool, garden, car park, fountain, or fence, at ground level. */
-  private planFeature(feature: FeatureKind, fx0: number, groundY: number, fz0: number, w: number, d: number, opts: HouseOptions, put: (x: number, y: number, z: number, id: number, state?: number) => void): void {
+  /**
+   * A feature on its own, centred on (x, z) with the ground surface at y:
+   * court, playground, pool, garden, car park, fountain, fence, bridge,
+   * or treehouse. Bridges and treehouses are checked like buildings: the
+   * deck is walkable end to end and the ladder reaches a clear platform.
+   */
+  planFeature(kind: FeatureKind, x: number, y: number, z: number, opts: FeatureOptions, out?: BuildingLayoutOut): BlockEdit[] {
+    const w = Math.max(3, Math.min(48, opts.width | 0));
+    const d = Math.max(3, Math.min(48, opts.depth | 0));
+    const groundY = y - 1;
+    const fx0 = x - Math.floor(w / 2);
+    const fz0 = z - Math.floor(d / 2);
+    const cells = new Map<string, BlockEdit>();
+    const put = (px: number, py: number, pz: number, id: number, state = 0): void => {
+      if (py < 0 || py >= WORLD_HEIGHT) return;
+      cells.set(`${px},${py},${pz}`, { x: px, y: py, z: pz, id, state, entity: null });
+    };
+    const layout: BuildingLayout = { groundY, storey: 4, floors: 1, doorCells: [], doorZ: fz0, doorHeight: 2, outward: -1, rooms: [], stairs: [], ladders: [], air: 0, lamp: opts.kit.lamp, wall: opts.kit.planks };
+    this.drawFeature(kind, fx0, groundY, fz0, w, d, opts, put, layout);
+    ensureLivable(cells, layout, -1, new Set());
+    if (out) out.layout = layout;
+    return [...cells.values()];
+  }
+
+  /** A sports court, playground, pool, garden, car park, fountain, fence, bridge, or treehouse, at ground level. */
+  private drawFeature(feature: FeatureKind, fx0: number, groundY: number, fz0: number, w: number, d: number, opts: FeatureContext, put: (x: number, y: number, z: number, id: number, state?: number) => void, layout?: BuildingLayout): void {
     const fx1 = fx0 + w - 1;
     const fz1 = fz0 + d - 1;
     const k = opts.kit;
@@ -798,6 +832,58 @@ export class BuildTools {
         }
         for (let h = 1; h <= 3; h++) put(cx, groundY + h, cz, k.poolRim);
         put(cx, groundY + 4, cz, k.water);
+        break;
+      }
+      case 'bridge': {
+        // A deck one block up, running along x, with a step at each end, railings on the
+        // outer columns, and log posts under the ends and every fourth span.
+        const deck = groundY + 1;
+        const walk = Math.max(1, d - 2);
+        const wz0 = fz0 + Math.floor((d - walk) / 2);
+        const wz1 = wz0 + walk - 1;
+        for (let z = wz0 - 1; z <= wz1 + 1; z++) {
+          for (let x = fx0 + 1; x <= fx1 - 1; x++) {
+            put(x, deck, z, k.planks);
+            for (let h = 1; h <= 3; h++) put(x, deck + h, z, 0);
+            if (z === wz0 - 1 || z === wz1 + 1) put(x, deck + 1, z, k.fence);
+            if (z >= wz0 && z <= wz1 && (x === fx0 + 1 || x === fx1 - 1 || (x - fx0) % 4 === 0)) put(x, groundY, z, k.wood);
+          }
+          if (z >= wz0 && z <= wz1) {
+            put(fx0, deck, z, k.stairs, opts.stairRotation);
+            put(fx1, deck, z, k.stairs, (opts.stairRotation + 2) % 4);
+            for (let h = 1; h <= 3; h++) {
+              put(fx0, deck + h, z, 0);
+              put(fx1, deck + h, z, 0);
+            }
+          }
+        }
+        for (const x of [fx0 + 1, fx1 - 1]) for (const z of [wz0 - 1, wz1 + 1]) if (k.lamp !== null) put(x, deck + 2, z, k.lamp);
+        if (layout) {
+          const mid = wz0 + Math.floor(walk / 2);
+          layout.stairs.push({ steps: [{ x: fx0, y: deck, z: mid }], landing: { x: fx0 + 1, y: deck, z: mid }, dir: 1 });
+          layout.stairs.push({ steps: [{ x: fx1, y: deck, z: mid }], landing: { x: fx1 - 1, y: deck, z: mid }, dir: -1 });
+        }
+        break;
+      }
+      case 'treehouse': {
+        // Log stilts, a platform four blocks up with a ladder through a hatch in the middle,
+        // a railing with a gap at the front, corner posts, a roof, and a lantern.
+        const top = groundY + 5;
+        const cx = fx0 + Math.floor(w / 2);
+        const cz = fz0 + Math.floor(d / 2);
+        for (const x of [fx0, fx1]) for (const z of [fz0, fz1]) for (let py = groundY + 1; py < top; py++) put(x, py, z, k.wood);
+        for (let x = fx0; x <= fx1; x++) for (let z = fz0; z <= fz1; z++) {
+          put(x, top, z, k.planks);
+          const edge = x === fx0 || x === fx1 || z === fz0 || z === fz1;
+          const corner = (x === fx0 || x === fx1) && (z === fz0 || z === fz1);
+          for (let h = 1; h <= 3; h++) put(x, top + h, z, corner ? k.wood : edge && h === 1 ? k.fence : 0);
+          if (!corner) put(x, top + 4, z, k.roof);
+        }
+        put(cx, top + 1, fz0, 0); // the gap in the railing at the front
+        for (let py = groundY + 1; py <= top; py++) put(cx, py, cz, k.ladder, opts.ladderState);
+        for (let h = 1; h <= 3; h++) put(cx, top + h, cz, 0);
+        if (k.lamp !== null) put(cx + 1, top + 3, cz, k.lamp);
+        if (layout) layout.ladders.push({ x: cx, z: cz, bottom: groundY + 1, top });
         break;
       }
       case 'fence': {
