@@ -1,14 +1,36 @@
 import { B } from '../../blocks/blocks';
 import type { BlockEntity } from '../Chunk';
 
-export type TreeKind = 'oak' | 'birch' | 'cherry' | 'pine';
+export type TreeKind = 'oak' | 'birch' | 'cherry' | 'pine' | 'big_oak';
 
 type Writer = (x: number, y: number, z: number, id: number, onlyAir?: boolean) => void;
 
 /** Grows a tree with its base on the block at (x, baseY, z). */
 export function placeTree(kind: TreeKind, x: number, baseY: number, z: number, roll: number, write: Writer): void {
-  const trunkHeight = kind === 'pine' ? 6 + Math.floor(roll * 3) : 4 + Math.floor(roll * 3);
+  const trunkHeight = kind === 'pine' ? 6 + Math.floor(roll * 3) : kind === 'big_oak' ? 7 + Math.floor(roll * 3) : 4 + Math.floor(roll * 3);
   const log = kind === 'birch' ? B.birch_wood : B.wood;
+  if (kind === 'big_oak') {
+    // A 2×2 trunk with a wide, layered crown — a climbing tree.
+    for (let i = 1; i <= trunkHeight; i++) {
+      write(x, baseY + i, z, log, false);
+      write(x + 1, baseY + i, z, log, false);
+      write(x, baseY + i, z + 1, log, false);
+      write(x + 1, baseY + i, z + 1, log, false);
+    }
+    const top = baseY + trunkHeight;
+    const crown: Array<[number, number]> = [[top - 3, 3], [top - 2, 4], [top - 1, 4], [top, 3], [top + 1, 2], [top + 2, 1]];
+    for (const [y, radius] of crown) {
+      for (let dx = -radius; dx <= radius + 1; dx++) {
+        for (let dz = -radius; dz <= radius + 1; dz++) {
+          const ex = dx > 0 ? dx - 1 : dx;
+          const ez = dz > 0 ? dz - 1 : dz;
+          if (ex * ex + ez * ez > radius * radius + 1) continue;
+          write(x + dx, y, z + dz, B.leaves);
+        }
+      }
+    }
+    return;
+  }
   const leaf = kind === 'cherry' ? B.pink_leaves : kind === 'birch' ? B.birch_leaves : B.leaves;
   for (let i = 1; i <= trunkHeight; i++) write(x, baseY + i, z, log, false);
   const top = baseY + trunkHeight;

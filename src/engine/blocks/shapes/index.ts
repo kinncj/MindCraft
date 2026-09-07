@@ -220,8 +220,17 @@ const flat: ShapeDefinition = {
   occludes: (face) => face === DIR_NY,
 };
 
+/** A thin panel against the -z wall; rotation turns it. No collision, climbable. */
+const ladder: ShapeDefinition = {
+  id: 'ladder',
+  quads: (state) => rotateQuads(boxQuads(box(0, 0, 0, 1, 1, 0.125)), BlockState.rotation(state)),
+  boxes: () => [],
+  occludes: () => false,
+};
+
 export const SHAPES: Record<BlockShapeId, ShapeDefinition> = {
   cube,
+  ladder,
   slab,
   stairs,
   cross,

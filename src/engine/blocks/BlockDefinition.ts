@@ -8,6 +8,7 @@ import type { BlockStateByte } from './BlockState';
 
 export type BlockShapeId =
   | 'cube'
+  | 'ladder'
   | 'slab'
   | 'stairs'
   | 'cross'
@@ -114,6 +115,10 @@ export type BlockDefinition = {
   inPalette: boolean;
   /** Rotate to face the player on placement. */
   facesPlayer: boolean;
+  /** Placing into this block replaces it (tall grass, flowers). */
+  replaceable: boolean;
+  /** The player can climb while inside this block (ladders, vines). */
+  climbable: boolean;
   behavior?: BlockBehavior;
 };
 
@@ -135,6 +140,8 @@ const DEFAULTS: Omit<BlockDefinition, 'id' | 'numericId' | 'label' | 'color' | '
   bucket: 'opaque',
   inPalette: true,
   facesPlayer: false,
+  replaceable: false,
+  climbable: false,
 };
 
 /** Fills in defaults so definitions stay short. Textures default to the id. */

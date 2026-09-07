@@ -7,7 +7,7 @@ import { boxOverlaps, shapeBoxToWorld } from '../physics/collision';
 import type { PlayerController } from '../physics/PlayerController';
 import { raycastBlocks, type BlockHit, type Ray } from '../physics/raycast';
 import { SHAPES } from '../blocks/shapes';
-import { DIRECTIONS, DIR_NY, DIR_PY } from '../world/coords';
+import { DIRECTIONS, DIR_NY, DIR_PY, type Direction } from '../world/coords';
 import type { VoxelWorld } from '../world/VoxelWorld';
 import type { CameraSystem } from './CameraSystem';
 import type { InputFrame } from './InputSystem';
@@ -21,12 +21,16 @@ export type InteractionBridge = {
   openPanel(kind: string, payload: unknown): void;
   /** Return true when something (an animal) consumed the tap. */
   tapEntity?(ray: Ray): boolean;
-  onBlockPlaced?(def: BlockDefinition): void;
-  onBlockRemoved?(def: BlockDefinition): void;
+  onBlockPlaced?(def: BlockDefinition, x: number, y: number, z: number): void;
+  onBlockRemoved?(def: BlockDefinition, x: number, y: number, z: number): void;
 };
+
+export type PlacementTarget = { x: number; y: number; z: number; face: Direction; valid: boolean };
 
 export type InteractionState = {
   highlight: { x: number; y: number; z: number } | null;
+  /** Where the selected block would go if the player tapped now. */
+  placement: PlacementTarget | null;
   /** Test hook: what the last tap did. */
   lastTap: { hit: BlockHit | null; action: string } | null;
 };
@@ -40,7 +44,7 @@ const REACH = 7;
  */
 export class InteractionSystem implements System {
   readonly name = 'interaction';
-  readonly state: InteractionState = { highlight: null, lastTap: null };
+  readonly state: InteractionState = { highlight: null, placement: null, lastTap: null };
 
   constructor(
     private world: VoxelWorld,
@@ -79,14 +83,42 @@ export class InteractionSystem implements System {
     const hover = this.camera.viewMode === 'first' ? { ndcX: 0, ndcY: 0 } : this.input.hover;
     const hit = hover ? this.pick(hover.ndcX, hover.ndcY) : null;
     this.state.highlight = hit ? { x: hit.x, y: hit.y, z: hit.z } : null;
+    this.state.placement = hit && this.bridge.getMode() === 'place' ? this.placementFor(hit) : null;
+  }
+
+  /** The cell a tap on this hit would fill, and whether that is allowed. */
+  private placementFor(hit: BlockHit): PlacementTarget {
+    const cell = this.targetCell(hit);
+    const def = this.registry.get(this.bridge.getSelectedBlockId());
+    const hitDef = this.registry.get(hit.id);
+    const valid = Boolean(def) && !(hitDef?.behavior?.onInteract) && this.canPlaceAt(cell.x, cell.y, cell.z, def!);
+    return { ...cell, face: hit.face, valid };
+  }
+
+  /** Tapping a replaceable block (grass, flowers) builds in its cell. */
+  private targetCell(hit: BlockHit): { x: number; y: number; z: number } {
+    const hitDef = this.registry.get(hit.id);
+    if (hitDef?.replaceable) return { x: hit.x, y: hit.y, z: hit.z };
+    const dir = DIRECTIONS[hit.face];
+    return { x: hit.x + dir.x, y: hit.y + dir.y, z: hit.z + dir.z };
+  }
+
+  private canPlaceAt(x: number, y: number, z: number, def: BlockDefinition): boolean {
+    const existing = this.world.getBlock(x, y, z);
+    if (existing !== 0 && !(this.registry.get(existing)?.replaceable)) return false;
+    if (!this.world.isLoaded(x, z)) return false;
+    if (def.collision === 'solid') {
+      const body = this.player.box();
+      for (const b of SHAPES[def.shape].boxes(0)) if (boxOverlaps(shapeBoxToWorld(b, x, y, z), body)) return false;
+    }
+    return true;
   }
 
   /** Public so tools (WebMCP, robot programs) share the exact same path. */
   placeBlock(x: number, y: number, z: number, id: number, face = DIR_PY, hitHeight = 0.5): boolean {
     const def = this.registry.get(id);
     if (!def) return false;
-    if (this.world.getBlock(x, y, z) !== 0) return false;
-    if (!this.world.isLoaded(x, z)) return false;
+    if (!this.canPlaceAt(x, y, z, def)) return false;
     const extras: BlockEdit[] = [];
     const state =
       def.behavior?.onPlace?.({
@@ -105,7 +137,7 @@ export class InteractionSystem implements System {
       }
     }
     this.history.run(new SetBlocksCommand(`Place ${def.label}`, [{ x, y, z, id, state }, ...extras]));
-    this.bridge.onBlockPlaced?.(def);
+    this.bridge.onBlockPlaced?.(def, x, y, z);
     return true;
   }
 
@@ -117,7 +149,7 @@ export class InteractionSystem implements System {
     const state = this.world.getState(x, y, z);
     this.history.run(new SetBlocksCommand(`Remove ${def.label}`, [{ x, y, z, id: 0, state: 0, entity: null }]));
     def.behavior?.onRemove?.({ world: this.world, position: { x, y, z }, state });
-    this.bridge.onBlockRemoved?.(def);
+    this.bridge.onBlockRemoved?.(def, x, y, z);
     return true;
   }
 
@@ -141,9 +173,9 @@ export class InteractionSystem implements System {
 
   private placeOrInteract(hit: BlockHit): string {
     if (this.interact(hit.x, hit.y, hit.z, hit.face)) return 'interacted';
-    const dir = DIRECTIONS[hit.face];
+    const cell = this.targetCell(hit);
     const hitHeight = hit.face === DIR_PY ? 1 : hit.face === DIR_NY ? 0 : hit.py - (hit.y - 0.5);
-    const placed = this.placeBlock(hit.x + dir.x, hit.y + dir.y, hit.z + dir.z, this.bridge.getSelectedBlockId(), hit.face, hitHeight);
+    const placed = this.placeBlock(cell.x, cell.y, cell.z, this.bridge.getSelectedBlockId(), hit.face, hitHeight);
     return placed ? 'placed' : 'place-failed';
   }
 }

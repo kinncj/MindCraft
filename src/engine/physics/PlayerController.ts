@@ -26,6 +26,7 @@ const JUMP_VELOCITY = 8.2;
 const SWIM_UP_VELOCITY = 3.6;
 const STEP_HEIGHT = 1.05; // walk up a full block without jumping — kids hate ledges
 const TERMINAL = -40;
+const CLIMB_SPEED = 3;
 
 /**
  * The player's body: an axis-aligned box swept through the block shapes.
@@ -41,6 +42,7 @@ export class PlayerController {
   vz = 0;
   onGround = false;
   inWater = false;
+  onLadder = false;
   facing = 0; // radians around y
   /** True while the body is being animated as walking. */
   moving = false;
@@ -68,6 +70,11 @@ export class PlayerController {
     if (top >= 0 && this.y < top + 0.5) this.y = top + 0.5;
   }
 
+  private climbableAt(x: number, y: number, z: number): boolean {
+    const id = this.world.getBlock(Math.round(x), Math.round(y), Math.round(z));
+    return id !== 0 && (this.registry.get(id)?.climbable ?? false);
+  }
+
   box(x = this.x, y = this.y, z = this.z): Box {
     const half = PLAYER_WIDTH / 2;
     return { minX: x - half, minY: y, minZ: z - half, maxX: x + half, maxY: y + PLAYER_HEIGHT, maxZ: z + half };
@@ -83,6 +90,7 @@ export class PlayerController {
 
     this.inWater = isFluidAt(this.world, this.registry, this.x, this.y + 0.9, this.z);
     const feetInWater = isFluidAt(this.world, this.registry, this.x, this.y + 0.3, this.z);
+    this.onLadder = this.climbableAt(this.x, this.y + 0.9, this.z) || this.climbableAt(this.x, this.y + 0.2, this.z);
 
     // Desired horizontal motion relative to the camera.
     let mx = 0;
@@ -110,6 +118,13 @@ export class PlayerController {
     }
 
     // Vertical.
+    if (this.onLadder && !this.inWater) {
+      // Ladders: hold jump (or walk into it) to climb, sneak to slide down.
+      this.vy = input.jump || this.moving ? CLIMB_SPEED : input.sneak ? -CLIMB_SPEED : -0.6;
+      this.moveBy(this.vx * dt * 0.6, this.vy * dt, this.vz * dt * 0.6);
+      this.y = Math.max(0, Math.min(WORLD_HEIGHT - PLAYER_HEIGHT, this.y));
+      return;
+    }
     if (input.jump && this.inWater) {
       this.vy = Math.min(this.vy + SWIM_UP_VELOCITY * dt * 6, SWIM_UP_VELOCITY);
     } else if (input.jump && !this.inWater && feetInWater) {

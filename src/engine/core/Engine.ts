@@ -10,7 +10,10 @@ import { LightEngine } from '../lighting/LightEngine';
 import { PlayerController } from '../physics/PlayerController';
 import { ChunkMesher } from '../render/ChunkMesher';
 import { ChunkRenderer } from '../render/ChunkRenderer';
+import { CloudLayer } from '../render/CloudLayer';
 import { EnvironmentSystem } from '../render/EnvironmentSystem';
+import { GhostPreview } from '../render/GhostPreview';
+import { ParticleSystem } from '../render/ParticleSystem';
 import { TextureAtlas } from '../render/TextureAtlas';
 import { ToolRegistry } from '../tools/ToolRegistry';
 import { exposeTools } from '../tools/webmcp';
@@ -97,6 +100,9 @@ export class Engine {
   readonly interaction: InteractionSystem;
   readonly input: InputSystem;
   readonly avatar: PlayerAvatar;
+  readonly particles: ParticleSystem;
+  readonly clouds: CloudLayer;
+  readonly ghost: GhostPreview;
   readonly scene = new THREE.Scene();
   readonly renderer: THREE.WebGLRenderer;
   readonly loop = new GameLoop();
@@ -153,6 +159,8 @@ export class Engine {
     this.scene.add(this.camera.camera);
     this.avatar = new PlayerAvatar(this.scene, this.player, this.camera.camera);
     this.entities = new EntitySystem(this.scene, this.world, registry, this.player);
+    this.particles = new ParticleSystem(this.scene);
+    this.clouds = new CloudLayer(this.scene, options.generator.seed);
 
     this.chunks = new ChunkManager(this.world, this.generator, lighting, mesher, options.storage, {
       viewRadius: options.viewRadius ?? (this.lowPower ? 4 : 7),
@@ -181,10 +189,16 @@ export class Engine {
       openPanel: (kind, payload) => bridge.openPanel(kind, payload),
       tapEntity: (ray) => {
         const entity = this.entities.tap(ray);
-        if (entity) bridge.onPet(entity.kind, entity.name);
+        if (entity) {
+          bridge.onPet(entity.kind, entity.name);
+          this.particles.burst(entity.x, entity.y + 0.6, entity.z, '#ffd94a', 10, 0.6);
+        }
         return entity !== null;
       },
+      onBlockPlaced: (def, x, y, z) => this.particles.burst(x, y, z, def.color, 10, 0.4),
+      onBlockRemoved: (def, x, y, z) => this.particles.burst(x, y, z, def.color, 16, 0.7),
     });
+    this.ghost = new GhostPreview(this.scene, registry, this.interaction.state, () => bridge.getSelectedBlockId());
 
     const highlightGeometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, 1.02, 1.02));
     this.highlight = new THREE.LineSegments(highlightGeometry, new THREE.LineBasicMaterial({ color: '#ffffff' }));
@@ -200,8 +214,11 @@ export class Engine {
       .add(this.chunks)
       .add({ name: 'settle', update: () => this.settleWhenReady() })
       .add(this.interaction)
+      .add(this.ghost)
       .add(this.entities)
       .add(this.avatar)
+      .add(this.particles)
+      .add(this.clouds)
       .add(this.environment)
       .add({ name: 'render', update: () => this.render() });
 
@@ -327,6 +344,7 @@ export class Engine {
       this.highlight.visible = false;
     }
     this.environment.setFocus(this.player.x, this.player.y, this.player.z);
+    this.clouds.setFocus(this.player.x, this.player.z);
     // Gentle water shimmer.
     const water = this.chunkRenderer.materials.water as THREE.MeshLambertMaterial;
     water.opacity = 0.78 + Math.sin(this.loopElapsed() * 1.4) * 0.06;

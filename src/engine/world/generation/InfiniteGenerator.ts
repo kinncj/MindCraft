@@ -25,6 +25,7 @@ export class InfiniteGenerator implements WorldGenerator {
   private temperature: Noise2;
   private moisture: Noise2;
   private grove: Noise2;
+  private meadowFlowers: Noise2;
   private cave: Noise3;
   private caveB: Noise3;
   private spawnCache: { x: number; y: number; z: number } | null = null;
@@ -37,6 +38,7 @@ export class InfiniteGenerator implements WorldGenerator {
     this.temperature = fbm2(seed + 4, 2);
     this.moisture = fbm2(seed + 5, 2);
     this.grove = fbm2(seed + 6, 1);
+    this.meadowFlowers = fbm2(seed + 9, 1);
     this.cave = noise3(seed + 7);
     this.caveB = noise3(seed + 8);
   }
@@ -167,7 +169,7 @@ export class InfiniteGenerator implements WorldGenerator {
   private decorate(chunk: Chunk, columns: ColumnInfo[]): void {
     const baseX = chunk.cx * CHUNK_SIZE;
     const baseZ = chunk.cz * CHUNK_SIZE;
-    const MARGIN = 4;
+    const MARGIN = 6;
     const spawn = this.spawn();
 
     const write = (x: number, y: number, z: number, id: number, onlyAir = true): void => {
@@ -207,7 +209,14 @@ export class InfiniteGenerator implements WorldGenerator {
           continue;
         }
         if (biome === 'snowy') continue;
-        if (roll > 0.97) write(x, y, z, flowerFor(hash2(x, z, this.seed + 13)));
+        // Flower meadows: patches where blossoms crowd together.
+        const meadow = biome === 'meadow' && this.meadowFlowers(x / 40, z / 40) > 0.45;
+        if (meadow && roll > 0.55) {
+          write(x, y, z, flowerFor(hash2(x, z, this.seed + 13)));
+          continue;
+        }
+        if (biome === 'meadow' && roll < 0.0015) write(x, y, z, B.hay);
+        else if (roll > 0.97) write(x, y, z, flowerFor(hash2(x, z, this.seed + 13)));
         else if (roll > 0.86) write(x, y, z, B.tall_grass);
         else if (biome === 'forest' && roll > 0.83) write(x, y, z, B.mushroom);
         else if (biome === 'meadow' && roll < 0.004) write(x, y, z, B.pumpkin);
@@ -235,10 +244,12 @@ function surfaceBlocks(biome: Biome): { top: number; under: number; underDepth: 
 function treeFor(biome: Biome, roll: number): TreeKind | null {
   switch (biome) {
     case 'forest':
+      if (roll < 0.003) return 'big_oak';
       return roll < 0.05 ? (roll < 0.012 ? 'birch' : 'oak') : null;
     case 'cherry':
       return roll < 0.03 ? 'cherry' : null;
     case 'meadow':
+      if (roll < 0.0008) return 'big_oak';
       return roll < 0.006 ? 'oak' : null;
     case 'snowy':
       return roll < 0.012 ? 'pine' : null;

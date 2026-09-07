@@ -245,6 +245,34 @@ const roofTiles: Painter = (ctx, rand) => {
   }
 };
 
+const sandstone: Painter = (ctx, rand) => {
+  noiseFill(ctx, rand, ['#e2cf96', '#dcc88e', '#e8d5a0']);
+  for (let y = 3; y < SIZE; y += 5) for (let x = 0; x < SIZE; x++) if (rand() > 0.3) px(ctx, x, y, '#cdb87c');
+};
+const sandstoneTop: Painter = (ctx, rand) => {
+  noiseFill(ctx, rand, ['#e8d5a0', '#e2cf96', '#eddaa6']);
+  speckle(ctx, rand, '#cdb87c', 8);
+};
+const hay: Painter = (ctx, rand) => {
+  for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) px(ctx, x, y, pick(rand, ['#d9b53c', '#cfa932', '#e2bf46', '#c69f2c']));
+  ctx.fillStyle = '#8a6238';
+  ctx.fillRect(0, 4, SIZE, 1);
+  ctx.fillRect(0, 11, SIZE, 1);
+};
+const hayTop: Painter = (ctx, rand) => {
+  for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) px(ctx, x, y, pick(rand, ['#e2bf46', '#d9b53c', '#cfa932']));
+  ctx.strokeStyle = '#a8852a';
+  for (const r of [2, 5]) ctx.strokeRect(7.5 - r, 7.5 - r, r * 2 + 1, r * 2 + 1);
+};
+const ladder: Painter = (ctx) => {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#c98d4b';
+  ctx.fillRect(2, 0, 2, SIZE);
+  ctx.fillRect(12, 0, 2, SIZE);
+  ctx.fillStyle = '#a97a3f';
+  for (let y = 2; y < SIZE; y += 4) ctx.fillRect(2, y, 12, 2);
+};
+
 // --- Nature ---------------------------------------------------------------
 
 const leaves: Painter = (ctx, rand) => {
@@ -585,6 +613,11 @@ export const PAINTERS: Record<string, { paint: Painter; seed: number }> = {
   snow_side: { paint: snowSide, seed: 42 },
   ice: { paint: ice, seed: 41 },
   moss: { paint: moss, seed: 45 },
+  sandstone: { paint: sandstone, seed: 50 },
+  sandstone_top: { paint: sandstoneTop, seed: 51 },
+  hay: { paint: hay, seed: 52 },
+  hay_top: { paint: hayTop, seed: 53 },
+  ladder: { paint: ladder, seed: 54 },
   planks: { paint: planks, seed: 43 },
   birch_planks: { paint: birchPlanks, seed: 46 },
   wood_side: { paint: woodSide, seed: 44 },
