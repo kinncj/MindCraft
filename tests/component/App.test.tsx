@@ -43,7 +43,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'See all your worlds' }));
     expect(screen.getByRole('dialog', { name: 'Your worlds' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Back' }));
-    await user.click(screen.getByRole('button', { name: '▶️ Back to building' }));
+    await user.click(screen.getByRole('button', { name: /Back to building/ }));
     expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument();
   });
 

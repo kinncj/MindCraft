@@ -48,6 +48,7 @@ export type UiSlice = {
   setViewMode: (mode: ViewMode) => void;
   toggleViewMode: () => void;
   zoom: (delta: number) => void;
+  dance: () => void;
   setHistoryState: (canUndo: boolean, canRedo: boolean) => void;
   setControllerActive: (active: boolean) => void;
   setMirror: (enabled: boolean) => void;

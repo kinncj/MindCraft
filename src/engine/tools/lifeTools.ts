@@ -65,6 +65,27 @@ export function registerLifeTools(engine: Engine): void {
     },
   });
   tools.register({
+    name: 'villager_dance',
+    description: 'A villager or pet dances for a few seconds.',
+    inputSchema: { type: 'object', properties: { id: str, seconds: num }, required: ['id'] },
+    execute: ({ id, seconds }: { id: string; seconds?: number }) => {
+      const e = entities.byId(id);
+      if (!e || e.vehicle) throw new Error(`no creature ${id}`);
+      entities.dance(e, seconds ?? 6);
+      engine.audio.play('happy');
+      return describe(e);
+    },
+  });
+  tools.register({
+    name: 'player_dance',
+    description: 'The player dances for a few seconds.',
+    inputSchema: { type: 'object', properties: { seconds: num } },
+    execute: ({ seconds }: { seconds?: number }) => {
+      engine.dance(seconds ?? 6);
+      return { dancing: true };
+    },
+  });
+  tools.register({
     name: 'villager_stay',
     description: 'A villager waits where it is for a while.',
     inputSchema: { type: 'object', properties: { id: str, seconds: num }, required: ['id'] },

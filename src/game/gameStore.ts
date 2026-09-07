@@ -393,6 +393,10 @@ export const useGameStore = create<GameState>((set, get) => {
     zoom(delta) {
       getEngine()?.zoom(delta);
     },
+    dance() {
+      getEngine()?.dance();
+      get().showToast('💃 Dance party!');
+    },
     setHistoryState(canUndo, canRedo) {
       set({ canUndo, canRedo });
     },

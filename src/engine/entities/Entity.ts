@@ -41,6 +41,8 @@ export type Entity = {
   robot?: RobotRunner;
   /** Blocks this villager is laying by hand, one at a time. */
   work?: { label: string; edits: import('../commands/Command').BlockEdit[]; index: number; timer: number; command: import('../commands/Command').SetBlocksCommand };
+  /** Dancing until this time (elapsed seconds). */
+  danceUntil?: number;
   /** Temporary brain swap (a villager playing along) ends at this time. */
   brainUntil?: number;
   savedBrain?: Brain;

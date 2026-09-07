@@ -242,6 +242,35 @@ export class EntitySystem implements System {
     return true;
   }
 
+  /** A creature dances: spins, hops, waves. */
+  dance(entity: Entity, seconds = 6): void {
+    entity.danceUntil = this.elapsed + seconds;
+    entity.mood = 'dancing';
+    entity.targetX = entity.x;
+    entity.targetZ = entity.z;
+  }
+
+  private updateDance(entity: Entity, dt: number, elapsed: number): void {
+    const t = elapsed * 9;
+    entity.group.rotation.y += dt * 5;
+    const groundY = this.groundY(entity.x, entity.z);
+    entity.group.position.set(entity.x, groundY + Math.abs(Math.sin(t)) * 0.35, entity.z);
+    const armL = entity.group.getObjectByName('arm-l');
+    const armR = entity.group.getObjectByName('arm-r');
+    if (armL && armR) {
+      armL.rotation.z = 2.6 + Math.sin(t) * 0.5;
+      armR.rotation.z = -2.6 - Math.sin(t + 1) * 0.5;
+    }
+    if (elapsed > (entity.danceUntil ?? 0)) {
+      entity.danceUntil = undefined;
+      if (armL && armR) {
+        armL.rotation.z = 0;
+        armR.rotation.z = 0;
+      }
+      entity.mood = 'happy';
+    }
+  }
+
   /** Make a villager wait where it is for a while. */
   stay(entity: Entity, seconds = 60): void {
     entity.savedBrain = entity.savedBrain ?? entity.brain;
@@ -426,6 +455,10 @@ export class EntitySystem implements System {
 
       if (entity.work) {
         this.updateWork(entity, dt);
+        continue;
+      }
+      if (entity.danceUntil !== undefined) {
+        this.updateDance(entity, dt, elapsed);
         continue;
       }
 

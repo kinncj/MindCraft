@@ -116,10 +116,12 @@ export function buildVillager(look: VillagerLook): THREE.Group {
   const smile = box(0.16, 0.03, 0.02, '#d8735f');
   smile.position.set(0, 1.5, 0.24);
   group.add(body, head, hair, eyeL, eyeR, smile);
-  for (const [dx, color, h, y] of [[-0.33, look.shirt, 0.55, 1.35], [0.33, look.shirt, 0.55, 1.35], [-0.13, look.pants, 0.75, 0.75], [0.13, look.pants, 0.75, 0.75]] as const) {
+  const limbs = [[-0.33, look.shirt, 0.55, 1.35, 'arm-l'], [0.33, look.shirt, 0.55, 1.35, 'arm-r'], [-0.13, look.pants, 0.75, 0.75, 'leg-l'], [0.13, look.pants, 0.75, 0.75, 'leg-r']] as const;
+  for (const [dx, color, h, y, name] of limbs) {
     const limb = box(0.16, h, 0.16, color);
     limb.geometry.translate(0, -h / 2, 0);
     limb.position.set(dx, y, 0);
+    limb.name = name;
     group.add(limb);
   }
   if (look.hat) {

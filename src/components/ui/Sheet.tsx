@@ -1,15 +1,17 @@
 import type { ReactNode } from 'react';
 import { IconButton } from './IconButton';
+import { Icon, type IconName } from './icons';
 
 type SheetProps = {
   title: string;
   emoji?: string;
+  icon?: IconName;
   ariaLabel?: string;
   onClose: () => void;
   onBack?: () => void;
   children: ReactNode;
-  /** `sheet` slides up from the bottom on phones; `dialog` is a centered card. */
-  kind?: 'sheet' | 'dialog';
+  /** `sheet` slides up from the bottom on phones; `dialog` is a centered card; `full` is the game menu. */
+  kind?: 'sheet' | 'dialog' | 'full';
   hint?: string;
   testId?: string;
 };
@@ -17,19 +19,19 @@ type SheetProps = {
 /**
  * The one container every panel uses: a bottom sheet on phones, a centered
  * card on larger screens, with a header row (back, title, close) and a
- * scrollable body. Focus and labels are consistent everywhere.
+ * scrollable body.
  */
-export function Sheet({ title, emoji, ariaLabel, onClose, onBack, children, kind = 'sheet', hint, testId }: SheetProps) {
+export function Sheet({ title, emoji, icon, ariaLabel, onClose, onBack, children, kind = 'sheet', hint, testId }: SheetProps) {
   return (
-    <div className="sheet-backdrop" role="presentation" onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <div className={`sheet-backdrop sheet-backdrop-${kind}`} role="presentation" onClick={(event) => event.target === event.currentTarget && onClose()}>
       <section className={`sheet sheet-${kind}`} role="dialog" aria-label={ariaLabel ?? title} aria-modal="true" data-testid={testId}>
         <header className="sheet-header">
-          {onBack ? <IconButton emoji="‹" label="Back" onClick={onBack} className="sheet-back" /> : <span className="sheet-spacer" />}
+          {onBack ? <IconButton icon="back" label="Back" onClick={onBack} className="sheet-back" /> : <span className="sheet-spacer" />}
           <h2 className="sheet-title">
-            {emoji && <span aria-hidden="true">{emoji} </span>}
+            {icon ? <Icon name={icon} size={30} className="sheet-title-icon" /> : emoji ? <span aria-hidden="true">{emoji} </span> : null}
             {title}
           </h2>
-          <IconButton emoji="✕" label={`Close ${title}`} onClick={onClose} className="sheet-close" />
+          <IconButton icon="close" label={`Close ${title}`} onClick={onClose} className="sheet-close" />
         </header>
         {hint && <p className="sheet-hint">{hint}</p>}
         <div className="sheet-body">{children}</div>

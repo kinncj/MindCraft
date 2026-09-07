@@ -4,6 +4,7 @@ import { getEngine } from '../game/engineRef';
 import { useGameStore } from '../game/gameStore';
 import { KidButton } from './KidButton';
 import { Sheet } from './ui/Sheet';
+import { Icon } from './ui/icons';
 
 type Payload = { id: string; name?: string; variant?: string };
 
@@ -96,7 +97,7 @@ export function VillagerPanel() {
         </label>
         <input id="chat-text" value={text} maxLength={200} placeholder={`Say something to ${villager.name}…`} onChange={(event) => setText(event.target.value)} autoComplete="off" />
         <KidButton tone="primary" type="submit" aria-label="Send" disabled={thinking || !text.trim()}>
-          ➤
+          <Icon name="send" size={26} />
         </KidButton>
       </form>
       <p className="chat-provider">Answered by: {engine.chat.providerName === 'rules' ? 'the game' : engine.chat.providerName === 'built-in' ? "your browser's built-in AI" : engine.chat.providerName}</p>

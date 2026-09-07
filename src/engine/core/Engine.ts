@@ -223,8 +223,9 @@ export class Engine {
       bridge.onLogicEvent?.(event);
     });
     if (options.audio) this.audio.setSettings(options.audio);
-    // Audio may only start from a user gesture; the first tap on the world is one.
-    this.renderer.domElement.addEventListener('pointerdown', () => void this.audio.start(), { passive: true });
+    // Audio may only start from a user gesture; the first tap on the world is
+    // one. Start it after the tap has been handled so the tap itself stays snappy.
+    this.renderer.domElement.addEventListener('pointerdown', () => setTimeout(() => void this.audio.start(), 250), { passive: true });
     this.clouds = new CloudLayer(this.scene, options.generator.seed);
 
     this.chunks = new ChunkManager(this.world, this.generator, lighting, mesher, options.storage, {
@@ -410,6 +411,7 @@ export class Engine {
       this.gamepadWasActive = active;
       this.options.bridge.onGamepadActive?.(active);
     }
+    if (this.input.frame.pressed.has('x')) this.dance();
     for (const command of this.input.frame.commands) {
       if (command === 'toggle_view') this.camera.toggleViewMode();
       else if (command === 'rotate') this.build.rotateClipboard();
@@ -552,6 +554,16 @@ export class Engine {
     return true;
   }
 
+  /** The player dances for a few seconds; nearby friends join in. */
+  dance(seconds = 6): void {
+    this.avatar.danceUntil = this.loopElapsed() + seconds;
+    this.audio.play('happy');
+    this.particles.burst(this.player.x, this.player.y + 1.5, this.player.z, '#f472b6', 18, 1);
+    for (const e of this.entities.entities) {
+      if (!e.vehicle && !e.robot && Math.hypot(e.x - this.player.x, e.z - this.player.z) < 6) this.entities.dance(e, seconds);
+    }
+  }
+
   /** Show a villager line in the UI. */
   sayAs(villagerId: string, text: string): void {
     this.options.bridge.onVillagerSay?.(villagerId, text);
@@ -586,7 +598,17 @@ export class Engine {
     f.jump = this.player.onGround && Math.abs(this.player.vx) + Math.abs(this.player.vz) < 0.5;
   }
 
+  private framesSinceBlocked = 0;
+
   private render(): void {
+    // A sheet is open: the world behind it is static. Skip GPU work so
+    // phones with blurred glass panels do not crawl.
+    if (this.input.blocked) {
+      this.framesSinceBlocked += 1;
+      if (this.framesSinceBlocked > 2) return;
+    } else {
+      this.framesSinceBlocked = 0;
+    }
     const h = this.interaction.state.highlight;
     if (h) {
       this.highlight.position.set(h.x, h.y, h.z);

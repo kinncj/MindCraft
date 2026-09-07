@@ -97,6 +97,8 @@ export class PlayerAvatar implements System {
   private legRight!: THREE.Mesh;
   private walkPhase = 0;
   showBody = true;
+  /** Dancing until this elapsed time. */
+  danceUntil = -1;
   look: PlayerLook;
 
   constructor(
@@ -150,6 +152,18 @@ export class PlayerAvatar implements System {
     this.legRight.rotation.x = swing * (p.inWater ? 0.5 : 1);
     this.group.position.set(p.x, p.y, p.z);
     this.group.rotation.y = p.facing;
+    if (elapsed < this.danceUntil) {
+      const t = elapsed * 9;
+      this.group.rotation.y = p.facing + elapsed * 5;
+      this.group.position.y = p.y + Math.abs(Math.sin(t)) * 0.35;
+      this.armLeft.rotation.z = 2.6 + Math.sin(t) * 0.5;
+      this.armRight.rotation.z = -2.6 - Math.sin(t + 1) * 0.5;
+      this.armLeft.rotation.x = 0;
+      this.armRight.rotation.x = 0;
+    } else {
+      this.armLeft.rotation.z = 0;
+      this.armRight.rotation.z = 0;
+    }
     if (p.seated || p.mounted) {
       // Sit: legs forward, arms down.
       this.legLeft.rotation.x = -1.4;

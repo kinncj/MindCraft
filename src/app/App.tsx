@@ -4,12 +4,12 @@ import { useGameStore } from '../game/gameStore';
 import { BlockPalette } from '../components/BlockPalette';
 import { BlueprintsPanel } from '../components/BlueprintsPanel';
 import { CraftingPanel } from '../components/CraftingPanel';
-import { RobotPanel } from '../components/RobotPanel';
 import { DressUpPanel } from '../components/DressUpPanel';
 import { Hotbar } from '../components/Hotbar';
 import { MagicDeliveryBoxPanel } from '../components/MagicDeliveryBoxPanel';
 import { MenuPanel } from '../components/MenuPanel';
 import { PetPanel } from '../components/PetPanel';
+import { RobotPanel } from '../components/RobotPanel';
 import { SaveIndicator } from '../components/SaveIndicator';
 import { SleepPanel } from '../components/SleepPanel';
 import { Toast } from '../components/Toast';
@@ -18,6 +18,7 @@ import { VillagerPanel } from '../components/VillagerPanel';
 import { VirtualControls } from '../components/VirtualControls';
 import { WelcomePanel } from '../components/WelcomePanel';
 import { IconButton } from '../components/ui/IconButton';
+import { Icon } from '../components/ui/icons';
 import './App.css';
 
 export function App() {
@@ -26,6 +27,7 @@ export function App() {
   const viewMode = useGameStore((state) => state.viewMode);
   const toggleViewMode = useGameStore((state) => state.toggleViewMode);
   const zoom = useGameStore((state) => state.zoom);
+  const dance = useGameStore((state) => state.dance);
   const canUndo = useGameStore((state) => state.canUndo);
   const canRedo = useGameStore((state) => state.canRedo);
   const undo = useGameStore((state) => state.undo);
@@ -65,9 +67,7 @@ export function App() {
   if (!ready) {
     return (
       <div className="loading-screen">
-        <h1>
-          <span aria-hidden="true">🧱</span> MindCraft
-        </h1>
+        <h1>MindCraft</h1>
         <p>Getting your blocks ready…</p>
       </div>
     );
@@ -79,35 +79,32 @@ export function App() {
 
       <header className="top-bar">
         <div className="brand" aria-label="MindCraft">
-          <span aria-hidden="true">🧱</span>
+          <Icon name="blocks" size={26} className="brand-icon" />
           <span className="brand-text">MindCraft</span>
         </div>
         <SaveIndicator />
         <div className="top-actions">
-          <IconButton emoji="↩️" label="Undo the last change" onClick={undo} disabled={!canUndo} />
-          <IconButton emoji="↪️" label="Redo" onClick={redo} disabled={!canRedo} />
-          <IconButton emoji="☰" label="Open the menu" onClick={() => useGameStore.getState().setOpenPanel('menu')} />
+          <IconButton icon="undo" label="Undo the last change" onClick={undo} disabled={!canUndo} />
+          <IconButton icon="redo" label="Redo" onClick={redo} disabled={!canRedo} />
+          <IconButton icon="menu" label="Open the menu" onClick={() => useGameStore.getState().setOpenPanel('menu')} tone="accent" />
         </div>
       </header>
 
       {!storageAvailable && (
         <div className="storage-warning" role="alert">
-          <span aria-hidden="true">⚠️</span> This browser cannot save your world. You can still build and export it to a file!
+          This browser cannot save your world. You can still build and export it to a file!
         </div>
       )}
 
       <div className="side-actions">
-        <IconButton emoji="➕" label="Zoom in" onClick={() => zoom(-3)} />
-        <IconButton emoji="➖" label="Zoom out" onClick={() => zoom(3)} />
-        <IconButton emoji={viewMode === 'third' ? '👀' : '🧍'} label="Change camera view" onClick={toggleViewMode} />
-        <IconButton emoji={audio.muted ? '🔇' : '🔊'} label={audio.muted ? 'Unmute sound' : 'Mute sound'} onClick={() => setAudio({ muted: !audio.muted })} />
+        <IconButton icon="plus" label="Zoom in" onClick={() => zoom(-3)} />
+        <IconButton icon="minus" label="Zoom out" onClick={() => zoom(3)} />
+        <IconButton icon={viewMode === 'third' ? 'eye' : 'person'} label="Change camera view" onClick={toggleViewMode} />
+        <IconButton icon="sparkle" label="Dance" onClick={dance} />
+        <IconButton icon={audio.muted ? 'mute' : 'sound'} label={audio.muted ? 'Unmute sound' : 'Mute sound'} onClick={() => setAudio({ muted: !audio.muted })} />
       </div>
 
-      {(viewMode === 'first' || controllerActive) && (
-        <div className="crosshair" aria-hidden="true">
-          +
-        </div>
-      )}
+      {(viewMode === 'first' || controllerActive) && <div className="crosshair" aria-hidden="true" />}
 
       <ToolsDrawer />
       <Hotbar />

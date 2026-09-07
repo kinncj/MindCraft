@@ -118,7 +118,7 @@ export class ChatAgent {
           }
         } else {
           const args = { ...action.args };
-          if (action.tool === 'villager_talk' || action.tool === 'villager_stay' || action.tool === 'villager_walk_to' || action.tool === 'villager_say') args.id = villagerId;
+          if (['villager_talk', 'villager_stay', 'villager_walk_to', 'villager_say', 'villager_dance'].includes(action.tool)) args.id = villagerId;
           await this.deps.tools.call(action.tool, args);
           performed.push(action.tool);
         }

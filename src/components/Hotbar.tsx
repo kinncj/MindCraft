@@ -3,6 +3,7 @@ import { blocks } from '../engine/blocks/blocks';
 import { blockIconDataUrl } from '../game/blockIcons';
 import { useGameStore } from '../game/gameStore';
 import { KidButton } from './KidButton';
+import { Icon } from './ui/icons';
 
 /**
  * Nine block slots along the bottom of the screen. Number keys 1-9 pick a
@@ -57,7 +58,7 @@ export function Hotbar() {
         );
       })}
       <KidButton className="hotbar-more" onClick={() => setOpenPanel('palette')} aria-label="More blocks">
-        ➕ More
+        <Icon name="blocks" size={26} /> More
       </KidButton>
     </div>
   );

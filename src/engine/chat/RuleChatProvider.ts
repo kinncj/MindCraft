@@ -78,7 +78,7 @@ export class RuleChatProvider implements ChatProvider {
       return say(`Sure, I'll wait right here. 🛑`, [{ tool: 'villager_stay', args: { id: v.id } }]);
     }
     if (/\b(dance|party|sing|music|song)\b/.test(text)) {
-      return say(`Dance party! 💃🎵 La la la!`, [{ tool: 'audio_play', args: { sound: 'happy' } }, { tool: 'villager_talk', args: { id: v.id, choice: 'play' } }]);
+      return say(`Dance party! 💃🎵 La la la!`, [{ tool: 'villager_dance', args: { id: v.id } }, { tool: 'player_dance', args: {} }]);
     }
     if (/\b(gift|present|give me|can i have|something for me|treat)\b/.test(text)) {
       return say(`Of course! Here you go! 🎁`, [{ tool: 'villager_talk', args: { id: v.id, choice: 'gift' } }]);

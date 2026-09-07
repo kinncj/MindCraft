@@ -42,6 +42,12 @@ export class AudioSystem implements System {
       try {
         const tone = await import('tone');
         await tone.start();
+        // Build the graph on an idle moment so the first tap stays smooth.
+        await new Promise<void>((resolve) => {
+          const idle = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
+          if (idle) idle(() => resolve(), { timeout: 800 });
+          else setTimeout(resolve, 50);
+        });
         this.build(tone);
         this.tone = tone;
         this.applySettings();
@@ -54,7 +60,9 @@ export class AudioSystem implements System {
 
   private build(T: ToneModule): void {
     this.master = new T.Volume(volumeToDb(this.settings.volume)).toDestination();
-    const reverb = new T.Reverb({ decay: 2.4, wet: 0.25 }).connect(this.master);
+    // A feedback delay instead of a convolution reverb: no impulse to render,
+    // so startup costs nothing on a phone.
+    const reverb = new T.FeedbackDelay({ delayTime: 0.23, feedback: 0.28, wet: 0.18 }).connect(this.master);
     this.sfx = new T.PolySynth(T.Synth, { oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.12, sustain: 0.1, release: 0.2 } }).connect(reverb);
     this.sfx.volume.value = -10;
     this.noise = new T.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.005, decay: 0.15, sustain: 0, release: 0.1 } }).connect(this.master);

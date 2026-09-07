@@ -77,8 +77,9 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   `build_stamp_blueprint`, `villager_talk`, `pet_adopt`, `vehicle_mount`, … — exposed through WebMCP
   (`navigator.modelContext`) and `window.mindcraftTools`, so agents can play too.
 - Works on desktop, tablet, and phone with **keyboard and mouse, touch, or a gamepad**.
-  A dark-glass game UI: gradient accents, squircle icon badges, layered shadows,
-  springy motion. Every panel is a bottom sheet on phones and a card on bigger
+  A dark-glass game UI with a crisp SVG icon set drawn in code, a full-screen game
+  menu with your character on it, gradient accents, squircle icon badges, layered
+  shadows, and springy motion. Every panel is a bottom sheet on phones and a card on bigger
   screens; the menu has submenus with a back button; buttons are thumb-sized and
   respect notches.
 
@@ -98,6 +99,7 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 | Interact only | Tools → Interact | Tools → Interact | D-pad down to it |
 | Ride / hop off | tap the car or boat, `Space` to hop off (camera follows behind) | tap | RT, A to hop off |
 | Chat with a villager | tap them, then type or tap a chip | tap, chips | RT on them, chips |
+| Dance | `X` or the ✦ button (friends nearby join in) | ✦ button | — |
 | Crafting | `C`, a crafting table, or Menu → Crafting | Menu → Crafting | Start → Crafting |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Shift+Z` or buttons | buttons | B |
 | Menu | `Escape` or the Menu button | Menu button | Start |

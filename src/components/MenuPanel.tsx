@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../game/gameStore';
 import { getEngine } from '../game/engineRef';
+import { AvatarPreview } from './AvatarPreview';
 import { ExportWorldButton } from './ExportWorldButton';
 import { ImportWorldDialog } from './ImportWorldDialog';
 import { ResetWorldDialog } from './ResetWorldDialog';
@@ -8,25 +9,28 @@ import { VisualModeSelector } from './VisualModeSelector';
 import { WorldSettings } from './WorldSettings';
 import { WorldsList } from './WorldsList';
 import { KidButton } from './KidButton';
+import { IconButton } from './ui/IconButton';
+import { Icon, type IconName } from './ui/icons';
 import { MenuRow } from './ui/MenuRow';
 import { Sheet } from './ui/Sheet';
 
 type Page = 'main' | 'help' | 'looks' | 'sound' | 'friends' | 'worlds' | 'share' | 'reset' | 'about';
 
-const TITLES: Record<Page, { title: string; emoji: string }> = {
-  main: { title: 'Menu', emoji: '🧱' },
-  help: { title: 'How to play', emoji: '❓' },
-  looks: { title: 'World looks', emoji: '🌈' },
-  sound: { title: 'Sound', emoji: '🔊' },
-  friends: { title: 'Friends', emoji: '🧑' },
-  worlds: { title: 'Your worlds', emoji: '🌍' },
-  share: { title: 'Save & share', emoji: '💾' },
-  reset: { title: 'Start over', emoji: '🔄' },
-  about: { title: 'About', emoji: 'ℹ️' },
+const TITLES: Record<Page, { title: string; icon: IconName }> = {
+  main: { title: 'Menu', icon: 'menu' },
+  help: { title: 'How to play', icon: 'help' },
+  looks: { title: 'World looks', icon: 'rainbow' },
+  sound: { title: 'Sound', icon: 'sound' },
+  friends: { title: 'Friends', icon: 'friends' },
+  worlds: { title: 'Your worlds', icon: 'world' },
+  share: { title: 'Save & share', icon: 'save' },
+  reset: { title: 'Start over', icon: 'restart' },
+  about: { title: 'About', icon: 'info' },
 };
 
 /**
- * The game menu: one sheet, a main list, and submenus with a back
+ * The game menu: a full-screen overlay with the character on one side
+ * and big buttons on the other; submenus open as sheets with a back
  * button. Everything that is not moment-to-moment play lives here.
  */
 export function MenuPanel() {
@@ -35,6 +39,9 @@ export function MenuPanel() {
   const setOpenPanel = useGameStore((state) => state.setOpenPanel);
   const storageAvailable = useGameStore((state) => state.storageAvailable);
   const worldName = useGameStore((state) => state.worldName);
+  const worlds = useGameStore((state) => state.worlds);
+  const currentWorldId = useGameStore((state) => state.currentWorldId);
+  const look = useGameStore((state) => state.look);
   const audio = useGameStore((state) => state.audio);
   const setAudio = useGameStore((state) => state.setAudio);
   const smartChat = useGameStore((state) => state.smartChat);
@@ -58,47 +65,71 @@ export function MenuPanel() {
   }, [openPanel]);
 
   if (!open) return null;
-  const { title, emoji } = TITLES[page];
+  const world = worlds.find((w) => w.id === currentWorldId);
+  const worldKind = world?.generator.preset === 'town' ? 'Sunny Town' : world?.generator.preset === 'toyland' || world?.generator.kind === 'flat' ? 'Toy Land' : 'Meadow';
 
-  return (
-    <Sheet title={title} emoji={emoji} ariaLabel={page === 'main' ? 'Menu' : title} onClose={closePanels} onBack={page === 'main' ? undefined : () => setPage('main')} testId="menu">
-      {page === 'main' && (
-        <div className="menu-list">
-          <KidButton tone="primary" className="menu-primary" onClick={closePanels} autoFocus>
-            ▶️ Back to building
-          </KidButton>
-          <MenuRow tone="slate" emoji="❓" label="How to play" hint="Controls for keyboard, touch, and gamepad" onClick={() => setPage('help')} />
-          <MenuRow tone="accent" emoji="🔨" label="Crafting" hint="Picture recipes to make things" onClick={() => setOpenPanel('crafting')} ariaLabel="Open crafting" />
-          <MenuRow tone="pink" emoji="👕" label="Dress up" hint="Shirt, pants, hair, and a hat" onClick={() => setOpenPanel('dressup')} ariaLabel="Dress up your character" />
-          <MenuRow tone="violet" emoji="🌈" label="World looks" hint="Visual mode, sky, and weather" onClick={() => setPage('looks')} />
-          <MenuRow tone="teal" emoji="🔊" label="Sound" hint={audio.muted ? 'Muted' : audio.music ? 'Music and effects on' : 'Effects only'} onClick={() => setPage('sound')} />
-          <MenuRow tone="teal" emoji="🧑" label="Friends" hint={smartChat ? 'Chats use the built-in AI' : 'How villagers answer chats'} onClick={() => setPage('friends')} />
-          <MenuRow tone="primary" emoji="🌍" label="My worlds" hint={`Playing: ${worldName}`} onClick={() => setPage('worlds')} ariaLabel="See all your worlds" />
-          <MenuRow tone="default" emoji="💾" label="Save & share" hint="Export and import world files" onClick={() => setPage('share')} />
-          <MenuRow tone="danger" emoji="🔄" label="Start over" hint="Fresh meadow, Toy Land, or Sunny Town" onClick={() => setPage('reset')} />
-          <MenuRow tone="slate" emoji="ℹ️" label="About" hint="Privacy and credits" onClick={() => setPage('about')} />
-          <p className="menu-footer">
-            {storageAvailable ? 'Your world is saved on this computer. Want to keep it forever? Export it!' : 'This browser cannot save — export your world to keep it!'}
-          </p>
+  if (page === 'main') {
+    return (
+      <div className="game-menu" role="dialog" aria-label="Menu" aria-modal="true">
+        <header className="game-menu-header">
+          <div className="game-menu-logo">
+            <Icon name="blocks" size={40} />
+            <span>MindCraft</span>
+          </div>
+          <IconButton icon="close" label="Close Menu" onClick={closePanels} size="lg" />
+        </header>
+        <div className="game-menu-body">
+          <aside className="game-menu-side">
+            <AvatarPreview look={look} />
+            <div className="game-menu-card">
+              <span className="game-menu-card-label">Playing in</span>
+              <strong className="game-menu-card-value">{worldName}</strong>
+              <span className="game-menu-card-hint">{worldKind}</span>
+            </div>
+            <KidButton onClick={() => setOpenPanel('dressup')} aria-label="Dress up your character" className="game-menu-dressup">
+              <Icon name="shirt" size={24} /> Dress up
+            </KidButton>
+          </aside>
+          <nav className="game-menu-list menu-list" aria-label="Menu">
+            <KidButton tone="primary" className="menu-primary" onClick={closePanels} autoFocus>
+              <Icon name="play" size={26} /> Back to building
+            </KidButton>
+            <MenuRow tone="accent" icon="craft" label="Crafting" hint="Picture recipes to make things" onClick={() => setOpenPanel('crafting')} ariaLabel="Open crafting" />
+            <MenuRow tone="violet" icon="rainbow" label="World looks" hint="Visual mode, sky, and weather" onClick={() => setPage('looks')} />
+            <MenuRow tone="teal" icon="sound" label="Sound" hint={audio.muted ? 'Muted' : audio.music ? 'Music and effects on' : 'Effects only'} onClick={() => setPage('sound')} />
+            <MenuRow tone="pink" icon="friends" label="Friends" hint={smartChat ? 'Chats use the built-in AI' : 'How villagers answer chats'} onClick={() => setPage('friends')} />
+            <MenuRow tone="primary" icon="world" label="My worlds" hint={`${worlds.length} world${worlds.length === 1 ? '' : 's'}`} onClick={() => setPage('worlds')} ariaLabel="See all your worlds" />
+            <MenuRow tone="default" icon="save" label="Save & share" hint="Export and import world files" onClick={() => setPage('share')} />
+            <MenuRow tone="danger" icon="restart" label="Start over" hint="Fresh meadow, Toy Land, or Sunny Town" onClick={() => setPage('reset')} />
+            <MenuRow tone="slate" icon="help" label="How to play" hint="Keyboard, touch, and gamepad" onClick={() => setPage('help')} />
+            <MenuRow tone="slate" icon="info" label="About" hint="Privacy and credits" onClick={() => setPage('about')} />
+            <p className="menu-footer">{storageAvailable ? 'Saved on this computer. Export a world to keep it forever.' : 'This browser cannot save — export your world to keep it!'}</p>
+          </nav>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  const { title, icon } = TITLES[page];
+  return (
+    <Sheet title={title} icon={icon} onClose={closePanels} onBack={() => setPage('main')} testId="menu">
       {page === 'help' && (
         <ul className="welcome-tips menu-help">
-          <li>🚶 Walk with WASD or the arrow keys, jump with space, hold Ctrl to run</li>
+          <li>🚶 Walk with WASD or the arrow keys, jump with space, hold Ctrl to run, X to dance</li>
           <li>👆 Tap the ground or a block to build; the green ghost shows where</li>
           <li>🧽 Use the Remove tool (or right-click) to take blocks away</li>
-          <li>🖱️ Drag to look around, scroll (or the ➕ ➖ buttons, or pinch) to zoom, arrows or WASD to move</li>
+          <li>🖱️ Drag to look around, scroll (or the + − buttons, or pinch) to zoom, arrows or WASD to move</li>
           <li>👀 Press V (or zoom all the way in) to look through your own eyes</li>
           <li>🧱 Press E for all the blocks, C for crafting, and Undo if you make a mistake</li>
+          <li>🛠️ The Tools button has Interact, Room, Fill, Paint, Copy, Paste, Mirror, and Blueprints</li>
+          <li>🚪 Tap doors to open them, beds to sleep, chairs to sit, boxes to store treasures</li>
+          <li>🐶 Find Friends & Rides in the block list: puppies, kitties, neighbors, robots, a car and a boat</li>
+          <li>💬 Tap a neighbor to chat: ask for a house, a castle, a puppy, or a dance</li>
+          <li>🚗 Tap a car or boat to ride it, then tap it again (or press space) to hop off</li>
           <li>🎚️ Levers, buttons, and plates power wires, lamps, pistons, doors, and note blocks</li>
           <li>🤖 Tap a robot to give it a card program: forward, place, repeat…</li>
-          <li>🛠️ The Tools button has Room, Fill, Paint, Copy, Paste, Mirror, and Blueprints</li>
-          <li>🚪 Tap doors to open them, beds to sleep, chairs to sit, boxes to store treasures</li>
-          <li>🐶 Find Friends & Rides in the block list: puppies, kitties, neighbors, a car and a boat</li>
-          <li>🚗 Tap a car or boat to ride it, then tap it again (or press space) to hop off</li>
           <li>📱 On a phone: joystick to walk, Jump button, pinch to zoom</li>
           <li>🎮 Gamepad: sticks move and look, A jumps, RT builds, LT removes, D-pad right zooms, Start opens this menu</li>
-          <li>🐰 The animals are just friends — they like watching you build</li>
         </ul>
       )}
       {page === 'looks' && (
@@ -136,7 +167,7 @@ export function MenuPanel() {
       )}
       {page === 'friends' && (
         <div className="menu-list">
-          <p className="sheet-hint">Tap a villager and chat. Ask for a house, a castle, a pool, a puppy, night time… and watch them build it.</p>
+          <p className="sheet-hint">Tap a villager and chat. Ask for a house, a castle, a pool, a puppy, a dance, night time… and watch them do it.</p>
           <div className="setting-group" role="group" aria-label="Villager chat">
             <KidButton tone={!smartChat ? 'primary' : 'default'} aria-pressed={!smartChat} onClick={() => setSmartChat(false)}>
               🧠 Built into the game
@@ -162,7 +193,7 @@ export function MenuPanel() {
       )}
       {page === 'reset' && (
         <div className="menu-list">
-          <p className="sheet-hint">Both of these replace the world you are playing now. You can export it first.</p>
+          <p className="sheet-hint">Each of these replaces the world you are playing now. You can export it first.</p>
           <ResetWorldDialog />
           <ResetWorldDialog preset="toyland" />
           <ResetWorldDialog preset="town" />
