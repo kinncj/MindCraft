@@ -68,6 +68,8 @@ export type EngineBridge = {
   onGamepadActive?(active: boolean): void;
   /** The mouse got grabbed (desktop game controls) or let go. */
   onPointerLock?(locked: boolean): void;
+  /** A game system threw; the loop skipped it for that frame and kept going. */
+  onEngineError?(system: string, message: string): void;
   /** Cinema was too much for this device: the engine switched itself to a lighter mode. */
   onVisualModeFallback?(mode: VisualModeId, reason: string): void;
   /** Called when the last template block was written; persist that fact. */
@@ -385,6 +387,7 @@ export class Engine {
     this.installDebugHooks();
     this.handleResize();
     window.addEventListener('resize', this.handleResize);
+    this.loop.onError = (system, error) => bridge.onEngineError?.(system, error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error));
     this.loop.start();
   }
 

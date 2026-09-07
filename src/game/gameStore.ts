@@ -331,6 +331,10 @@ export const useGameStore = create<GameState>((set, get) => {
     openPanel: 'none',
     panelPayload: null,
     toast: null,
+    errors: [],
+    recordError(where, message) {
+      set({ errors: [...get().errors.slice(-19), { at: Date.now(), where, message }] });
+    },
     viewMode: 'third',
     mode: 'place',
     canUndo: false,

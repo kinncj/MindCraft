@@ -59,6 +59,11 @@ export function GameCanvas() {
         onFlyChanged: (flying) => useGameStore.getState().setFlying(flying),
         onGamepadActive: (active) => useGameStore.getState().setControllerActive(active),
         onPointerLock: (locked) => useGameStore.getState().setPointerLocked(locked),
+        onEngineError: (system, message) => {
+          const s = useGameStore.getState();
+          s.recordError(system, message);
+          s.showToast('Oops, a little hiccup! We kept going. 🙂');
+        },
         onVisualModeFallback: (mode, reason) => {
           const s = useGameStore.getState();
           s.setVisualMode(mode);

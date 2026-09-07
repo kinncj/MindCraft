@@ -31,6 +31,9 @@ export type UiSlice = {
   openPanel: PanelId;
   panelPayload: unknown;
   toast: string | null;
+  /** Recent errors (game loop, window, promises) for the debug overlay. */
+  errors: Array<{ at: number; where: string; message: string }>;
+  recordError: (where: string, message: string) => void;
   viewMode: ViewMode;
   mode: InteractionMode;
   canUndo: boolean;

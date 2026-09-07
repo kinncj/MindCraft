@@ -20,6 +20,7 @@ type Snapshot = {
 
 export function DebugOverlay() {
   const helperState = useGameStore((state) => state.helper);
+  const errors = useGameStore((state) => state.errors);
   const [open, setOpen] = useState(true);
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [testing, setTesting] = useState(false);
@@ -72,6 +73,8 @@ export function DebugOverlay() {
             <dd className="debug-error">{h.error}</dd>
           </>
         )}
+        <dt>Errors</dt>
+        <dd className={errors.length ? 'debug-error' : undefined}>{errors.length === 0 ? 'none' : `${errors.length} (loop skipped ${getEngine()?.loop.errors ?? 0} frames)`}</dd>
         <dt>Render</dt>
         <dd>{snap?.render ? JSON.stringify(snap.render) : '-'}</dd>
         <dt>Browser</dt>
@@ -111,6 +114,12 @@ export function DebugOverlay() {
         </button>
         <span>{testResult}</span>
       </div>
+      {errors.length > 0 && (
+        <details open>
+          <summary>Recent errors</summary>
+          <pre>{errors.slice(-6).map((e) => `${new Date(e.at).toLocaleTimeString()} [${e.where}] ${e.message}`).join('\n\n')}</pre>
+        </details>
+      )}
       <details>
         <summary>Last prompt</summary>
         <pre>{h?.lastPrompt || '-'}</pre>
