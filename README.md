@@ -4,68 +4,59 @@ A kid-friendly, creative-mode voxel building game that runs entirely in your bro
 
 The name comes from a 6-year-old who calls Minecraft "MindCraft". This is a game built
 for that kid: a familiar block-world feel with original code, original art, and none of
-the scary parts. No monsters, no health, no failure — just blocks, animals, weather, a
-day/night cycle, and a Magic Delivery Box to keep treasures in.
+the scary parts. No monsters, no health, no failure — just an endless world of blocks,
+animals, weather, a day/night cycle, and a Magic Delivery Box to keep treasures in.
 
 Everything stays on your computer. There is no server, no account, no ads, no tracking.
 
 **Repo:** https://github.com/kinncj/MindCraft — deployable to GitHub Pages as a static SPA.
 
-## What's in the game
+## What's in the game (2.0)
 
-- A 64×64×32 procedurally generated world: rolling hills, lakes, sandy shores, snowy
-  peaks, trees, flowers — a fresh world on every reset
-- A playable character with real physics: walk, jump, swim (and hop out of the water),
-  step up single blocks, and duck under roofs — shelters actually work
-- First-person and third-person cameras — press `V`, tap the view button, or just
-  scroll all the way in (your hand shows in first person, with a crosshair)
-- **Minecraft-style voxel lighting**: a sealed shelter is pitch-dark inside until you
-  place a torch, campfire, light, or star; skylight leaks through doors and windows
-- Day/night cycle with stars, plus rain and snowfall — all toggleable in the menu
-- Three visual modes: **Classic**, **Ultra** (filmic tone mapping, richer light), and
-  **Claude Dream** (a pastel world imagined by code, with drifting sparkles)
-- 21 block types with generated 16×16 pixel textures: grass, dirt, stone, cobblestone,
-  sand, snow, ice, wood, planks, leaves, flowers, water, cloud, rainbow, star, light,
-  torch, campfire, brick, glass, and the Magic Delivery Box
-- Friendly animals — bunnies, chicks, butterflies — that wander around and do a happy
-  dance when you tap them
-- The **Magic Delivery Box**: a cute cardboard storage chest (tape, flap seams, a
-  hand-drawn smiley) that opens a storage panel when tapped
-- Two world presets: a fresh meadow, or **Toy Land** — a playroom world with a toy
-  chest, giant play-block towers, and two original toy statues (a cowboy doll and an
-  astronaut toy)
-- Autosave to IndexedDB, honest save indicator, JSON export/import with strict
-  validation, reset with an export-first option
+- An **infinite world** streamed in chunks: continents and hills, lakes and seas,
+  caves with glow crystals, and biomes — meadow, forest, cherry grove, desert, snowy
+  peaks, rocky hills, beaches — each with its own trees and flowers. A fresh seed on
+  every new world, a flat plaza with landmarks at the spawn.
+- A playable kid with real physics: walk, run, sneak, jump, swim (and hop out), step
+  up single blocks, duck under roofs. First- and third-person cameras; the camera
+  never pokes through hills.
+- **About 70 blocks** with generated pixel textures: ground, building materials,
+  ten color blocks and carpets, **stairs, slabs, doors that open, fences, windows**,
+  nature, lights, and furniture (bed, table, chair, bookshelf, TV, painting, cake).
+  Every block is one data definition — shape, collision, light, and behavior included.
+- **Minecraft-style voxel lighting**, recomputed only around each edit: a sealed
+  shelter is pitch-dark until you place a torch; skylight leaks through doors.
+- Day/night cycle with stars, rain and snowfall, three visual modes (**Classic**,
+  **Ultra**, **Claude Dream**).
+- Friendly animals with pluggable brains, pettable.
+- **Undo and redo** for everything, a nine-slot hotbar, and a picture palette of all
+  blocks. Beds skip the night. The Magic Delivery Box keeps its treasures inside the
+  block itself.
+- **Multiple named worlds** with two presets: a meadow or **Toy Land**.
+- Autosave of edited chunks to IndexedDB, honest save indicator, versioned JSON
+  export/import with strict validation. **MindCraft 1.0 saves and export files are
+  converted automatically.**
+- **Every capability is a tool** — `player_walk_to`, `world_place_block`,
+  `world_fill`, `entity_spawn`, `time_set`, … — exposed through WebMCP
+  (`navigator.modelContext`) and `window.mindcraftTools`, so agents can play too.
+- Works on desktop, tablet, and phone with **keyboard and mouse, touch, or a gamepad**.
 
 ## Controls
 
-| Action | How |
-|---|---|
-| Walk | `W A S D` or arrow keys |
-| Jump / swim up | `Space` |
-| Look around | drag with the mouse (full range — sky to feet) |
-| Zoom | mouse wheel (scroll all the way in for first person) |
-| Switch camera view | `V` or the view button |
-| Place a block | click the ground or a block face (in Place mode) |
-| Remove a block | right-click, or switch to Remove mode and click |
-| Pick a block | click the hotbar, or press `1`–`9` |
-| Open the Magic Delivery Box | tap the box in the world |
-| Pet an animal | tap it |
-| Menu | `Escape` or the Menu button |
+| Action | Keyboard / mouse | Touch | Gamepad |
+|---|---|---|---|
+| Walk / run / sneak | `W A S D` or arrows / `Ctrl` / `Shift` | joystick | left stick / L3 / R3 |
+| Jump / swim up | `Space` | Jump button | A |
+| Look around | drag | drag the world | right stick |
+| Zoom | wheel (all the way in = first person) | pinch | — |
+| Switch camera | `V` or the view button | view button | Y |
+| Place / use | click | tap | RT |
+| Remove | right-click or Remove mode | Remove mode + tap | LT (or X to switch mode) |
+| Pick a block | `1`–`9`, hotbar, `E` for all blocks | hotbar, ➕ More | LB / RB, D-pad up |
+| Undo / redo | `Ctrl+Z` / `Ctrl+Shift+Z` or buttons | buttons | B |
+| Menu | `Escape` or the Menu button | Menu button | Start |
 
 Every keyboard action also has a visible button, so a kid who can't type can still play.
-
-### On tablets and phones
-
-Touch devices get virtual controls automatically:
-
-| Action | How |
-|---|---|
-| Walk | on-screen joystick (bottom left) |
-| Jump / swim up | Jump button (bottom right) |
-| Look around | drag anywhere on the world |
-| Zoom | pinch with two fingers (pinch all the way in for first person) |
-| Place / remove / open / pet | tap, with the Place–Remove toggle |
 
 ## Running it
 
@@ -81,45 +72,42 @@ npm run preview    # serve the production build locally
 ## Deploying to GitHub Pages
 
 The included workflow (`.github/workflows/deploy-github-pages.yml`) builds and publishes
-to GitHub Pages on every push to `main`. One-time setup:
-
-1. In the repo settings, under **Pages**, set the source to **GitHub Actions**
-2. Push to `main`
-
-The site appears at `https://kinncj.github.io/MindCraft/`. The Vite base path switches
-to `/MindCraft/` when `GITHUB_PAGES=true` (the workflow sets it); a different repo name
-needs `VITE_BASE=/your-name/`. Details: `docs/operations/github-pages-deployment.md`.
+to GitHub Pages on every push to `main`. One-time setup: in the repo settings, under
+**Pages**, set the source to **GitHub Actions**. The site appears at
+`https://kinncj.github.io/MindCraft/`. Details: `docs/operations/github-pages-deployment.md`.
 
 ## How your world is saved
 
-Worlds live in the browser's IndexedDB — this computer, this browser. Clearing site
-data deletes the world; private windows may not save at all (the game warns you and
-keeps working). **Export World** downloads a plain JSON backup
-(`mindcraft-world-<name>-<date>.json`) with every block, box contents, the selected
-block, the visual mode, and the sky/weather settings. **Import World** restores it after
-a confirmation that offers to export the current world first. Imported files are data
-only: unknown block types are skipped, positions are bounds-checked, quantities are
-validated, nothing is ever executed or fetched. Exported files contain no accounts,
-passwords, or online data.
+Worlds live in the browser's IndexedDB. Only chunks you edited are stored; everything
+else regenerates from the world's seed, which keeps an infinite world's save tiny.
+**Export World** downloads a version 2 JSON backup; **Import World** adds a world from a
+file (version 1 files from MindCraft 1.0 work too). Imported files are data only.
 
 More: `docs/operations/world-export-import.md`, `docs/operations/browser-storage-and-reset.md`.
 
-## Visual modes and the shader package
+## Architecture
 
-Mode definitions are pure data in `src/shaders/visualModes.ts`; one environment system
-(`src/game/engine/environment.ts`) applies them and runs the day/night cycle, stars,
-weather particles, and the voxel-light day factor. See `docs/product/visual-modes.md`
-and ADR-0005.
+`src/engine/` is a framework-free voxel engine: chunked world, data-driven blocks with
+shapes and behaviors, incremental lighting, per-chunk meshing, swept-box physics, a
+voxel raycaster, input from keyboard/mouse/touch/gamepad, brains for creatures, an
+undo command layer, and a tool registry. One `Engine` composes small single-purpose
+systems on one game loop. React owns only the HUD and panels; a sliced zustand store
+sits between. The whole design is in `docs/architecture/adr-0006-v2-engine-foundation.md`
+and the tool layer in `adr-0007-tool-registry-and-webmcp.md`. Working rules for
+contributors (human or agent) are in `CLAUDE.md`.
 
-## Rendering
+## Agents and WebMCP
 
-Plain Three.js with chunk meshing — the world merges into four meshes (opaque, water,
-alpha, glow) with only visible faces emitted, so a full world is ~20k triangles in a
-handful of draw calls. Block textures are generated 16×16 pixel canvases packed into an
-atlas; lighting is CPU flood-fill (sky + block light) baked into vertex attributes and
-combined in a small shader patch with time of day. Quality adapts down gracefully on
-software rasterizers. The full story, including two rejected approaches with
-measurements, is in `docs/architecture/adr-0003-rendering-approach.md`.
+Open the browser console and try:
+
+```js
+await mindcraftTools.list()                                   // every tool with its schema
+await mindcraftTools.call('player_walk_to', { x: 20, z: 20 })
+await mindcraftTools.call('world_fill', { x1: 0, y1: 60, z1: 0, x2: 4, y2: 62, z2: 4, block: 'color_red' })
+await mindcraftTools.call('history_undo')
+```
+
+Browsers with WebMCP see the same tools on `navigator.modelContext`.
 
 ## Privacy and safety
 
@@ -127,6 +115,8 @@ measurements, is in `docs/architecture/adr-0003-rendering-approach.md`.
 - No external requests at runtime; all assets are generated in code
 - Creative mode only, forever: no health, hunger, damage, death, monsters, weapons,
   combat, or failure states. Night is a cozy navy, never scary.
+- Creature "brains" are rule-based code, not a language model: nothing unmoderated
+  ever talks to a child.
 
 ## Trademarks and legal
 
@@ -141,25 +131,26 @@ measurements, is in `docs/architecture/adr-0003-rendering-approach.md`.
 - Toy Land's cowboy doll and astronaut toy are original block sculptures of stock toy
   archetypes. They are not affiliated with Disney/Pixar, and no Toy Story characters,
   names, or designs are used.
-- The code is MIT-licensed (see `LICENSE`). The name "MindCraft" is used here as the
-  title of this free fan project.
+- Roblox, Brookhaven, and The Sims are inspirations only; no code, assets, names, or
+  designs from them are used.
+- The code is MIT-licensed (see `LICENSE`).
 
-## Why the repo looks like this (BusinessRepo)
+## Roadmap
 
-This repository owns the complete MindCraft capability end to end: the game, the voxel
-engine, the shader/visual-mode package, persistence, export/import, tests, deployment
-pipeline, and documentation. It is organized around the product, not around technical
-layers. Reasoning: `docs/architecture/adr-0001-businessrepo-structure.md`.
+1. **World** — larger biome variety, bigger trees, more blocks, block preview ghost
+2. **Build mode** — room tool, paint, copy/paste stamps, mirror, blueprint cards
+3. **Life layer** — working furniture, a car and a boat, pets that follow, villagers
+   with picture dialogue and pretend jobs, character dress-up
+4. **Crafting and logic** — a picture recipe book, buttons/levers/wire/lamps/pistons,
+   a programmable robot with Scratch-style cards
+5. **Sound** — Tone.js music by biome and time of day, effects, a big mute button
+
+Nothing before the basics stay boring and reliable.
 
 ## Current limitations
 
-- One world per browser (no world list yet)
-- No sound
+- Terrain generation runs in a Web Worker; on very old browsers it runs inline and
+  new chunks appear more slowly
+- No sound yet
+- Animals respawn fresh each session; pets and villagers will persist when they arrive
 - Ultra mode is realism-inspired, not ray-traced — see `docs/product/visual-modes.md`
-- Animals are decorative and respawn fresh each session
-
-## Future ideas
-
-Multiple named worlds with thumbnails, stickers, blueprints ("build a castle" cards),
-parent mode, gentle music with a mute toggle, better touch controls, more animals,
-seasons. Nothing before the basics stay boring and reliable.

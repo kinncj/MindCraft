@@ -18,8 +18,7 @@ const COPY: Record<WorldPreset, { button: string; ariaLabel: string; title: stri
     button: '🧸 Start as Toy Land',
     ariaLabel: 'Start a Toy Land world',
     title: 'Start Toy Land?',
-    blurb:
-      'This will replace your world with Toy Land: a toy chest, block towers, a cowboy doll, and an astronaut toy.',
+    blurb: 'This will replace your world with Toy Land: a toy chest, block towers, a cowboy doll, and an astronaut toy.',
     confirm: 'Start Toy Land',
   },
 };
@@ -52,7 +51,7 @@ export function ResetWorldDialog({ preset = 'meadow' }: ResetWorldDialogProps) {
                 {copy.confirm}
               </KidButton>
               <KidButton onClick={() => setOpen(false)}>Cancel</KidButton>
-              <KidButton onClick={exportWorld}>Export First</KidButton>
+              <KidButton onClick={() => void exportWorld()}>Export First</KidButton>
             </div>
           </section>
         </div>

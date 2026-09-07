@@ -1,50 +1,29 @@
-import type { MagicDeliveryBox, PlacedBlock, WorldSize } from '../types/game';
-import { EXPORT_SCHEMA_VERSION, type MindCraftWorldExport } from './exportTypes';
+import type { StoredChunk, StoredWorld } from '../storage/db';
+import { EXPORT_SCHEMA_VERSION, type MindCraftWorldExportV2 } from './exportTypes';
 
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '2.0.0';
 
-export type ExportInput = {
-  worldId: string;
-  worldName: string;
-  size: WorldSize;
-  blocks: PlacedBlock[];
-  boxes: MagicDeliveryBox[];
-  selectedBlockType: string;
-  visualMode?: string;
-  timeMode?: string;
-  weather?: string;
-  exportedAt?: Date;
-};
-
-export function buildWorldExport(input: ExportInput): MindCraftWorldExport {
-  const exportedAt = (input.exportedAt ?? new Date()).toISOString();
+export function buildWorldExport(
+  world: StoredWorld,
+  chunks: StoredChunk[],
+  exportedAt: Date = new Date(),
+): MindCraftWorldExportV2 {
   return {
     schemaVersion: EXPORT_SCHEMA_VERSION,
     appVersion: APP_VERSION,
-    exportedAt,
+    exportedAt: exportedAt.toISOString(),
     world: {
-      id: input.worldId,
-      name: input.worldName,
-      size: { ...input.size },
-      blocks: input.blocks.map((b) => ({
-        id: b.id,
-        type: b.type,
-        position: { ...b.position },
-      })),
+      id: world.id,
+      name: world.name,
+      seed: world.seed,
+      generator: { ...world.generator },
+      spawn: { ...world.spawn },
+      ...(world.player ? { player: { ...world.player } } : {}),
     },
-    inventory: {
-      selectedBlockType: input.selectedBlockType,
-    },
-    ...(input.visualMode ? { visualMode: { selectedMode: input.visualMode } } : {}),
-    ...(input.timeMode || input.weather
-      ? { settings: { timeMode: input.timeMode, weather: input.weather } }
-      : {}),
-    magicDeliveryBoxes: input.boxes.map((box) => ({
-      id: box.id,
-      name: box.name,
-      position: { ...box.position },
-      items: box.items.map((item) => ({ ...item })),
-    })),
+    palette: { ...world.palette },
+    chunks: chunks.map((c) => ({ cx: c.cx, cz: c.cz, blocks: c.blocks, states: c.states, entities: c.entities })),
+    settings: { ...world.settings },
+    ...(world.template && world.template.length > 0 ? { template: world.template } : {}),
   };
 }
 
@@ -59,8 +38,8 @@ export function exportFileName(worldName: string, date: Date = new Date()): stri
 }
 
 /** Turns the export into a downloadable file in the browser. */
-export function downloadWorldExport(data: MindCraftWorldExport): void {
-  const json = JSON.stringify(data, null, 2);
+export function downloadWorldExport(data: MindCraftWorldExportV2): void {
+  const json = JSON.stringify(data);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

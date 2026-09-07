@@ -1,71 +1,89 @@
 import { useEffect, useRef, useState } from 'react';
-import { VoxelRenderer } from './engine/renderer';
-import { WORLD_SIZE } from './engine/world';
+import { Engine } from '../engine/core/Engine';
+import { blocks as registry } from '../engine/blocks/blocks';
+import { db } from '../storage/db';
+import { WorldStore } from '../storage/worldStore';
+import { setEngine } from './engineRef';
 import { useGameStore } from './gameStore';
-import type { BlockTypeId } from '../types/game';
 
-/** Highest block in a column, straight from the store. */
-function groundAt(x: number, z: number): { y: number; type: BlockTypeId } | null {
-  const blocks = useGameStore.getState().blocks;
-  for (let y = WORLD_SIZE.height - 1; y >= 0; y--) {
-    const block = blocks[`${x},${y},${z}`];
-    if (block) return { y, type: block.type };
-  }
-  return null;
-}
-
-/** What block occupies a grid cell — the player physics probe. */
-function cellAt(x: number, y: number, z: number): BlockTypeId | null {
-  return useGameStore.getState().blocks[`${x},${y},${z}`]?.type ?? null;
-}
+const worldStore = new WorldStore(db);
 
 /**
- * Mounts the Three.js renderer and keeps it in sync with the store.
- * The renderer is imperative; React only owns the container div.
+ * Mounts one Engine for the current world and keeps it in sync with the
+ * store. The engine is imperative; React only owns the container div.
  */
 export function GameCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [supported, setSupported] = useState(true);
+  const currentWorldId = useGameStore((s) => s.currentWorldId);
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
-    if (!VoxelRenderer.isSupported()) {
+    if (!container || !currentWorldId) return;
+    if (!Engine.isSupported()) {
       setSupported(false);
       return;
     }
-
     const store = useGameStore.getState();
-    const renderer = new VoxelRenderer(container, {
-      onPlace: (pos) => useGameStore.getState().placeBlockAt(pos),
-      onRemove: (pos) => useGameStore.getState().removeBlockAt(pos),
-      onBoxTap: (pos) => useGameStore.getState().openBoxAt(pos),
-      getMode: () => useGameStore.getState().mode,
-      groundAt,
-      cellAt,
-      getViewMode: () => useGameStore.getState().viewMode,
-      requestViewMode: (mode) => useGameStore.getState().setViewMode(mode),
-      onAnimalPet: (kind) => useGameStore.getState().petAnimal(kind),
-    });
-    renderer.syncBlocks(store.blocks);
-    renderer.setVisualMode(store.visualMode);
-    renderer.setTimeMode(store.timeMode);
-    renderer.setWeather(store.weather);
+    const world = store.currentWorld();
+    if (!world) return;
 
-    const unsubscribe = useGameStore.subscribe((state, prev) => {
-      if (state.blocks !== prev.blocks) {
-        renderer.syncBlocks(state.blocks);
-      }
-      if (state.visualMode !== prev.visualMode) renderer.setVisualMode(state.visualMode);
-      if (state.timeMode !== prev.timeMode) renderer.setTimeMode(state.timeMode);
-      if (state.weather !== prev.weather) renderer.setWeather(state.weather);
+    const engine = new Engine({
+      container,
+      generator: world.generator.kind === 'flat' ? { kind: 'flat', seed: world.seed, surfaceY: world.generator.surfaceY ?? 4 } : { kind: 'infinite', seed: world.seed },
+      spawn: world.spawn,
+      player: world.player ?? null,
+      template: world.template ?? null,
+      storage: store.storageAvailable ? worldStore.chunkStorage(world.id) : null,
+      settings: { visualMode: store.visualMode, timeMode: store.timeMode, weather: store.weather, timeOfDay: world.settings.timeOfDay },
+      bridge: {
+        getSelectedBlockId: () => registry.byId(useGameStore.getState().selectedBlockType)?.numericId ?? 1,
+        getMode: () => useGameStore.getState().mode,
+        openPanel: (kind, payload) => {
+          const s = useGameStore.getState();
+          if (kind === 'container') s.setOpenPanel('container', payload);
+          else if (kind === 'sleep') s.setOpenPanel('sleep', payload);
+        },
+        toast: (message) => useGameStore.getState().showToast(message),
+        onViewModeChange: (mode) => useGameStore.getState().setViewMode(mode),
+        onPet: (kind, name) => useGameStore.getState().petAnimal(kind, name),
+        onTemplateApplied: () => useGameStore.getState().markDirty(),
+        onGamepadActive: (active) => useGameStore.getState().setControllerActive(active),
+        onCommand: (command) => {
+          const s = useGameStore.getState();
+          if (command === 'menu') s.openPanel === 'none' ? s.setOpenPanel('menu') : s.closePanels();
+          else if (command === 'hotbar_next') s.selectSlot((s.hotbarIndex + 1) % s.hotbar.length);
+          else if (command === 'hotbar_prev') s.selectSlot((s.hotbarIndex + s.hotbar.length - 1) % s.hotbar.length);
+          else if (command === 'toggle_mode') s.setMode(s.mode === 'place' ? 'remove' : 'place');
+          else if (command === 'undo') s.undo();
+          else if (command === 'palette') s.setOpenPanel('palette');
+        },
+      },
     });
+    setEngine(engine);
+    engine.setViewMode(store.viewMode);
+
+    const unsubWorld = engine.world.subscribe({
+      onBlockChanged: () => useGameStore.getState().markDirty(),
+    });
+    const unsubHistory = engine.history.subscribe(() =>
+      useGameStore.getState().setHistoryState(engine.history.canUndo, engine.history.canRedo),
+    );
+    const unsubStore = useGameStore.subscribe((state, prev) => {
+      if (state.openPanel !== prev.openPanel) engine.setInputBlocked(state.openPanel !== 'none');
+      if (state.viewMode !== prev.viewMode) engine.setViewMode(state.viewMode);
+    });
+    engine.setInputBlocked(store.openPanel !== 'none');
 
     return () => {
-      unsubscribe();
-      renderer.dispose();
+      unsubWorld();
+      unsubHistory();
+      unsubStore();
+      void engine.save().catch(() => undefined);
+      setEngine(null);
+      engine.dispose();
     };
-  }, []);
+  }, [currentWorldId]);
 
   if (!supported) {
     return (

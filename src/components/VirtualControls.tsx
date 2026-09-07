@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { isTouchDevice, touchInput } from '../game/touchControls';
+import { isTouchDevice, touchInput } from '../engine/input/touchInput';
 
 const JOYSTICK_RADIUS = 52; // px the thumb can travel from center
 

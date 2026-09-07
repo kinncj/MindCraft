@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { BlockPalette } from '../../src/components/BlockPalette';
 import { Hotbar } from '../../src/components/Hotbar';
-import { HOTBAR_BLOCK_TYPES, BLOCK_DEFINITIONS } from '../../src/game/engine/blockRegistry';
 import { useGameStore } from '../../src/game/gameStore';
 import { resetGameStore } from './helpers';
 
@@ -11,39 +11,39 @@ describe('Hotbar', () => {
     resetGameStore();
   });
 
-  it('renders every hotbar block, including the Magic Delivery Box', () => {
+  it('renders nine slots plus a More button, with the first selected', () => {
     render(<Hotbar />);
-    for (const type of HOTBAR_BLOCK_TYPES) {
-      const def = BLOCK_DEFINITIONS[type];
-      expect(screen.getByText(def.label)).toBeInTheDocument();
-    }
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(10);
+    expect(screen.getByRole('button', { name: 'Grass, selected' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('Magic Delivery Box')).toBeInTheDocument();
   });
 
-  it('marks the selected block', () => {
-    render(<Hotbar />);
-    const grass = screen.getByRole('button', { name: /Grass, selected/ });
-    expect(grass).toHaveAttribute('aria-pressed', 'true');
-  });
-
-  it('selects a block on click', async () => {
-    const user = userEvent.setup();
-    render(<Hotbar />);
-    await user.click(screen.getByRole('button', { name: 'Star' }));
-    expect(useGameStore.getState().selectedBlockType).toBe('star');
-  });
-
-  it('selects blocks with number keys', () => {
-    render(<Hotbar />);
-    fireEvent.keyDown(window, { key: '3' });
-    expect(useGameStore.getState().selectedBlockType).toBe(HOTBAR_BLOCK_TYPES[2]);
-  });
-
-  it('switches back to place mode when picking a block', async () => {
+  it('selects a slot on click and with number keys, returning to place mode', async () => {
     const user = userEvent.setup();
     useGameStore.setState({ mode: 'remove' });
     render(<Hotbar />);
     await user.click(screen.getByRole('button', { name: 'Brick' }));
+    expect(useGameStore.getState().selectedBlockType).toBe('brick');
     expect(useGameStore.getState().mode).toBe('place');
+    fireEvent.keyDown(window, { key: '7' });
+    expect(useGameStore.getState().selectedBlockType).toBe('torch');
+  });
+
+  it('opens the palette and fills the selected slot from it', async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <Hotbar />
+        <BlockPalette />
+      </>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Brick' }));
+    await user.click(screen.getByRole('button', { name: 'More blocks' }));
+    expect(screen.getByRole('dialog', { name: 'All blocks' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Wood Stairs' }));
+    expect(useGameStore.getState().hotbar[2]).toBe('planks_stairs');
+    expect(useGameStore.getState().selectedBlockType).toBe('planks_stairs');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

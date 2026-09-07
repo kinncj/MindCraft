@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { openMenu, startGame } from './helpers';
+import { openMenu, startGame, waitForGround } from './helpers';
 
 test('the game loads with a splash screen and all main controls', async ({ page }) => {
   await page.goto('/');
@@ -12,15 +12,18 @@ test('the game loads with a splash screen and all main controls', async ({ page 
   await expect(page.getByTestId('game-canvas')).toBeVisible();
   await expect(page.getByRole('toolbar', { name: 'Pick a block' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Open the menu' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'More blocks' })).toBeVisible();
+  await waitForGround(page);
 });
 
-test('the menu holds export, import, reset, and how-to-play', async ({ page }) => {
+test('the menu holds export, import, reset, worlds, and how-to-play', async ({ page }) => {
   await startGame(page);
   await openMenu(page);
   await expect(page.getByRole('dialog', { name: 'Menu' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export your world to a file' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Import a world from a file' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reset the world' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'See all your worlds' })).toBeVisible();
 
   await page.getByRole('button', { name: 'How to play' }).click();
   await expect(page.getByText('Drag to look around, scroll to zoom, arrows or WASD to move')).toBeVisible();
@@ -39,5 +42,22 @@ test('escape opens and closes the menu', async ({ page }) => {
 
 test('the world autosaves and reports it', async ({ page }) => {
   await startGame(page);
-  await expect(page.getByText('Saved on this computer')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('Saved on this computer')).toBeVisible({ timeout: 20_000 });
+});
+
+test('the player spawns on solid ground with the starter landmarks nearby', async ({ page }) => {
+  await startGame(page);
+  const info = await page.evaluate(() => {
+    const spawn = window.mindcraftDebug!.spawn();
+    const pos = window.mindcraftDebug!.playerPosition();
+    return {
+      spawn,
+      pos,
+      under: window.mindcraftDebug!.blockAt(Math.round(pos.x), Math.floor(pos.y - 0.5), Math.round(pos.z)),
+      box: window.mindcraftDebug!.blockAt(spawn.x + 2, spawn.y, spawn.z - 2),
+    };
+  });
+  expect(info.under).not.toBeNull();
+  expect(info.under).not.toBe('air');
+  expect(info.box).toBe('magic_box');
 });

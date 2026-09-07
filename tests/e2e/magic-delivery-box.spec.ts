@@ -1,13 +1,17 @@
 import { expect, test } from '@playwright/test';
-import { openStarterBox, startGame, waitForSaved } from './helpers';
+import { starterBoxPosition, startGame, waitForSaved } from './helpers';
+
+const boxPosition = starterBoxPosition;
+
+async function openStarterBox(page: import('@playwright/test').Page) {
+  const pos = await boxPosition(page);
+  await page.evaluate((p) => window.mindcraft.getState().setOpenPanel('container', { position: p }), pos);
+}
 
 test('tapping the Magic Delivery Box in the world opens it', async ({ page }) => {
   await startGame(page);
-  // Project the starter box to screen pixels and click it there.
-  const spot = await page.evaluate(() => {
-    const box = window.mindcraft.getState().boxes[0];
-    return window.mindcraftDebug?.projectBlock(box.position.x, box.position.y, box.position.z) ?? null;
-  });
+  const pos = await boxPosition(page);
+  const spot = await page.evaluate((p) => window.mindcraftDebug!.projectBlock(p.x, p.y, p.z), pos);
   expect(spot).not.toBeNull();
   await page.mouse.click(spot!.x, spot!.y);
   await expect(page.getByRole('dialog', { name: 'Magic Delivery Box' })).toBeVisible();
@@ -19,20 +23,18 @@ test('the box stores and returns blocks, and survives a reload', async ({ page }
   const dialog = page.getByRole('dialog', { name: 'Magic Delivery Box' });
   await expect(dialog).toBeVisible();
 
-  // The starter box comes with 3 stars; put a grass block in too.
   await page.getByRole('button', { name: /Put a Grass block inside/ }).click();
   await expect(dialog.getByText('Grass × 1')).toBeVisible();
 
-  // Take a star out: quantity drops and the star becomes selected.
   await expect(dialog.getByText('Star × 3')).toBeVisible();
   await dialog.locator('li', { hasText: 'Star' }).getByRole('button', { name: 'Take one out' }).click();
   await expect(dialog.getByText('Star × 2')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Star, selected' })).toBeVisible();
 
-  // Contents persist.
   await waitForSaved(page);
   await page.reload();
   await page.getByRole('button', { name: /Let's build!/ }).click();
+  await page.waitForFunction(() => window.mindcraftDebug?.isReady() === true, undefined, { timeout: 45_000 });
   await openStarterBox(page);
   await expect(dialog.getByText('Grass × 1')).toBeVisible();
   await expect(dialog.getByText('Star × 2')).toBeVisible();

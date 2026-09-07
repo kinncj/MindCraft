@@ -1,14 +1,17 @@
 import { useEffect } from 'react';
 import { GameCanvas } from '../game/GameCanvas';
 import { useGameStore } from '../game/gameStore';
-import { BLOCK_DEFINITIONS } from '../game/engine/blockRegistry';
-import { blockIconDataUrl } from '../game/engine/textures';
+import { blocks } from '../engine/blocks/blocks';
+import { blockIconDataUrl } from '../game/blockIcons';
+import { BlockPalette } from '../components/BlockPalette';
 import { Hotbar } from '../components/Hotbar';
 import { SaveIndicator } from '../components/SaveIndicator';
 import { MagicDeliveryBoxPanel } from '../components/MagicDeliveryBoxPanel';
 import { MenuPanel } from '../components/MenuPanel';
+import { SleepPanel } from '../components/SleepPanel';
 import { VirtualControls } from '../components/VirtualControls';
 import { WelcomePanel } from '../components/WelcomePanel';
+import { WorldsPanel } from '../components/WorldsPanel';
 import { Toast } from '../components/Toast';
 import { KidButton } from '../components/KidButton';
 import './App.css';
@@ -21,6 +24,11 @@ export function App() {
   const selectedBlockType = useGameStore((state) => state.selectedBlockType);
   const viewMode = useGameStore((state) => state.viewMode);
   const toggleViewMode = useGameStore((state) => state.toggleViewMode);
+  const canUndo = useGameStore((state) => state.canUndo);
+  const canRedo = useGameStore((state) => state.canRedo);
+  const controllerActive = useGameStore((state) => state.controllerActive);
+  const undo = useGameStore((state) => state.undo);
+  const redo = useGameStore((state) => state.redo);
   const init = useGameStore((state) => state.init);
 
   useEffect(() => {
@@ -29,11 +37,23 @@ export function App() {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'Escape') return;
       const state = useGameStore.getState();
-      // Escape closes whatever is open; with nothing open it opens the menu.
-      if (state.openPanel === 'none') state.setOpenPanel('menu');
-      else state.closePanels();
+      if (event.key === 'Escape') {
+        // Escape closes whatever is open; with nothing open it opens the menu.
+        if (state.openPanel === 'none') state.setOpenPanel('menu');
+        else state.closePanels();
+        return;
+      }
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      const key = event.key.toLowerCase();
+      if ((event.ctrlKey || event.metaKey) && key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) state.redo();
+        else state.undo();
+      } else if ((event.ctrlKey || event.metaKey) && key === 'y') {
+        event.preventDefault();
+        state.redo();
+      }
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -50,7 +70,7 @@ export function App() {
     );
   }
 
-  const selectedDef = BLOCK_DEFINITIONS[selectedBlockType];
+  const selectedDef = blocks.byId(selectedBlockType);
   const selectedIcon = blockIconDataUrl(selectedBlockType);
 
   return (
@@ -63,10 +83,13 @@ export function App() {
         </div>
         <SaveIndicator />
         <div className="top-actions">
-          <KidButton
-            onClick={() => useGameStore.getState().setOpenPanel('menu')}
-            aria-label="Open the menu"
-          >
+          <KidButton onClick={undo} disabled={!canUndo} aria-label="Undo the last change">
+            ↩️ Undo
+          </KidButton>
+          <KidButton onClick={redo} disabled={!canRedo} aria-label="Redo">
+            ↪️ Redo
+          </KidButton>
+          <KidButton onClick={() => useGameStore.getState().setOpenPanel('menu')} aria-label="Open the menu">
             📋 Menu
           </KidButton>
         </div>
@@ -74,37 +97,23 @@ export function App() {
 
       {!storageAvailable && (
         <div className="storage-warning" role="alert">
-          <span aria-hidden="true">⚠️</span> This browser cannot save your world. You can still
-          build and export it to a file!
+          <span aria-hidden="true">⚠️</span> This browser cannot save your world. You can still build and export it to a file!
         </div>
       )}
 
       <div className="mode-bar">
-        <div
-          className="selected-block"
-          style={
-            selectedIcon
-              ? { backgroundImage: `url(${selectedIcon})`, backgroundColor: selectedDef.color }
-              : { background: selectedDef.color }
-          }
-        >
-          {!selectedIcon && <span aria-hidden="true">{selectedDef.emoji}</span>}{' '}
-          {selectedDef.label}
-        </div>
-        <KidButton
-          tone={mode === 'place' ? 'primary' : 'default'}
-          onClick={() => setMode('place')}
-          aria-pressed={mode === 'place'}
-          aria-label="Place blocks mode"
-        >
+        {selectedDef && (
+          <div
+            className="selected-block"
+            style={selectedIcon ? { backgroundImage: `url(${selectedIcon})`, backgroundColor: selectedDef.color } : { background: selectedDef.color }}
+          >
+            {!selectedIcon && <span aria-hidden="true">{selectedDef.emoji}</span>} {selectedDef.label}
+          </div>
+        )}
+        <KidButton tone={mode === 'place' ? 'primary' : 'default'} onClick={() => setMode('place')} aria-pressed={mode === 'place'} aria-label="Place blocks mode">
           ✨ Place
         </KidButton>
-        <KidButton
-          tone={mode === 'remove' ? 'primary' : 'default'}
-          onClick={() => setMode('remove')}
-          aria-pressed={mode === 'remove'}
-          aria-label="Remove blocks mode"
-        >
+        <KidButton tone={mode === 'remove' ? 'primary' : 'default'} onClick={() => setMode('remove')} aria-pressed={mode === 'remove'} aria-label="Remove blocks mode">
           🧽 Remove
         </KidButton>
         <KidButton onClick={toggleViewMode} aria-label="Change camera view">
@@ -112,7 +121,7 @@ export function App() {
         </KidButton>
       </div>
 
-      {viewMode === 'first' && (
+      {(viewMode === 'first' || controllerActive) && (
         <div className="crosshair" aria-hidden="true">
           +
         </div>
@@ -120,7 +129,10 @@ export function App() {
 
       <Hotbar />
       <VirtualControls />
+      <BlockPalette />
       <MagicDeliveryBoxPanel />
+      <SleepPanel />
+      <WorldsPanel />
       <MenuPanel />
       <WelcomePanel />
       <Toast />

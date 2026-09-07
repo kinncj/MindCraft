@@ -1,121 +1,73 @@
-# Session — 2026-07-08
+# Session — 2026-09-06
 
 ## What was done
 
-Built MindCraft from an empty directory to a deployed game at
-https://kinncj.github.io/MindCraft/ (repo: https://github.com/kinncj/MindCraft).
+Rebuilt MindCraft's foundation for v2 (ADR-0006, ADR-0007): an infinite chunked
+world with data-driven blocks, small systems on one game loop, undo everywhere, a
+tool registry exposed through WebMCP, versioned storage with automatic v1
+migration, and input from keyboard/mouse, touch, and gamepads. No visible feature
+was lost; the world went from 64×64×32 to infinite and the block count from 21 to
+about 70 (stairs, slabs, doors, fences, windows, ten colors, carpets, furniture,
+lights, biome plants).
 
-- **Foundation**: Vite + React + TypeScript SPA, Dexie/IndexedDB persistence,
-  versioned JSON export/import with strict validation, autosave with an honest
-  save indicator, GitHub Actions for tests and Pages deployment
-- **World**: 64×64×32 procedurally generated terrain (seeded noise — hills, lakes,
-  beaches, snow peaks, trees, flowers) with a flat spawn plaza; Toy Land preset
-  (playroom world with toy chest, block towers, original cowboy/astronaut statues)
-- **Rendering**: chunk meshing (four merged meshes, visible faces only, texture
-  atlas of generated 16×16 pixel art), soft shadows on real GPUs, adaptive quality
-  on software rasterizers
-- **Lighting**: Minecraft-style flood-fill (skylight + block light) baked into
-  vertex attributes — sealed shelters are dark until lit by torch/campfire/light/star
-- **Environment**: day/night cycle with stars, rain/snow, three visual modes
-  (Classic / Ultra / Claude Dream) — all in the menu, persisted, exported/imported
-- **Player**: voxel kid with column collision (step-up, walls, roofs, ceilings),
-  jumping, swimming with surface breach-jump, first/third person with
-  scroll-through zoom, first-person arm, crosshair
-- **Creatures**: wandering bunnies/chicks/butterflies, pettable (happy hop + toast)
-- **UI**: splash screen, Escape menu (how-to-play, settings, export/import/reset,
-  Toy Land), hotbar with 21 textured blocks, Magic Delivery Box storage panel
-  styled as cardboard
-- **Touch**: virtual joystick + hold-to-jump button on touch devices, pinch zoom,
-  responsive small-screen CSS
-- **Legal**: MIT LICENSE, README trademark disclaimers (Mojang/Microsoft, Amazon,
-  Disney/Pixar), base path fixed to `/MindCraft/`
-- **Tests**: 82 unit/component (Vitest/RTL/fake-indexeddb) + 24 Playwright e2e
-  (including emulated-tablet touch tests); CI green on the final push
+- `src/engine/` (new, framework-free): `world/` (Chunk, VoxelWorld, ChunkManager with
+  a generation Web Worker, Infinite + Flat generators, structures), `blocks/`
+  (catalog with behaviors, shapes, painters, registry with permanent numeric ids),
+  `lighting/` (incremental sky + block light across chunk borders), `render/`
+  (per-chunk mesher, atlas, Three.js chunk renderer, environment), `physics/`
+  (swept-AABB player, DDA raycast against shape boxes), `input/` (InputSystem incl.
+  gamepad, CameraSystem with wall check, InteractionSystem), `entities/` (Brain
+  interface, EntitySystem, avatar), `commands/`, `tools/` (ToolRegistry, WebMCP
+  adapter, core tools), `core/Engine.ts` + `GameLoop`.
+- `src/game/`: sliced zustand store (world/ui/settings/inventory), `GameCanvas`
+  mounting one Engine per world, block icons.
+- `src/storage/`: Dexie v2 (`worlds`, `chunks`, `meta.storage`), RLE codec, v1 → v2
+  migration into a flat world, storage version record.
+- `src/importExport/`: schema v2 export (seed + edited chunks + palette), v1 import.
+- UI: nine-slot hotbar + full block palette, undo/redo, worlds panel (multiple
+  worlds), sleep panel, container panel reading block entities, controller reticle.
+- Docs: README (2.0), CLAUDE.md, ADR-0006, ADR-0007, refreshed product/ops docs.
+- Tests: 113 unit/component (Vitest) + 33 Playwright e2e, all green locally.
 
 ## Decisions made
 
-- **Three.js over a "proper game engine"** (Babylon/PlayCanvas): the needed win was
-  the chunk-meshing technique, not a framework swap. Documented in ADR-0003 with
-  measurements (instancing: 3.5fps on SwiftShader; chunk meshing: 120fps).
-- **Lighting as baked vertex attributes + one shader patch** rather than real-time
-  GI: recomputed per edit (few ms), combined with a `dayLight` uniform so night
-  dims the sun but not torches.
-- **Visual modes as pure data** (`src/shaders/visualModes.ts`) applied by one
-  EnvironmentSystem — adding a mode is one object literal (ADR-0005).
-- **IP boundaries held**: original textures/assets throughout; Magic Delivery Box
-  is a generic cardboard box (no Amazon trade dress); Toy Land statues are stock
-  toy archetypes, explicitly **not** Woody/Buzz — the request for "same textures,
-  same everything" Toy Story was declined as copyright infringement and replaced
-  with original designs.
-- Export schema stayed at version 1: visual mode and weather/time were added as
-  optional fields (additive, old files still import).
+- Infinite streamed world (user's choice over large-finite); only edited chunks
+  are persisted, terrain regenerates from the seed.
+- v1 worlds and v1 export files become **flat** worlds holding the old blocks
+  verbatim (no cliffs around old builds). Migration is automatic and stamped in
+  `meta.storage`.
+- Two transparency notions: `transparent` (light passes) vs `seeThrough` (face
+  culling). Slabs pass light but are not see-through.
+- Rule-based creature brains behind a `Brain` interface; no in-browser LLM (CDN
+  weights, load time, unmoderated output for a 6-year-old). Could be a parent-gated
+  option later.
+- Crafting grid is back in scope (user override), as a picture recipe book; a logic/
+  automation layer and a programmable robot are planned; block behaviors already
+  carry `onPowerChanged`/`tick` hooks.
+- Tools are the single capability surface (`domain_verb`), exposed via
+  `navigator.modelContext` (WebMCP) and `window.mindcraftTools`.
+- Starting camera now faces the plaza landmarks (the old view had the rainbow
+  arch between camera and player).
 
 ## Fixes applied
 
-- **Stale-save race**: an in-flight autosave could report "Saved" for a world
-  state it never saw (data loss window). Fixed with a change counter; only the
-  save that observed the latest change may claim "saved".
-- **StrictMode double-init** overwriting live state with a second starter world.
-- **Roof-as-floor collision**: ground was the column's top block, so shelters
-  were impossible. Rewrote physics to find support below the feet with headroom
-  and ceiling checks.
-- **Look-up clamp**: a leftover pitch clamp in the drag handler blocked looking
-  at the sky/ceilings.
-- **SwiftShader performance**: 3.5fps → 120fps via chunk meshing (after ruling
-  out fill rate, triangle count, and rAF throttling by measurement).
-- **Splash button unclickable by automation** (and shaky hands): infinite
-  transform animation made it never "stable" — replaced with a glow pulse.
-- **Swim exit**: breach jump at the water surface so swimmers can climb ashore.
-- **CI flake**: save-wait timeout on two-core runners; longer wait + 2 workers.
-- jsdom gaps patched in tests: `File.text()`, `PointerEvent` (drops clientX).
+- Cross-shape quads carried the wrong normal for their winding.
+- Stairs step was on the near side; now rises away from the player.
+- Door top half is part of the same undo command (PlaceContext.place).
+- Test hooks: `blockAt` returns "air", `pick(clientX, clientY)` for e2e targeting.
 
 ## Unfinished / follow-up
 
-- **GitHub Actions Node 20 deprecation warnings**: bump `actions/checkout`,
-  `setup-node`, `upload-artifact` to their next major versions to silence.
-- **No sound** (spec said optional) — a mute-toggled gentle soundscape is the
-  most-requested likely next feature.
-- **Single world per browser** — multiple named worlds with thumbnails is the
-  top future idea in the README.
-- Animals and player position are not persisted (fresh flock and plaza spawn
-  each session) — documented as a limitation, revisit if it bothers the kid.
-- Water animation is an opacity shimmer, not UV scrolling (atlas constraint);
-  a dedicated water texture would allow real scrolling.
-- `docs/operations/browser-storage-and-reset.md` predates Toy Land and the
-  settings tables — content is still accurate but could mention the new
-  settings keys.
+- Phases still to build (README roadmap): world polish + ghost preview; build
+  mode (room tool, paint, stamps, mirror, blueprints); life layer (furniture that
+  works, car/boat, pets, villagers with jobs, dress-up); crafting + logic + robot;
+  Tone.js sound.
+- Three.js stays at 0.169; upgrade is a separate change.
+- Bundle is ~870 kB minified (Three.js); split into vendor chunks, could lazy-load.
+- Villager/pet/vehicle/crafting/logic tool domains land with their features.
+- GitHub Actions Node 20 deprecation warnings still pending (bump action majors).
+- Not committed: this session's changes are in the working tree.
 
 ## Pending dashboard / manual actions
 
-- **GitHub → Settings → Pages → Source: GitHub Actions** — deploy runs succeed,
-  so this appears to be done already; verify the site loads at
-  https://kinncj.github.io/MindCraft/ and that a world builds + saves.
-- No other external services: the game is fully local by design (no Supabase,
-  Vercel, or API keys anywhere).
-
-## Commits
-
-All 22 commits below were made this session (oldest first):
-
-1. `bd3e39e` scaffold Vite + React + TypeScript app
-2. `3779941` add world model, block registry, and starter scene
-3. `7137be9` add IndexedDB persistence with Dexie
-4. `f1f38dc` add world export/import with strict validation
-5. `e67d813` add game store and Three.js voxel renderer
-6. `1a58a01` add the kid-facing UI
-7. `2e31b67` add unit and component tests
-8. `d488b74` add Playwright smoke tests
-9. `ee63b09` add README, product docs, ADRs, and CI
-10. `70a5d58` ignore tsc build info files
-11. `e88a082` add procedural pixel textures, shadows, and clouds
-12. `8e1f9ae` use the block textures in the UI
-13. `0ffa4ac` update rendering docs for textures and shadows
-14. `3d5ef29` switch rendering to chunk meshing, was unplayable on software GL
-15. `4d141ac` generate open-world terrain and grow the block set to 21
-16. `ad8dc2e` add the player character and the animal friends
-17. `1a84530` add voxel lighting, day/night, weather, and visual modes
-18. `2328340` menu settings, visual mode picker, Toy Land button, FP arm
-19. `26c0353` cover physics, lighting, modes, and Toy Land with tests
-20. `2b94950` MIT license, trademark disclaimers, docs for everything new
-21. `3fdc2c2` unflake CI: longer save wait, two e2e workers
-22. `e2ae90a` add tablet and phone controls
+- None. Fully local; Pages deploy unchanged.

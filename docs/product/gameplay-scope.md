@@ -2,45 +2,44 @@
 
 ## In the game
 
-- A 64×64×32 procedurally generated world: rolling hills, lakes with sandy shores,
-  snowy peaks, scattered trees and flowers, and a flat spawn plaza with landmarks
-  (rainbow arch, star, light, the Magic Delivery Box)
-- A playable kid character: walk (WASD/arrows), jump (space), swim, wade, step up
-  single blocks, real collision (roofs and shelters work), first- and third-person
-  views (V key, view button, or scroll all the way in)
-- 21 block types, all available from the start — nothing to unlock
-- Minecraft-style voxel lighting: sealed shelters are dark inside until you place a
-  torch, campfire, light, or star; sky light leaks through doors and windows
-- Day/night cycle (or always-day / always-night), rain and snowfall — all toggleable
-  in the menu, never scary
-- Three visual modes: Classic, Ultra, and Claude Dream (sparkles!)
-- Friendly animals — bunnies, chicks, butterflies — that wander, hop, and love being
-  tapped; purely decorative, never obstacles
-- Place mode and remove mode, switchable by button or right-click
-- Tablet/phone play: an on-screen joystick and jump button appear on touch devices,
-  two-finger pinch zooms, drag looks around, tap builds
-- Hotbar with number-key and click selection
-- Magic Delivery Box: store blocks, take them out, rename, empty (with confirmation)
-- Two starter presets: a fresh meadow (new random terrain each reset) and Toy Land
-  (a flat playroom with a toy chest, block towers, and two original toy statues)
-- Autosave to IndexedDB with a visible save indicator
-- Export to JSON file, import from JSON file (validated, confirmed, local-only)
-- Reset to starter world (with confirmation and export-first option)
+- An **infinite** procedurally generated world streamed in chunks: continents, hills,
+  lakes and seas, caves with glow crystals, and biomes (meadow, forest, cherry grove,
+  desert, snowy, hills, beach, ocean) with matching trees and flowers
+- A playable kid character: walk, run (Ctrl), sneak (Shift), jump, swim, step up single
+  blocks, fit under roofs; first- and third-person cameras; the third-person camera
+  never clips into hills
+- Roughly 70 blocks, all available from the start: ground, building materials, ten
+  color blocks and carpets, stairs, slabs, doors that open, fences, window panes,
+  nature, lights, and furniture (bed, table, chair, bookshelf, TV, painting, cake)
+- Minecraft-style voxel lighting, recomputed only around each edit: sealed shelters
+  are dark until lit; sky light leaks through doors and windows
+- Day/night cycle (or always-day / always-night), rain and snow, three visual modes
+- Friendly animals (bunnies, chicks, butterflies) with rule-based brains; pettable
+- Place and remove modes, undo and redo (buttons, Ctrl+Z, controller B)
+- A hotbar of nine slots plus a picture palette of every block (E or the ➕ button)
+- Magic Delivery Box storage kept inside the box block itself
+- Beds: tap to sleep until morning
+- Multiple named worlds with two presets: a fresh meadow (new seed each time) and
+  Toy Land (a flat playroom with a toy chest, block towers, and two toy statues)
+- Autosave of edited chunks to IndexedDB, honest save indicator, export/import of
+  version 2 files; version 1 saves and files are converted automatically
+- Every capability exposed as a tool (`player_*`, `world_*`, `entity_*`, `time_*`,
+  `weather_*`, `camera_*`, `history_*`) via WebMCP and `window.mindcraftTools`
+- Works with keyboard and mouse, touch (joystick, jump button, pinch zoom), and
+  standard gamepads
 
 ## Intentionally excluded
 
 Survival mechanics are excluded on purpose, permanently — not "later":
 
 - No health, hunger, damage, or death
-- No monsters, enemies, or combat of any kind
-- No day/night cycle or darkness
+- No monsters, enemies, weapons, or combat of any kind
 - No timers, scores, or objectives
+- No chat, accounts, multiplayer, or purchases
 
-Also out of scope for the MVP (some may come later, see README "Future ideas"):
+## Planned next (see README "Roadmap")
 
-- Multiple worlds, world naming UI, thumbnails
-- Crafting or recipes
-- Terrain generation beyond the flat starter world
-- Sound and music
-- First-person mode
-- Touch-optimized camera controls
+Build tools (room tool, paint, copy/paste stamps, blueprints), the life layer
+(furniture that works, a car and a boat, pets, villagers with picture dialogue and
+pretend jobs, dress-up), a picture recipe crafting book, a logic layer (buttons,
+levers, wire, lamps, pistons, a programmable robot), and generated music with Tone.js.

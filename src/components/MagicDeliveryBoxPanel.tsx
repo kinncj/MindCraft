@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { BLOCK_DEFINITIONS } from '../game/engine/blockRegistry';
-import { blockIconDataUrl } from '../game/engine/textures';
-import { useGameStore } from '../game/gameStore';
+import { blocks } from '../engine/blocks/blocks';
+import { blockIconDataUrl } from '../game/blockIcons';
+import { useContainer, useGameStore } from '../game/gameStore';
 import { KidButton } from './KidButton';
+
+type Pos = { x: number; y: number; z: number };
 
 /**
  * The storage panel for a Magic Delivery Box. Opens when the player
- * taps a box block in the world.
+ * taps a box block in the world. Contents live in the block itself.
  */
 export function MagicDeliveryBoxPanel() {
   const openPanel = useGameStore((state) => state.openPanel);
-  const activeBoxId = useGameStore((state) => state.activeBoxId);
-  const boxes = useGameStore((state) => state.boxes);
+  const payload = useGameStore((state) => state.panelPayload) as { position?: Pos } | null;
   const selectedBlockType = useGameStore((state) => state.selectedBlockType);
   const addItemToBox = useGameStore((state) => state.addItemToBox);
   const takeItemFromBox = useGameStore((state) => state.takeItemFromBox);
@@ -22,10 +23,11 @@ export function MagicDeliveryBoxPanel() {
   const [renaming, setRenaming] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
 
-  const box = boxes.find((b) => b.id === activeBoxId);
-  if (openPanel !== 'magic-box' || !box) return null;
+  const position = openPanel === 'container' ? (payload?.position ?? null) : null;
+  const box = useContainer(position);
+  if (!position || !box) return null;
 
-  const selectedDef = BLOCK_DEFINITIONS[selectedBlockType];
+  const selectedDef = blocks.byId(selectedBlockType);
 
   return (
     <div className="panel-backdrop" role="presentation">
@@ -39,26 +41,20 @@ export function MagicDeliveryBoxPanel() {
           </KidButton>
         </header>
 
-        <p className="panel-hint">Put blocks inside. Take blocks out. Saved in your browser.</p>
+        <p className="panel-hint">Put blocks inside. Take blocks out. Saved with your world.</p>
 
         {renaming ? (
           <form
             className="rename-form"
             onSubmit={(event) => {
               event.preventDefault();
-              renameBox(box.id, nameDraft);
+              renameBox(position, nameDraft);
               setRenaming(false);
             }}
           >
             <label htmlFor="box-name">New name for your box</label>
-            <input
-              id="box-name"
-              value={nameDraft}
-              maxLength={60}
-              onChange={(event) => setNameDraft(event.target.value)}
-              autoFocus
-            />
-            <KidButton tone="primary" onClick={() => {}} aria-label="Save box name" type="submit">
+            <input id="box-name" value={nameDraft} maxLength={60} onChange={(event) => setNameDraft(event.target.value)} autoFocus />
+            <KidButton tone="primary" aria-label="Save box name" type="submit">
               Save name
             </KidButton>
             <KidButton onClick={() => setRenaming(false)}>Cancel</KidButton>
@@ -74,11 +70,13 @@ export function MagicDeliveryBoxPanel() {
           </KidButton>
         )}
 
-        <div className="box-actions">
-          <KidButton tone="primary" onClick={() => addItemToBox(box.id, selectedBlockType)}>
-            <span aria-hidden="true">{selectedDef.emoji}</span> Put a {selectedDef.label} block inside
-          </KidButton>
-        </div>
+        {selectedDef && (
+          <div className="box-actions">
+            <KidButton tone="primary" onClick={() => addItemToBox(position, selectedDef.id)}>
+              <span aria-hidden="true">{selectedDef.emoji}</span> Put a {selectedDef.label} block inside
+            </KidButton>
+          </div>
+        )}
 
         <h3>Inside the box</h3>
         {box.items.length === 0 ? (
@@ -86,17 +84,14 @@ export function MagicDeliveryBoxPanel() {
         ) : (
           <ul className="box-items">
             {box.items.map((item) => {
-              const def = BLOCK_DEFINITIONS[item.blockType];
+              const def = blocks.byId(item.blockType);
+              if (!def) return null;
               const icon = blockIconDataUrl(item.blockType);
               return (
                 <li key={item.blockType} className="box-item">
                   <span
                     className="box-item-icon"
-                    style={
-                      icon
-                        ? { backgroundImage: `url(${icon})`, backgroundColor: def.color }
-                        : { background: def.color }
-                    }
+                    style={icon ? { backgroundImage: `url(${icon})`, backgroundColor: def.color } : { background: def.color }}
                     aria-hidden="true"
                   >
                     {!icon && def.emoji}
@@ -104,9 +99,7 @@ export function MagicDeliveryBoxPanel() {
                   <span className="box-item-label">
                     {def.label} × {item.quantity}
                   </span>
-                  <KidButton onClick={() => takeItemFromBox(box.id, item.blockType)}>
-                    Take one out
-                  </KidButton>
+                  <KidButton onClick={() => takeItemFromBox(position, item.blockType)}>Take one out</KidButton>
                 </li>
               );
             })}
@@ -120,7 +113,7 @@ export function MagicDeliveryBoxPanel() {
               <KidButton
                 tone="danger"
                 onClick={() => {
-                  clearBox(box.id);
+                  clearBox(position);
                   setConfirmingClear(false);
                 }}
               >

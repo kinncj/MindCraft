@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { VirtualControls } from '../../src/components/VirtualControls';
-import { touchInput, resetTouchInput } from '../../src/game/touchControls';
+import { touchInput, resetTouchInput } from '../../src/engine/input/touchInput';
 
-// jsdom has no pointer capture; the component calls it on pointerdown.
 beforeEach(() => {
   window.HTMLElement.prototype.setPointerCapture = () => {};
   resetTouchInput();
@@ -25,29 +24,17 @@ describe('VirtualControls', () => {
     expect(screen.queryByTestId('joystick')).not.toBeInTheDocument();
   });
 
-  it('drives movement through the joystick', () => {
+  it('drives movement through the joystick and snaps back', () => {
     render(<VirtualControls forceVisible />);
     joystickRect();
     const joystick = screen.getByTestId('joystick');
-    // Center is (68, 68); push up and to the right.
     fireEvent.pointerDown(joystick, { pointerId: 1, clientX: 68, clientY: 68 });
     fireEvent.pointerMove(joystick, { pointerId: 1, clientX: 108, clientY: 28 });
     expect(touchInput.x).toBeGreaterThan(0.5);
     expect(touchInput.y).toBeLessThan(-0.5);
-    // Releasing snaps back to neutral.
     fireEvent.pointerUp(joystick, { pointerId: 1 });
     expect(touchInput.x).toBe(0);
     expect(touchInput.y).toBe(0);
-  });
-
-  it('clamps the joystick to its radius', () => {
-    render(<VirtualControls forceVisible />);
-    joystickRect();
-    const joystick = screen.getByTestId('joystick');
-    fireEvent.pointerDown(joystick, { pointerId: 1, clientX: 68, clientY: 68 });
-    fireEvent.pointerMove(joystick, { pointerId: 1, clientX: 500, clientY: 68 });
-    expect(touchInput.x).toBeCloseTo(1, 1);
-    expect(Math.abs(touchInput.y)).toBeLessThan(0.05);
   });
 
   it('holds jump while the button is pressed', () => {

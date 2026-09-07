@@ -20,9 +20,11 @@ describe('App', () => {
     await screen.findByText('Welcome to MindCraft!');
     expect(screen.getByRole('button', { name: 'Open the menu' })).toBeInTheDocument();
     expect(screen.getByRole('toolbar', { name: 'Pick a block' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo the last change' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'More blocks' })).toBeInTheDocument();
   });
 
-  it('keeps export, import, and reset in the menu', async () => {
+  it('keeps export, import, reset, and worlds in the menu', async () => {
     const user = userEvent.setup();
     render(<App />);
     await screen.findByText('Welcome to MindCraft!');
@@ -31,6 +33,7 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Export your world to a file' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Import a world from a file' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reset the world' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'See all your worlds' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '▶️ Back to building' }));
     expect(screen.queryByRole('dialog', { name: 'Menu' })).not.toBeInTheDocument();
   });

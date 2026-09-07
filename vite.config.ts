@@ -12,5 +12,11 @@ export default defineConfig({
   build: {
     target: 'es2020',
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        // Three.js and Tone.js change rarely; keep them cacheable on their own.
+        manualChunks: { three: ['three'], tone: ['tone'] },
+      },
+    },
   },
 });

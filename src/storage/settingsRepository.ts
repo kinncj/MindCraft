@@ -1,19 +1,20 @@
-import type { MindCraftDatabase } from './db';
-import type { BlockTypeId, TimeMode, VisualModeId, WeatherMode } from '../types/game';
-import { isKnownBlockType } from '../game/engine/blockRegistry';
+import type { TimeMode, VisualModeId, WeatherMode } from '../types/game';
 import { isVisualModeId } from '../shaders/visualModes';
 
+/** Per-world settings that ride along in the world row. */
 export type GameSettings = {
-  worldName: string;
-  selectedBlockType: BlockTypeId;
+  selectedBlockType: string;
+  hotbar: string[];
   visualMode: VisualModeId;
   timeMode: TimeMode;
   weather: WeatherMode;
 };
 
+export const DEFAULT_HOTBAR = ['grass', 'planks', 'brick', 'glass', 'color_red', 'color_blue', 'torch', 'flower_pink', 'magic_box'];
+
 export const DEFAULT_SETTINGS: GameSettings = {
-  worldName: 'My World',
   selectedBlockType: 'grass',
+  hotbar: DEFAULT_HOTBAR,
   visualMode: 'classic',
   timeMode: 'cycle',
   weather: 'sunny',
@@ -27,30 +28,13 @@ export function isWeatherMode(value: unknown): value is WeatherMode {
   return value === 'sunny' || value === 'rain' || value === 'snow';
 }
 
-export class SettingsRepository {
-  constructor(private db: MindCraftDatabase) {}
-
-  async loadSettings(): Promise<GameSettings> {
-    const row = await this.db.meta.get('settings');
-    if (!row || typeof row.value !== 'object' || row.value === null) {
-      return { ...DEFAULT_SETTINGS };
-    }
-    const raw = row.value as Partial<GameSettings>;
-    return {
-      worldName:
-        typeof raw.worldName === 'string' && raw.worldName.trim().length > 0
-          ? raw.worldName
-          : DEFAULT_SETTINGS.worldName,
-      selectedBlockType: isKnownBlockType(raw.selectedBlockType)
-        ? raw.selectedBlockType
-        : DEFAULT_SETTINGS.selectedBlockType,
-      visualMode: isVisualModeId(raw.visualMode) ? raw.visualMode : DEFAULT_SETTINGS.visualMode,
-      timeMode: isTimeMode(raw.timeMode) ? raw.timeMode : DEFAULT_SETTINGS.timeMode,
-      weather: isWeatherMode(raw.weather) ? raw.weather : DEFAULT_SETTINGS.weather,
-    };
-  }
-
-  async saveSettings(settings: GameSettings): Promise<void> {
-    await this.db.meta.put({ key: 'settings', value: settings });
-  }
+export function normalizeSettings(raw: Partial<GameSettings> | undefined, isBlock: (id: unknown) => boolean): GameSettings {
+  const hotbar = Array.isArray(raw?.hotbar) ? raw!.hotbar.filter((id) => isBlock(id)).slice(0, 9) : [];
+  return {
+    selectedBlockType: isBlock(raw?.selectedBlockType) ? (raw!.selectedBlockType as string) : DEFAULT_SETTINGS.selectedBlockType,
+    hotbar: hotbar.length === 9 ? hotbar : DEFAULT_HOTBAR,
+    visualMode: isVisualModeId(raw?.visualMode) ? raw!.visualMode : DEFAULT_SETTINGS.visualMode,
+    timeMode: isTimeMode(raw?.timeMode) ? raw!.timeMode : DEFAULT_SETTINGS.timeMode,
+    weather: isWeatherMode(raw?.weather) ? raw!.weather : DEFAULT_SETTINGS.weather,
+  };
 }

@@ -1,24 +1,26 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { blockCount, hasBlockAt, openMenu, startGame } from './helpers';
+import { blockAt, callTool, openMenu, skySpot, startGame, waitForSaved } from './helpers';
 
-test('export downloads a valid versioned world file', async ({ page }) => {
+test('export downloads a valid versioned world file with the edits', async ({ page }) => {
   await startGame(page);
+  const spot = await skySpot(page);
+  await callTool(page, 'world_place_block', { ...spot, block: 'brick' });
+  await waitForSaved(page);
   await openMenu(page);
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export your world to a file' }).click();
   const download = await downloadPromise;
 
   expect(download.suggestedFilename()).toMatch(/^mindcraft-world-.*\.json$/);
-  const path = await download.path();
-  const data = JSON.parse(await readFile(path, 'utf-8'));
-  expect(data.schemaVersion).toBe(1);
-  expect(data.world.blocks.length).toBeGreaterThan(1000);
-  expect(data.magicDeliveryBoxes).toHaveLength(1);
-  expect(data.magicDeliveryBoxes[0].items.length).toBeGreaterThan(0);
+  const data = JSON.parse(await readFile((await download.path())!, 'utf-8'));
+  expect(data.schemaVersion).toBe(2);
+  expect(data.world.generator.kind).toBe('infinite');
+  expect(data.chunks.length).toBeGreaterThan(0);
+  expect(Object.keys(data.palette).length).toBeGreaterThan(50);
 });
 
-test('import replaces the world after confirmation', async ({ page }) => {
+test('a v1 export imports as a new flat world and opens', async ({ page }) => {
   await startGame(page);
   await openMenu(page);
 
@@ -28,22 +30,16 @@ test('import replaces the world after confirmation', async ({ page }) => {
     exportedAt: '2026-07-08T12:00:00.000Z',
     world: {
       id: 'tiny',
-      name: 'Tiny Test World',
-      size: { width: 32, depth: 32, height: 16 },
+      name: 'Tiny Old World',
+      size: { width: 64, depth: 64, height: 32 },
       blocks: [
         { id: 'a', type: 'brick', position: { x: 1, y: 0, z: 1 } },
         { id: 'b', type: 'star', position: { x: 2, y: 0, z: 2 } },
+        { id: 'c', type: 'magic-box', position: { x: 3, y: 0, z: 3 } },
       ],
     },
     inventory: { selectedBlockType: 'brick' },
-    magicDeliveryBoxes: [
-      {
-        id: 'box-1',
-        name: 'Imported Box',
-        position: { x: 3, y: 0, z: 3 },
-        items: [{ blockType: 'rainbow', quantity: 7 }],
-      },
-    ],
+    magicDeliveryBoxes: [{ id: 'box-1', name: 'Imported Box', position: { x: 3, y: 0, z: 3 }, items: [{ blockType: 'rainbow', quantity: 7 }] }],
   };
 
   await page.setInputFiles('[data-testid="import-file-input"]', {
@@ -53,18 +49,20 @@ test('import replaces the world after confirmation', async ({ page }) => {
   });
 
   await expect(page.getByRole('dialog', { name: 'Import this world?' })).toBeVisible();
-  await expect(page.getByText('Tiny Test World')).toBeVisible();
+  await expect(page.getByText('Tiny Old World')).toBeVisible();
   await page.getByRole('button', { name: 'Import World', exact: true }).click();
 
-  await expect.poll(() => blockCount(page)).toBe(2);
-  expect(await hasBlockAt(page, 1, 0, 1)).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.mindcraft.getState().worldName)).toBe('Tiny Old World');
+  await page.waitForFunction(() => window.mindcraftDebug?.isReady() === true, undefined, { timeout: 45_000 });
+  expect(await blockAt(page, 1, 0, 1)).toBe('brick');
+  expect(await blockAt(page, 3, 0, 3)).toBe('magic_box');
+  expect(await blockAt(page, 40, 4, 40)).toBe('grass'); // flat ground beyond the old edge
 
-  // The imported box came along with its contents.
-  await page.evaluate(() => {
-    window.mindcraft.getState().openBoxAt({ x: 3, y: 0, z: 3 });
-  });
+  await page.evaluate(() => window.mindcraft.getState().setOpenPanel('container', { position: { x: 3, y: 0, z: 3 } }));
   await expect(page.getByRole('dialog', { name: 'Imported Box' })).toBeVisible();
   await expect(page.getByText('Rainbow × 7')).toBeVisible();
+  // The previous world is still there.
+  expect((await page.evaluate(() => window.mindcraft.getState().worlds.length))).toBe(2);
 });
 
 test('import rejects a file that is not a world', async ({ page }) => {

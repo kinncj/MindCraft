@@ -8,14 +8,16 @@ import { WorldSettings } from './WorldSettings';
 import { KidButton } from './KidButton';
 
 /**
- * The game menu, opened with the Menu button or Escape. Holds
- * everything that is not moment-to-moment play: how to play,
+ * The game menu, opened with the Menu button or Escape. Holds everything
+ * that is not moment-to-moment play: how to play, settings, worlds,
  * export/import, and reset.
  */
 export function MenuPanel() {
   const openPanel = useGameStore((state) => state.openPanel);
   const closePanels = useGameStore((state) => state.closePanels);
+  const setOpenPanel = useGameStore((state) => state.setOpenPanel);
   const storageAvailable = useGameStore((state) => state.storageAvailable);
+  const worldName = useGameStore((state) => state.worldName);
   const [showHelp, setShowHelp] = useState(false);
 
   if (openPanel !== 'menu') return null;
@@ -35,18 +37,22 @@ export function MenuPanel() {
           </KidButton>
           {showHelp && (
             <ul className="welcome-tips menu-help">
-              <li>Walk with WASD or the arrow keys, jump with space</li>
+              <li>Walk with WASD or the arrow keys, jump with space, hold Ctrl to run</li>
               <li>Tap the ground or a block to build</li>
               <li>Use the 🧽 Remove button (or right-click) to take blocks away</li>
               <li>Drag to look around, scroll to zoom, arrows or WASD to move</li>
               <li>Press V (or zoom all the way in) to look through your own eyes</li>
-              <li>Tap the 📦 Magic Delivery Box to store treasures</li>
+              <li>Press E for all the blocks, and ↩️ Undo if you make a mistake</li>
+              <li>Tap doors to open them, beds to sleep, and the 📦 Magic Delivery Box to store treasures</li>
               <li>The animals are just friends — they like watching you build</li>
             </ul>
           )}
           <VisualModeSelector />
           <WorldSettings />
-          <h3>Your world</h3>
+          <h3>Your world: {worldName}</h3>
+          <KidButton onClick={() => setOpenPanel('worlds')} aria-label="See all your worlds">
+            🌍 My worlds
+          </KidButton>
           <ExportWorldButton />
           <ImportWorldDialog />
           <ResetWorldDialog />

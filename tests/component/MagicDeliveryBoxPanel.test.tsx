@@ -1,18 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { B } from '../../src/engine/blocks/blocks';
 import { MagicDeliveryBoxPanel } from '../../src/components/MagicDeliveryBoxPanel';
 import { useGameStore } from '../../src/game/gameStore';
-import { resetGameStore } from './helpers';
+import { installFakeEngine, resetGameStore } from './helpers';
 
-function seedOpenBox(items: Array<{ blockType: 'star' | 'rainbow'; quantity: number }> = []) {
-  useGameStore.setState({
-    boxes: [
-      { id: 'box-1', name: 'Magic Delivery Box', position: { x: 5, y: 1, z: 5 }, items },
-    ],
-    openPanel: 'magic-box',
-    activeBoxId: 'box-1',
-  });
+const POS = { x: 5, y: 1, z: 5 };
+
+function seedOpenBox(items: Array<{ blockType: string; quantity: number }> = []) {
+  const { world } = installFakeEngine();
+  world.setBlock(POS.x, POS.y, POS.z, B.magic_box);
+  world.setEntity(POS.x, POS.y, POS.z, { kind: 'container', data: { name: 'Magic Delivery Box', items } });
+  useGameStore.setState({ openPanel: 'container', panelPayload: { position: POS } });
+  return world;
 }
 
 describe('MagicDeliveryBoxPanel', () => {
@@ -32,55 +33,39 @@ describe('MagicDeliveryBoxPanel', () => {
     expect(screen.getByText('Your box is empty')).toBeInTheDocument();
   });
 
-  it('stores the selected block in the box', async () => {
+  it('stores the selected block in the box (inside the world)', async () => {
     const user = userEvent.setup();
-    seedOpenBox();
+    const world = seedOpenBox();
     useGameStore.setState({ selectedBlockType: 'star' });
     render(<MagicDeliveryBoxPanel />);
     await user.click(screen.getByRole('button', { name: /Put a Star block inside/ }));
-    expect(useGameStore.getState().boxes[0].items).toEqual([
-      { blockType: 'star', quantity: 1 },
-    ]);
+    expect(world.getEntity(POS.x, POS.y, POS.z)?.data.items).toEqual([{ blockType: 'star', quantity: 1 }]);
     expect(screen.getByText('Star × 1')).toBeInTheDocument();
   });
 
   it('takes an item out and selects that block', async () => {
     const user = userEvent.setup();
-    seedOpenBox([{ blockType: 'rainbow', quantity: 2 }]);
+    const world = seedOpenBox([{ blockType: 'rainbow', quantity: 2 }]);
     render(<MagicDeliveryBoxPanel />);
     await user.click(screen.getByRole('button', { name: 'Take one out' }));
-    const state = useGameStore.getState();
-    expect(state.boxes[0].items).toEqual([{ blockType: 'rainbow', quantity: 1 }]);
-    expect(state.selectedBlockType).toBe('rainbow');
+    expect(world.getEntity(POS.x, POS.y, POS.z)?.data.items).toEqual([{ blockType: 'rainbow', quantity: 1 }]);
+    expect(useGameStore.getState().selectedBlockType).toBe('rainbow');
   });
 
-  it('empties the box only after confirmation', async () => {
+  it('empties the box only after confirmation, and renames it', async () => {
     const user = userEvent.setup();
-    seedOpenBox([{ blockType: 'star', quantity: 3 }]);
+    const world = seedOpenBox([{ blockType: 'star', quantity: 3 }]);
     render(<MagicDeliveryBoxPanel />);
     await user.click(screen.getByRole('button', { name: /Empty the box/ }));
-    // Still there until confirmed.
-    expect(useGameStore.getState().boxes[0].items).toHaveLength(1);
+    expect((world.getEntity(POS.x, POS.y, POS.z)?.data.items as unknown[]).length).toBe(1);
     await user.click(screen.getByRole('button', { name: 'Yes, empty it' }));
-    expect(useGameStore.getState().boxes[0].items).toHaveLength(0);
-  });
-
-  it('renames the box', async () => {
-    const user = userEvent.setup();
-    seedOpenBox();
-    render(<MagicDeliveryBoxPanel />);
+    expect(world.getEntity(POS.x, POS.y, POS.z)?.data.items).toEqual([]);
     await user.click(screen.getByRole('button', { name: /Rename box/ }));
     const input = screen.getByLabelText('New name for your box');
     await user.clear(input);
     await user.type(input, 'Treasure Box');
     await user.click(screen.getByRole('button', { name: 'Save box name' }));
-    expect(useGameStore.getState().boxes[0].name).toBe('Treasure Box');
-  });
-
-  it('closes with the close button', async () => {
-    const user = userEvent.setup();
-    seedOpenBox();
-    render(<MagicDeliveryBoxPanel />);
+    expect(world.getEntity(POS.x, POS.y, POS.z)?.data.name).toBe('Treasure Box');
     await user.click(screen.getByRole('button', { name: 'Close the box' }));
     expect(useGameStore.getState().openPanel).toBe('none');
   });

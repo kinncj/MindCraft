@@ -1,6 +1,6 @@
 # ADR-0003: Rendering with plain Three.js and chunk meshing
 
-**Status:** accepted (amended: per-block meshes → instancing → chunk meshing)
+**Status:** accepted (amended: per-block meshes → instancing → chunk meshing → per-chunk meshing with shapes, see ADR-0006)
 
 ## Context
 
@@ -47,11 +47,19 @@ a `VoxelRenderer` class that a single `useEffect` mounts and disposes; it syncs 
 zustand store by subscription. No react-three-fiber because reconciling ~1,000 identical
 cubes through React buys nothing here and adds a dependency with real API churn.
 
+## Amendment (v2, ADR-0006)
+
+The whole-world merge became **one mesh set per 16×16 chunk** (`ChunkMesher` →
+`ChunkRenderer`), rebuilt only for chunks marked dirty by an edit or a lighting
+change, nearest-first with a per-frame budget. Blocks now have **shapes** (cube, slab,
+stairs, cross, pane, fence, door, carpet, torch) that emit their own quads and
+collision boxes; a quad is culled when the neighbor's shape fully covers that face and
+the neighbor is not see-through. Picking uses a voxel-grid raycast against shape boxes
+instead of Three.js mesh intersection. Lighting is incremental (ADR-0006).
+
 ## Consequences
 
-- The renderer is ~300 lines and fully replaceable behind `syncBlocks()` + 4 callbacks
-- Per-mesh rendering would not survive a much bigger world; if the world ever grows,
-  swap in `InstancedMesh` per block type behind the same interface
-- jsdom cannot run WebGL, so component tests render the UI around a canvas that reports
-  "unsupported"; real rendering is covered by Playwright in Chromium
+- The renderer is split into a mesher (testable without WebGL) and a thin Three.js
+  layer; component tests render the UI around a canvas that reports "unsupported";
+  real rendering is covered by Playwright in Chromium
 - A friendly fallback message covers browsers without WebGL

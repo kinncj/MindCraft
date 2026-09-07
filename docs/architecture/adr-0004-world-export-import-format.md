@@ -1,6 +1,6 @@
 # ADR-0004: World export/import format and versioning
 
-**Status:** accepted
+**Status:** accepted (amended by ADR-0006: schema version 2)
 
 ## Context
 
@@ -43,6 +43,12 @@ The file is data, never code. Concretely:
 - Nothing is fetched: no URLs, images, or scripts are honored from the file
 - A world with zero usable blocks is rejected rather than imported empty
 - Importing always asks first and offers to export the current world
+
+## Amendment: version 2
+
+Infinite worlds are exported as seed + generator + edited chunks (RLE) + a palette
+mapping numeric ids to block ids, so ids can change later. Version 1 files still
+import: their block list becomes a flat world. The size cap is now 50 MB.
 
 ## Consequences
 

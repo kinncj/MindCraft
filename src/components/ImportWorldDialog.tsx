@@ -16,12 +16,11 @@ function readFileText(file: File): Promise<string> {
 }
 
 /**
- * Import flow: pick a .json file, validate it locally, then ask before
- * replacing the saved world. Nothing in the file is ever executed.
+ * Import flow: pick a .json file, validate it locally, then confirm. The
+ * imported world is added to your worlds and opened; nothing is deleted.
  */
 export function ImportWorldDialog() {
   const importWorldFromText = useGameStore((state) => state.importWorldFromText);
-  const exportWorld = useGameStore((state) => state.exportWorld);
   const showToast = useGameStore((state) => state.showToast);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingText, setPendingText] = useState<string | null>(null);
@@ -40,24 +39,19 @@ export function ImportWorldDialog() {
       return;
     }
     setPendingText(text);
-    setPendingName(result.worldName);
+    setPendingName(result.world.name);
   }
 
   async function confirmImport() {
     if (!pendingText) return;
     const result = await importWorldFromText(pendingText);
-    if (!result.ok && result.error) {
-      showToast(result.error);
-    }
+    if (!result.ok && result.error) showToast(result.error);
     setPendingText(null);
   }
 
   return (
     <>
-      <KidButton
-        onClick={() => fileInputRef.current?.click()}
-        aria-label="Import a world from a file"
-      >
+      <KidButton onClick={() => fileInputRef.current?.click()} aria-label="Import a world from a file">
         📂 Import World
       </KidButton>
       <input
@@ -79,14 +73,12 @@ export function ImportWorldDialog() {
             <p>
               <strong>{pendingName}</strong> is ready to move in.
             </p>
-            <p>This will replace the world saved on this computer.</p>
-            <p>You can export your current world first if you want to keep it.</p>
+            <p>It will be added to your worlds and opened. Your other worlds stay safe.</p>
             <div className="dialog-buttons">
               <KidButton tone="primary" onClick={() => void confirmImport()}>
                 Import World
               </KidButton>
               <KidButton onClick={() => setPendingText(null)}>Cancel</KidButton>
-              <KidButton onClick={exportWorld}>Export Current World First</KidButton>
             </div>
           </section>
         </div>

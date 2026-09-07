@@ -1,400 +1,428 @@
 import { create } from 'zustand';
-import type {
-  BlockPosition,
-  BlockTypeId,
-  InteractionMode,
-  MagicDeliveryBox,
-  PlacedBlock,
-  SaveState,
-  TimeMode,
-  VisualModeId,
-  WeatherMode,
-} from '../types/game';
-import { WORLD_SIZE, isInsideWorld, makeBlock, newBlockId, positionKey } from './engine/world';
-import { createStarterWorld, createToyLandWorld } from './engine/starterWorld';
-import { db } from '../storage/db';
-import { WorldRepository } from '../storage/worldRepository';
-import { SettingsRepository, DEFAULT_SETTINGS } from '../storage/settingsRepository';
+import { blocks as registry, resolveBlockId } from '../engine/blocks/blocks';
 import { buildWorldExport, downloadWorldExport } from '../importExport/exportWorld';
 import { parseWorldImportFile } from '../importExport/validateWorldImport';
+import { rleEncode } from '../storage/chunkCodec';
+import { db } from '../storage/db';
+import type { StoredWorld } from '../storage/db';
+import { DEFAULT_SETTINGS, normalizeSettings } from '../storage/settingsRepository';
+import { WorldStore } from '../storage/worldStore';
+import { getEngine } from './engineRef';
+import { createWorldRecord } from './store/worldRecords';
+import type { GameState, ViewMode } from './store/types';
 
-export type PanelId = 'none' | 'inventory' | 'magic-box' | 'menu';
-export type ViewMode = 'third' | 'first';
-export type WorldPreset = 'meadow' | 'toyland';
+export type { GameState, PanelId, ViewMode, WorldPreset } from './store/types';
 
-export type GameState = {
-  ready: boolean;
-  initStarted: boolean;
-  storageAvailable: boolean;
-  blocks: Record<string, PlacedBlock>;
-  boxes: MagicDeliveryBox[];
-  worldName: string;
-  selectedBlockType: BlockTypeId;
-  mode: InteractionMode;
-  saveState: SaveState;
-  openPanel: PanelId;
-  activeBoxId: string | null;
-  toast: string | null;
-  viewMode: ViewMode;
-  visualMode: VisualModeId;
-  timeMode: TimeMode;
-  weather: WeatherMode;
-
-  init: () => Promise<void>;
-  setViewMode: (mode: ViewMode) => void;
-  toggleViewMode: () => void;
-  setVisualMode: (mode: VisualModeId) => void;
-  setTimeMode: (mode: TimeMode) => void;
-  setWeather: (weather: WeatherMode) => void;
-  petAnimal: (kind: string) => void;
-  selectBlockType: (type: BlockTypeId) => void;
-  setMode: (mode: InteractionMode) => void;
-  placeBlockAt: (pos: BlockPosition) => PlacedBlock | null;
-  removeBlockAt: (pos: BlockPosition) => PlacedBlock | null;
-  openBoxAt: (pos: BlockPosition) => void;
-  setOpenPanel: (panel: PanelId) => void;
-  closePanels: () => void;
-  renameBox: (boxId: string, name: string) => void;
-  addItemToBox: (boxId: string, blockType: BlockTypeId) => void;
-  takeItemFromBox: (boxId: string, blockType: BlockTypeId) => void;
-  clearBox: (boxId: string) => void;
-  resetWorld: (preset?: WorldPreset) => Promise<void>;
-  exportWorld: () => void;
-  importWorldFromText: (text: string) => Promise<{ ok: boolean; error?: string }>;
-  showToast: (message: string) => void;
-};
-
-const worldRepository = new WorldRepository(db);
-const settingsRepository = new SettingsRepository(db);
-
-function toRecord(blocks: PlacedBlock[]): Record<string, PlacedBlock> {
-  const record: Record<string, PlacedBlock> = {};
-  for (const block of blocks) {
-    record[positionKey(block.position)] = block;
-  }
-  return record;
-}
+const worldStore = new WorldStore(db);
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
 // Every change bumps this. A finishing save may only report "saved" if no
-// newer change happened while it was writing — otherwise a slow in-flight
-// save would claim "Saved" for a world state it never saw.
+// newer change happened while it was writing.
 let changeSeq = 0;
+
+function settingsOf(world: StoredWorld) {
+  const s = normalizeSettings(world.settings, (id) => registry.has(id));
+  return {
+    worldName: world.name,
+    selectedBlockType: s.selectedBlockType,
+    hotbar: s.hotbar,
+    visualMode: s.visualMode,
+    timeMode: s.timeMode,
+    weather: s.weather,
+  };
+}
+
+type ContainerData = { name: string; items: Array<{ blockType: string; quantity: number }> };
+
+function readContainer(pos: { x: number; y: number; z: number }): ContainerData | null {
+  const entity = getEngine()?.world.getEntity(pos.x, pos.y, pos.z);
+  if (!entity || entity.kind !== 'container') return null;
+  const data = entity.data as Partial<ContainerData>;
+  return { name: data.name ?? 'Magic Delivery Box', items: Array.isArray(data.items) ? data.items : [] };
+}
+
+function writeContainer(pos: { x: number; y: number; z: number }, data: ContainerData): void {
+  getEngine()?.world.setEntity(pos.x, pos.y, pos.z, { kind: 'container', data });
+}
 
 export const useGameStore = create<GameState>((set, get) => {
   function scheduleAutosave(): void {
-    const { storageAvailable } = get();
-    if (!storageAvailable) return;
+    if (!get().storageAvailable) return;
     changeSeq += 1;
     set({ saveState: 'saving' });
     if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(async () => {
-      const seqAtStart = changeSeq;
-      const state = get();
-      try {
-        await worldRepository.saveWorld(Object.values(state.blocks), state.boxes);
-        await settingsRepository.saveSettings({
-          worldName: state.worldName,
+    saveTimer = setTimeout(() => void flush(), 600);
+  }
+
+  async function flush(): Promise<void> {
+    const seqAtStart = changeSeq;
+    const state = get();
+    const id = state.currentWorldId;
+    if (!id) return;
+    try {
+      const engine = getEngine();
+      await engine?.save();
+      await worldStore.touchWorld(id, {
+        name: state.worldName,
+        settings: {
           selectedBlockType: state.selectedBlockType,
+          hotbar: state.hotbar,
           visualMode: state.visualMode,
           timeMode: state.timeMode,
           weather: state.weather,
-        });
-        if (changeSeq === seqAtStart) {
-          set({ saveState: 'saved' });
-        }
-      } catch {
-        set({ saveState: 'error', storageAvailable: false });
-      }
-    }, 600);
+          timeOfDay: engine?.environment.time,
+        },
+        player: engine?.playerState(),
+        template: engine ? engine.pendingTemplate().map((t) => ({ ...t })) : undefined,
+      });
+      if (changeSeq === seqAtStart) set({ saveState: 'saved' });
+    } catch {
+      set({ saveState: 'error', storageAvailable: false });
+    }
+  }
+
+  async function openRecord(world: StoredWorld): Promise<void> {
+    if (saveTimer) clearTimeout(saveTimer);
+    set({
+      currentWorldId: world.id,
+      ...settingsOf(world),
+      hotbarIndex: 0,
+      openPanel: 'none',
+      panelPayload: null,
+      mode: 'place',
+      saveState: get().storageAvailable ? 'saved' : 'error',
+    });
   }
 
   return {
+    // --- world slice ---
     ready: false,
     initStarted: false,
     storageAvailable: true,
-    blocks: {},
-    boxes: [],
-    worldName: DEFAULT_SETTINGS.worldName,
-    selectedBlockType: DEFAULT_SETTINGS.selectedBlockType,
-    mode: 'place',
     saveState: 'idle',
+    worlds: [],
+    currentWorldId: null,
+    worldName: 'My World',
+
+    currentWorld() {
+      const { worlds, currentWorldId } = get();
+      return worlds.find((w) => w.id === currentWorldId) ?? null;
+    },
+
+    async init() {
+      if (get().initStarted) return;
+      set({ initStarted: true });
+      try {
+        const migrated = await worldStore.migrateLegacy();
+        await worldStore.storageInfo();
+        let worlds = await worldStore.listWorlds();
+        if (migrated) get().showToast('Your old world moved into the new MindCraft! 🎉');
+        if (worlds.length === 0) {
+          const world = createWorldRecord('My World', 'meadow');
+          await worldStore.putWorld(world);
+          worlds = [world];
+        }
+        set({ worlds, ready: true });
+        await openRecord(worlds[0]);
+      } catch {
+        // IndexedDB blocked or broken: still let the kid play, just warn
+        // that nothing will be remembered.
+        const world = createWorldRecord('My World', 'meadow');
+        set({ worlds: [world], ready: true, storageAvailable: false, saveState: 'error' });
+        await openRecord(world);
+      }
+    },
+
+    async createWorld(name, preset) {
+      const world = createWorldRecord(name.trim().slice(0, 60) || 'My World', preset);
+      if (get().storageAvailable) await worldStore.putWorld(world).catch(() => set({ storageAvailable: false }));
+      set({ worlds: [world, ...get().worlds] });
+      await openRecord(world);
+      get().showToast(preset === 'toyland' ? 'Welcome to Toy Land! The toys are waiting! 🧸' : 'Fresh new world! Build something awesome!');
+    },
+
+    async openWorld(id) {
+      const world = get().worlds.find((w) => w.id === id);
+      if (!world || world.id === get().currentWorldId) return;
+      await flush();
+      const fresh = get().storageAvailable ? await worldStore.getWorld(id).catch(() => world) : world;
+      const record = fresh ?? world;
+      set({ worlds: get().worlds.map((w) => (w.id === id ? record : w)) });
+      await openRecord(record);
+    },
+
+    async deleteWorld(id) {
+      const remaining = get().worlds.filter((w) => w.id !== id);
+      if (get().storageAvailable) await worldStore.deleteWorld(id).catch(() => undefined);
+      set({ worlds: remaining });
+      if (get().currentWorldId === id) {
+        if (remaining.length === 0) {
+          await get().createWorld('My World', 'meadow');
+        } else {
+          await openRecord(remaining[0]);
+        }
+      }
+    },
+
+    async renameWorld(id, name) {
+      const trimmed = name.trim().slice(0, 60);
+      if (!trimmed) return;
+      set({ worlds: get().worlds.map((w) => (w.id === id ? { ...w, name: trimmed } : w)) });
+      if (get().currentWorldId === id) set({ worldName: trimmed });
+      if (get().storageAvailable) await worldStore.touchWorld(id, { name: trimmed }).catch(() => undefined);
+    },
+
+    async resetWorld(preset = 'meadow') {
+      const oldId = get().currentWorldId;
+      await get().createWorld(preset === 'toyland' ? 'Toy Land' : 'My World', preset);
+      if (oldId) {
+        if (get().storageAvailable) await worldStore.deleteWorld(oldId).catch(() => undefined);
+        set({ worlds: get().worlds.filter((w) => w.id !== oldId) });
+      }
+    },
+
+    markDirty() {
+      scheduleAutosave();
+    },
+
+    async saveNow() {
+      if (saveTimer) clearTimeout(saveTimer);
+      changeSeq += 1;
+      set({ saveState: 'saving' });
+      await flush();
+    },
+
+    async exportWorld() {
+      const world = get().currentWorld();
+      if (!world) return;
+      const engine = getEngine();
+      await engine?.save().catch(() => undefined);
+      let chunks = get().storageAvailable ? await db.chunks.where('worldId').equals(world.id).toArray().catch(() => []) : [];
+      if (!get().storageAvailable && engine) {
+        // No storage: export straight from memory.
+        chunks = engine.world
+          .allChunks()
+          .filter((c) => c.modified)
+          .map((c) => ({
+            key: `${world.id}:${c.cx},${c.cz}`,
+            worldId: world.id,
+            cx: c.cx,
+            cz: c.cz,
+            blocks: rleEncode(c.blocks),
+            states: rleEncode(c.states),
+            entities: [...c.entities.entries()].map(([index, e]) => ({ index, kind: e.kind, data: e.data })),
+          }));
+      }
+      const state = get();
+      const record: StoredWorld = {
+        ...world,
+        name: state.worldName,
+        settings: {
+          selectedBlockType: state.selectedBlockType,
+          hotbar: state.hotbar,
+          visualMode: state.visualMode,
+          timeMode: state.timeMode,
+          weather: state.weather,
+          timeOfDay: engine?.environment.time,
+        },
+        player: engine?.playerState(),
+        template: engine ? engine.pendingTemplate() : world.template,
+      };
+      downloadWorldExport(buildWorldExport(record, chunks));
+      get().showToast('World exported! Keep that file safe.');
+    },
+
+    async importWorldFromText(text) {
+      const result = parseWorldImportFile(text);
+      if (!result.ok) return { ok: false, error: result.error };
+      if (get().storageAvailable) {
+        try {
+          await db.transaction('rw', db.worlds, db.chunks, async () => {
+            await db.worlds.put(result.world);
+            await db.chunks.bulkPut(result.chunks);
+          });
+        } catch {
+          return { ok: false, error: 'This browser could not save the imported world.' };
+        }
+      }
+      set({ worlds: [result.world, ...get().worlds] });
+      await openRecord(result.world);
+      get().showToast(result.warnings[0] ?? 'World imported! Welcome back!');
+      return { ok: true };
+    },
+
+    // --- ui slice ---
     openPanel: 'none',
-    activeBoxId: null,
+    panelPayload: null,
     toast: null,
     viewMode: 'third',
+    mode: 'place',
+    canUndo: false,
+    canRedo: false,
+    controllerActive: false,
+    containerVersion: 0,
+
+    setOpenPanel(panel, payload = null) {
+      set({ openPanel: panel, panelPayload: payload });
+    },
+    closePanels() {
+      set({ openPanel: 'none', panelPayload: null });
+    },
+    showToast(message) {
+      set({ toast: message });
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => set({ toast: null }), 4000);
+    },
+    setMode(mode) {
+      set({ mode });
+    },
+    setViewMode(mode) {
+      set({ viewMode: mode });
+    },
+    toggleViewMode() {
+      const next: ViewMode = get().viewMode === 'third' ? 'first' : 'third';
+      set({ viewMode: next });
+      getEngine()?.setViewMode(next);
+      get().showToast(next === 'first' ? 'Looking through your own eyes! 👀' : 'Back behind you! 🧍');
+    },
+    setHistoryState(canUndo, canRedo) {
+      set({ canUndo, canRedo });
+    },
+    setControllerActive(active) {
+      set({ controllerActive: active });
+    },
+    undo() {
+      const done = getEngine()?.history.undo();
+      if (done) get().showToast(`Undid: ${done.label}`);
+    },
+    redo() {
+      const done = getEngine()?.history.redo();
+      if (done) get().showToast(`Redid: ${done.label}`);
+    },
+    petAnimal(kind, name) {
+      const messages: Record<string, string> = {
+        bunny: '🐰 Boing! The bunny loves you!',
+        chick: '🐤 Cheep cheep! So happy!',
+        butterfly: '🦋 The butterfly does a twirl!',
+        pet: `💛 ${name ?? 'Your pet'} is so happy!`,
+        villager: `👋 ${name ?? 'Your friend'} waves hello!`,
+      };
+      get().showToast(messages[kind] ?? '💛 Your friend is happy!');
+    },
+    sleepUntilMorning() {
+      const engine = getEngine();
+      if (engine) {
+        engine.environment.setTime(0.3);
+        if (get().timeMode === 'night') get().setTimeMode('cycle');
+      }
+      set({ openPanel: 'none', panelPayload: null });
+      get().showToast('Good morning! ☀️ Rise and shine!');
+      scheduleAutosave();
+    },
+
+    // --- settings slice ---
     visualMode: DEFAULT_SETTINGS.visualMode,
     timeMode: DEFAULT_SETTINGS.timeMode,
     weather: DEFAULT_SETTINGS.weather,
 
     setVisualMode(mode) {
       set({ visualMode: mode });
+      getEngine()?.setVisualMode(mode);
       scheduleAutosave();
       if (mode === 'claudeDream') get().showToast('Welcome to the dream world! ✨');
     },
-
     setTimeMode(mode) {
       set({ timeMode: mode });
+      getEngine()?.setTimeMode(mode);
       scheduleAutosave();
     },
-
     setWeather(weather) {
       set({ weather });
+      getEngine()?.setWeather(weather);
       scheduleAutosave();
     },
 
-    petAnimal(kind) {
-      const messages: Record<string, string> = {
-        bunny: '🐰 Boing! The bunny loves you!',
-        chick: '🐤 Cheep cheep! So happy!',
-        butterfly: '🦋 The butterfly does a twirl!',
-      };
-      get().showToast(messages[kind] ?? '💛 Your friend is happy!');
-    },
+    // --- inventory slice ---
+    selectedBlockType: DEFAULT_SETTINGS.selectedBlockType,
+    hotbar: DEFAULT_SETTINGS.hotbar,
+    hotbarIndex: 0,
 
-    setViewMode(mode) {
-      set({ viewMode: mode });
+    selectBlockType(id) {
+      const def = resolveBlockId(id);
+      if (!def) return;
+      const { hotbar, hotbarIndex } = get();
+      const inBar = hotbar.indexOf(def.id);
+      const nextBar = inBar >= 0 ? hotbar : hotbar.map((b, i) => (i === hotbarIndex ? def.id : b));
+      set({ selectedBlockType: def.id, hotbar: nextBar, hotbarIndex: inBar >= 0 ? inBar : hotbarIndex, mode: 'place' });
+      scheduleAutosave();
     },
-
-    toggleViewMode() {
-      const next = get().viewMode === 'third' ? 'first' : 'third';
-      set({ viewMode: next });
-      get().showToast(next === 'first' ? 'Looking through your own eyes! 👀' : 'Back behind you! 🧍');
+    selectSlot(index) {
+      const { hotbar } = get();
+      if (index < 0 || index >= hotbar.length) return;
+      set({ hotbarIndex: index, selectedBlockType: hotbar[index], mode: 'place' });
+      scheduleAutosave();
     },
-
-    async init() {
-      // StrictMode mounts effects twice; a second init racing the first
-      // would overwrite live state with a fresh starter world. The flag
-      // is set synchronously, so the second call bails immediately.
-      if (get().initStarted) return;
-      set({ initStarted: true });
-      try {
-        const saved = await worldRepository.loadWorld();
-        const settings = await settingsRepository.loadSettings();
-        const settingsState = {
-          worldName: settings.worldName,
-          selectedBlockType: settings.selectedBlockType,
-          visualMode: settings.visualMode,
-          timeMode: settings.timeMode,
-          weather: settings.weather,
-        };
-        if (saved) {
-          set({
-            ready: true,
-            blocks: toRecord(saved.blocks),
-            boxes: saved.boxes,
-            saveState: 'saved',
-            ...settingsState,
-          });
-        } else {
-          const starter = createStarterWorld();
-          set({
-            ready: true,
-            blocks: toRecord(starter.blocks),
-            boxes: starter.boxes,
-            ...settingsState,
-          });
-          scheduleAutosave();
-        }
-      } catch {
-        // IndexedDB blocked or broken: still let the kid play, just warn
-        // that nothing will be remembered.
-        const starter = createStarterWorld();
-        set({
-          ready: true,
-          storageAvailable: false,
-          saveState: 'error',
-          blocks: toRecord(starter.blocks),
-          boxes: starter.boxes,
-        });
-      }
-    },
-
-    selectBlockType(type) {
-      set({ selectedBlockType: type, mode: 'place' });
+    setHotbarSlot(index, id) {
+      const def = resolveBlockId(id);
+      if (!def) return;
+      set({ hotbar: get().hotbar.map((b, i) => (i === index ? def.id : b)), hotbarIndex: index, selectedBlockType: def.id, mode: 'place' });
       scheduleAutosave();
     },
 
-    setMode(mode) {
-      set({ mode });
-    },
-
-    placeBlockAt(pos) {
-      const state = get();
-      if (!isInsideWorld(pos, WORLD_SIZE)) return null;
-      const key = positionKey(pos);
-      if (state.blocks[key]) return null;
-      const block = makeBlock(state.selectedBlockType, pos);
-      const nextBoxes =
-        block.type === 'magic-box'
-          ? [
-              ...state.boxes,
-              { id: newBlockId(), name: 'Magic Delivery Box', position: pos, items: [] },
-            ]
-          : state.boxes;
-      set({ blocks: { ...state.blocks, [key]: block }, boxes: nextBoxes });
-      scheduleAutosave();
-      return block;
-    },
-
-    removeBlockAt(pos) {
-      const state = get();
-      const key = positionKey(pos);
-      const block = state.blocks[key];
-      if (!block) return null;
-      // Keep the floor level in place so the world never becomes a void
-      // the kid can fall through visually. Ground blocks can be recolored
-      // by placing on top instead.
-      const nextBlocks = { ...state.blocks };
-      delete nextBlocks[key];
-      const nextBoxes =
-        block.type === 'magic-box'
-          ? state.boxes.filter((box) => positionKey(box.position) !== key)
-          : state.boxes;
-      set({ blocks: nextBlocks, boxes: nextBoxes });
-      scheduleAutosave();
-      return block;
-    },
-
-    openBoxAt(pos) {
-      const state = get();
-      const key = positionKey(pos);
-      const box = state.boxes.find((b) => positionKey(b.position) === key);
-      if (box) {
-        set({ openPanel: 'magic-box', activeBoxId: box.id });
-      }
-    },
-
-    setOpenPanel(panel) {
-      set({ openPanel: panel, activeBoxId: panel === 'magic-box' ? get().activeBoxId : null });
-    },
-
-    closePanels() {
-      set({ openPanel: 'none', activeBoxId: null });
-    },
-
-    renameBox(boxId, name) {
-      const trimmed = name.trim().slice(0, 60);
-      if (!trimmed) return;
-      set({
-        boxes: get().boxes.map((box) => (box.id === boxId ? { ...box, name: trimmed } : box)),
-      });
+    addItemToBox(pos, blockType) {
+      const box = readContainer(pos);
+      if (!box) return;
+      const existing = box.items.find((i) => i.blockType === blockType);
+      const items = existing
+        ? box.items.map((i) => (i.blockType === blockType ? { ...i, quantity: i.quantity + 1 } : i))
+        : [...box.items, { blockType, quantity: 1 }];
+      writeContainer(pos, { ...box, items });
+      set({ containerVersion: get().containerVersion + 1 });
       scheduleAutosave();
     },
-
-    addItemToBox(boxId, blockType) {
-      set({
-        boxes: get().boxes.map((box) => {
-          if (box.id !== boxId) return box;
-          const existing = box.items.find((item) => item.blockType === blockType);
-          const items = existing
-            ? box.items.map((item) =>
-                item.blockType === blockType ? { ...item, quantity: item.quantity + 1 } : item,
-              )
-            : [...box.items, { blockType, quantity: 1 }];
-          return { ...box, items };
-        }),
-      });
-      scheduleAutosave();
-    },
-
-    takeItemFromBox(boxId, blockType) {
-      const state = get();
-      const box = state.boxes.find((b) => b.id === boxId);
+    takeItemFromBox(pos, blockType) {
+      const box = readContainer(pos);
       const item = box?.items.find((i) => i.blockType === blockType);
       if (!box || !item || item.quantity <= 0) return;
-      set({
-        selectedBlockType: blockType,
-        boxes: state.boxes.map((b) => {
-          if (b.id !== boxId) return b;
-          return {
-            ...b,
-            items: b.items
-              .map((i) => (i.blockType === blockType ? { ...i, quantity: i.quantity - 1 } : i))
-              .filter((i) => i.quantity > 0),
-          };
-        }),
-      });
+      const items = box.items.map((i) => (i.blockType === blockType ? { ...i, quantity: i.quantity - 1 } : i)).filter((i) => i.quantity > 0);
+      writeContainer(pos, { ...box, items });
+      get().selectBlockType(blockType);
+      set({ containerVersion: get().containerVersion + 1 });
       scheduleAutosave();
     },
-
-    clearBox(boxId) {
-      set({
-        boxes: get().boxes.map((box) => (box.id === boxId ? { ...box, items: [] } : box)),
-      });
+    clearBox(pos) {
+      const box = readContainer(pos);
+      if (!box) return;
+      writeContainer(pos, { ...box, items: [] });
+      set({ containerVersion: get().containerVersion + 1 });
       scheduleAutosave();
     },
-
-    async resetWorld(preset = 'meadow') {
-      if (saveTimer) clearTimeout(saveTimer);
-      const starter = preset === 'toyland' ? createToyLandWorld() : createStarterWorld();
-      try {
-        await worldRepository.clearWorld();
-      } catch {
-        // Storage may be unavailable; resetting the in-memory world still works.
-      }
-      set({
-        blocks: toRecord(starter.blocks),
-        boxes: starter.boxes,
-        selectedBlockType: DEFAULT_SETTINGS.selectedBlockType,
-        worldName: preset === 'toyland' ? 'Toy Land' : DEFAULT_SETTINGS.worldName,
-        mode: 'place',
-        openPanel: 'none',
-        activeBoxId: null,
-      });
+    renameBox(pos, name) {
+      const trimmed = name.trim().slice(0, 60);
+      const box = readContainer(pos);
+      if (!box || !trimmed) return;
+      writeContainer(pos, { ...box, name: trimmed });
+      set({ containerVersion: get().containerVersion + 1 });
       scheduleAutosave();
-      get().showToast(
-        preset === 'toyland'
-          ? 'Welcome to Toy Land! The toys are waiting! 🧸'
-          : 'Fresh new world! Build something awesome!',
-      );
-    },
-
-    exportWorld() {
-      const state = get();
-      const data = buildWorldExport({
-        worldId: 'local-world',
-        worldName: state.worldName,
-        size: WORLD_SIZE,
-        blocks: Object.values(state.blocks),
-        boxes: state.boxes,
-        selectedBlockType: state.selectedBlockType,
-        visualMode: state.visualMode,
-        timeMode: state.timeMode,
-        weather: state.weather,
-      });
-      downloadWorldExport(data);
-      get().showToast('World exported! Keep that file safe.');
-    },
-
-    async importWorldFromText(text) {
-      const result = parseWorldImportFile(text);
-      if (!result.ok) {
-        return { ok: false, error: result.error };
-      }
-      if (saveTimer) clearTimeout(saveTimer);
-      set({
-        blocks: toRecord(result.blocks),
-        boxes: result.boxes,
-        worldName: result.worldName,
-        selectedBlockType: (result.selectedBlockType as BlockTypeId) ?? get().selectedBlockType,
-        visualMode: result.visualMode ?? get().visualMode,
-        timeMode: result.timeMode ?? get().timeMode,
-        weather: result.weather ?? get().weather,
-        openPanel: 'none',
-        activeBoxId: null,
-      });
-      scheduleAutosave();
-      const warning = result.warnings[0];
-      get().showToast(warning ?? 'World imported! Welcome back!');
-      return { ok: true };
-    },
-
-    showToast(message) {
-      set({ toast: message });
-      if (toastTimer) clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => set({ toast: null }), 4000);
     },
   };
 });
+
+/** Read a container's contents for the panel. */
+export function useContainer(pos: { x: number; y: number; z: number } | null): ContainerData | null {
+  useGameStore((s) => s.containerVersion);
+  return pos ? readContainer(pos) : null;
+}
+
+/** Flush pending saves when the tab hides or closes. */
+if (typeof window !== 'undefined') {
+  const flushIfDirty = (): void => {
+    const state = useGameStore.getState();
+    if (state.saveState === 'saving') void state.saveNow();
+  };
+  window.addEventListener('pagehide', flushIfDirty);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushIfDirty();
+  });
+}
