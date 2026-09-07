@@ -20,8 +20,10 @@ export type BuildingLayout = {
   /** +1 or -1: which way is outside the front wall. */
   outward: number;
   rooms: RoomRect[];
-  /** Every staircase: its steps from bottom to top. */
-  stairs: Array<Array<{ x: number; y: number; z: number }>>;
+  /** Every flight: its steps from bottom to top, where it lands, and which way it runs. */
+  stairs: Array<{ steps: Array<{ x: number; y: number; z: number }>; landing: { x: number; y: number; z: number }; dir: number }>;
+  /** Ladder shafts: column, and the heights they span. */
+  ladders: Array<{ x: number; z: number; bottom: number; top: number }>;
   air: number;
   lamp: number | null;
   wall: number;
@@ -66,19 +68,25 @@ export function ensureLivable(cells: Cells, layout: BuildingLayout, door: number
       if (g && g.id === layout.air) put(dx, layout.groundY, layout.doorZ + layout.outward * step, layout.wall);
     }
   }
-  // 2. Headroom over every step and a solid landing where the top step arrives.
+  // 2. Headroom over every step (both columns of the flight) and a solid, clear landing.
   for (const flight of layout.stairs) {
-    for (const step of flight) {
-      put(step.x, step.y + 1, step.z, layout.air);
-      put(step.x, step.y + 2, step.z, layout.air);
+    for (const step of flight.steps) {
+      for (const dz of [0, 1]) {
+        put(step.x, step.y + 1, step.z + dz, layout.air);
+        put(step.x, step.y + 2, step.z + dz, layout.air);
+      }
     }
-    const top = flight[flight.length - 1];
-    if (top) {
-      const landing = cells.get(key(top.x + 1, top.y, top.z));
-      if (!landing || landing.id === layout.air) put(top.x + 1, top.y, top.z, layout.wall);
-      put(top.x + 1, top.y + 1, top.z, layout.air);
-      put(top.x + 1, top.y + 2, top.z, layout.air);
+    for (const lx of [flight.landing.x, flight.landing.x + flight.dir]) {
+      for (const dz of [0, 1]) {
+        const landing = cells.get(key(lx, flight.landing.y, flight.landing.z + dz));
+        if (!landing || landing.id === layout.air) put(lx, flight.landing.y, flight.landing.z + dz, layout.wall);
+        put(lx, flight.landing.y + 1, flight.landing.z + dz, layout.air);
+        put(lx, flight.landing.y + 2, flight.landing.z + dz, layout.air);
+      }
     }
+  }
+  for (const ladder of layout.ladders) {
+    for (let h = 1; h <= 2; h++) put(ladder.x, ladder.top + h, ladder.z, layout.air);
   }
   // 3. Every room: a doorway in one of its walls and a light.
   for (const room of layout.rooms) {
@@ -136,15 +144,27 @@ export function checkLivability(edits: BlockEdit[], layout: BuildingLayout, door
     if (!floor || floor.id === layout.air) out.push({ rule: 'floor under the door', at: { x: dx, y: layout.groundY, z: layout.doorZ } });
   }
   for (const flight of layout.stairs) {
-    for (const step of flight) {
-      if (!isAir(cells, step.x, step.y + 1, step.z, layout) || !isAir(cells, step.x, step.y + 2, step.z, layout)) out.push({ rule: 'headroom over stairs', at: step });
+    for (const step of flight.steps) {
+      for (const dz of [0, 1]) {
+        if (!isAir(cells, step.x, step.y + 1, step.z + dz, layout) || !isAir(cells, step.x, step.y + 2, step.z + dz, layout)) out.push({ rule: 'headroom over stairs', at: { x: step.x, y: step.y, z: step.z + dz } });
+      }
     }
-    const top = flight[flight.length - 1];
-    if (top) {
-      const landing = cells.get(key(top.x + 1, top.y, top.z));
-      if (!landing || landing.id === layout.air) out.push({ rule: 'stairs lead somewhere', at: { x: top.x + 1, y: top.y, z: top.z } });
-      if (top.y !== layout.groundY + Math.round((top.y - layout.groundY) / layout.storey) * layout.storey) out.push({ rule: 'stairs reach the next floor', at: top });
+    const top = flight.steps[flight.steps.length - 1];
+    if (top && top.y !== flight.landing.y) out.push({ rule: 'stairs reach the next floor', at: top });
+    for (const lx of [flight.landing.x, flight.landing.x + flight.dir]) {
+      for (const dz of [0, 1]) {
+        const landing = cells.get(key(lx, flight.landing.y, flight.landing.z + dz));
+        if (!landing || landing.id === layout.air) out.push({ rule: 'stairs lead somewhere', at: { x: lx, y: flight.landing.y, z: flight.landing.z + dz } });
+        if (!isAir(cells, lx, flight.landing.y + 1, flight.landing.z + dz, layout) || !isAir(cells, lx, flight.landing.y + 2, flight.landing.z + dz, layout)) out.push({ rule: 'landing is clear', at: { x: lx, y: flight.landing.y + 1, z: flight.landing.z + dz } });
+      }
     }
+  }
+  for (const ladder of layout.ladders) {
+    for (let py = ladder.bottom; py <= ladder.top; py++) {
+      const rung = cells.get(key(ladder.x, py, ladder.z));
+      if (!rung || rung.id === layout.air) out.push({ rule: 'ladder is continuous', at: { x: ladder.x, y: py, z: ladder.z } });
+    }
+    if (!isAir(cells, ladder.x, ladder.top + 1, ladder.z, layout)) out.push({ rule: 'ladder top is clear', at: { x: ladder.x, y: ladder.top + 1, z: ladder.z } });
   }
   for (const room of layout.rooms) {
     if (!roomHasDoorway(cells, room, layout, door, passable)) out.push({ rule: 'room has a doorway', at: { x: room.x0, y: room.base + 1, z: room.z0 } });

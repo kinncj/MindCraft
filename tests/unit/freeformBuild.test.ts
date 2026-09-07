@@ -157,7 +157,7 @@ describe('a whole campus from one sentence', () => {
     const edits = build.planHouse(8, 3, 8, houseOptions(blocks, { type: spec.type, width: spec.width, depth: spec.depth, floors: spec.floors, wall: spec.wall, trim: spec.trim, furnish: true, roomPlan: spec.rooms, features: spec.features }));
     const count = (name: string) => edits.filter((e) => e.id === blocks.numericOf(name)).length;
     expect(count('tv')).toBeGreaterThanOrEqual(3); // the computer room's screens
-    expect(count('table')).toBeGreaterThan(20); // desks in six classrooms
+    expect(count('table')).toBeGreaterThan(15); // desks in six classrooms
     expect(count('color_green')).toBeGreaterThan(60); // the court, minus its lines
     expect(count('ladder')).toBeGreaterThanOrEqual(4); // the climbing frame
     expect(count('sand')).toBeGreaterThan(60); // the playground sandpit

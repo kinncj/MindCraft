@@ -216,13 +216,19 @@ export function parseBuildRequest(raw: string): BuildSpec | null {
   }
   const features: string[] = [];
   for (const [pattern, feature] of FEATURE_WORDS) if (pattern.test(text) && !features.includes(feature)) features.push(feature);
-  // Grow the building until the rooms fit: two rooms per 4-block section per floor.
+  // Grow the building until the rooms fit. A floor has one room per 4-block section on the
+  // front side and one on the back side, except that a multi-floor building's stairwell takes
+  // the three back sections nearest the left wall.
   const wanted = rooms.reduce((n, r) => n + r.count, 0);
   if (wanted > 0) {
-    const perFloor = (w: number): number => 2 * Math.floor((w - 3) / 4);
+    const perFloor = (w: number, f: number): number => {
+      const sections = Math.floor((w - 5) / 4) + 1;
+      const back = f > 1 ? Math.max(0, sections - 3) : sections;
+      return sections + back;
+    };
     if (depth < 13) depth = 13; // rooms three deep hold real furniture
-    while (perFloor(width) * floors < wanted && width < 25) width += 4;
-    while (perFloor(width) * floors < wanted && floors < 10) floors += 1;
+    while (perFloor(width, floors) * floors < wanted && width < 25) width += 4;
+    while (perFloor(width, floors) * floors < wanted && floors < 10) floors += 1;
   }
   // Doors and vertical transport.
   const doorWidth = /\b(wide|double|big|large|huge|giant|grand|massive) (front )?doors?\b|\bdouble doors?\b|\bwide entrance\b/.test(text) ? 2 : 1;

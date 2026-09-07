@@ -86,6 +86,8 @@ export type HouseOptions = {
   doorState: number;
   stairs: number;
   stairRotation: number;
+  ladder: number;
+  ladderState: number;
   lamp: number | null;
   lantern: number | null;
   /** Railing for stairs and the lift shaft (a fence), if the block exists. */
@@ -138,10 +140,10 @@ export function houseLayout(x: number, y: number, z: number, opts: Pick<HouseOpt
   const storey = opts.castle ? 5 : 4;
   const groundY = y - 1;
   const x1 = x - Math.floor(width / 2) + width - 1;
-  const z1 = z - Math.floor(depth / 2) + depth - 1;
   const stops: number[] = [];
   for (let f = 0; f < floors; f++) stops.push(groundY + f * storey + 1);
-  return { shaft: opts.elevator && floors > 1 ? { x: x1 - 2, z: z1 - 2 } : null, stops };
+  const z0 = z - Math.floor(depth / 2);
+  return { shaft: opts.elevator && floors > 1 ? { x: x1 - 2, z: z0 + 2 } : null, stops };
 }
 import type { CommandHistory } from '../commands/CommandHistory';
 import type { BlockHit } from '../physics/raycast';
@@ -432,7 +434,7 @@ export class BuildTools {
         const py = groundY + f * storey + 2;
         for (let px = x0 + 2; px < x1; px += 4) {
           put(px, py, z0 + 1, opts.lamp);
-          put(px, py, z1 - 1, opts.lamp);
+          if (!(floors > 1 && px >= x0 + 1 && px <= x0 + storey + 6)) put(px, py, z1 - 1, opts.lamp);
         }
       }
     }
@@ -450,6 +452,7 @@ export class BuildTools {
           walls.push(px);
           for (let pz = z0 + 1; pz < z1; pz++) {
             if (pz >= corridorZ0 && pz <= corridorZ1) continue;
+            if (floors > 1 && pz >= z1 - 3 && px >= x0 + 1 && px <= x0 + storey + 5) continue; // the stairwell strip
             for (let h = 1; h < storey; h++) put(px, base + h, pz, opts.wall);
           }
         }
@@ -478,35 +481,86 @@ export class BuildTools {
               for (let h = 1; h < storey; h++) put(px, base + h, wallZ, px === doorAt && h <= 2 ? air : opts.wall);
             }
             // Keep the staircase corner free of a room on the back side.
-            const stairsHere = f < floors - 1 && rz1 >= z1 - 3 && rx0 <= x0 + 2 + storey;
-            roomRects.push({ x0: rx0, x1: rx1, z0: rz0, z1: stairsHere ? rz1 - 2 : rz1, base });
+            const stairsHere = floors > 1 && rz1 >= z1 - 3 && rx0 <= x0 + storey + 6;
+            if (stairsHere && rz1 - 3 < rz0) continue; // this room is the stairwell
+            roomRects.push({ x0: rx0, x1: rx1, z0: rz0, z1: stairsHere ? rz1 - 3 : rz1, base });
           }
         }
       }
     }
-    // Staircases: one flight per floor along the back wall, rising toward +x, with a hole above.
+    // The stairwell: a 2-wide strip along the back wall. Flights zig-zag with a two-block landing
+    // between them, nothing is ever filled in underneath, the slab above each flight is opened
+    // where a head would hit, and the whole strip stays clear of walls, furniture, and lamps on
+    // every floor. Buildings too narrow for a flight get a ladder shaft instead.
     const stairRotation = opts.stairRotation;
-    const stairFlights: Array<Array<{ x: number; y: number; z: number }>> = [];
-    for (let f = 0; f < floors - 1; f++) {
+    const stairFlights: Array<{ steps: Array<{ x: number; y: number; z: number }>; landing: { x: number; y: number; z: number }; dir: number }> = [];
+    const ladders: Array<{ x: number; z: number; bottom: number; top: number }> = [];
+    const sz = z1 - 2;
+    const sx = x0 + 2;
+    const wellLen = storey + 4; // steps + two landing cells + the next flight's first step clear
+    const useStairs = floors > 1 && sx + wellLen - 1 <= x1 - 2;
+    const stairwell = floors > 1 ? { x0: sx, x1: useStairs ? sx + wellLen - 1 : sx + 1, z0: sz, z1: sz + 1 } : null;
+    const inStairwell = (px: number, pz: number): boolean => stairwell !== null && px >= stairwell.x0 - 1 && px <= stairwell.x1 + 1 && pz >= stairwell.z0 - 1 && pz <= stairwell.z1 + 1;
+    if (stairwell) {
+      // Clear the strip on every floor first (room walls may have crossed it).
+      for (let f = 0; f < floors; f++) {
+        const base = groundY + f * storey;
+        for (let px = stairwell.x0; px <= stairwell.x1; px++) for (let pz = stairwell.z0; pz <= stairwell.z1; pz++) for (let h = 1; h < storey; h++) put(px, base + h, pz, air);
+      }
+    }
+    for (let f = 0; f < floors - 1 && useStairs; f++) {
       const base = groundY + f * storey;
-      const sz = z1 - 2;
-      const sx = x0 + 2;
-      const flight: Array<{ x: number; y: number; z: number }> = [];
-      stairFlights.push(flight);
+      const top = base + storey;
+      const dir = f % 2 === 0 ? 1 : -1;
+      const start = dir === 1 ? sx : sx + wellLen - 1;
+      const steps: Array<{ x: number; y: number; z: number }> = [];
       for (let i = 0; i < storey; i++) {
-        const px = sx + i;
+        const px = start + dir * i;
         const py = base + 1 + i;
-        flight.push({ x: px, y: py, z: sz });
-        // Two blocks wide, filled in underneath, a railing on the open side.
+        steps.push({ x: px, y: py, z: sz });
         for (const pz of [sz, sz + 1]) {
-          put(px, py, pz, opts.stairs, stairRotation);
-          for (let below = base + 1; below < py; below++) put(px, below, pz, opts.floor);
+          put(px, py, pz, opts.stairs, dir === 1 ? stairRotation : (stairRotation + 2) % 4);
           put(px, py + 1, pz, air);
           put(px, py + 2, pz, air);
+          if (py + 1 === top) put(px, top, pz, air); // the slab opening, where a head would hit
+          if (py + 2 === top) put(px, top, pz, air);
         }
-        if (opts.rail && py + 1 < base + storey) put(px, py + 1, sz - 1, opts.rail);
+        if (opts.rail && py + 1 < top) put(px, py + 1, sz - 1, opts.rail);
       }
-      // The top step sits in the slab; the headroom cuts carve the way up onto the next floor.
+      const landing = { x: start + dir * storey, y: top, z: sz };
+      for (const pz of [sz, sz + 1]) {
+        put(landing.x, top, pz, opts.floor);
+        put(landing.x + dir, top, pz, opts.floor);
+        for (let h = 1; h <= 2; h++) {
+          put(landing.x, top + h, pz, air);
+          put(landing.x + dir, top + h, pz, air);
+        }
+      }
+      stairFlights.push({ steps, landing, dir });
+    }
+    if (stairwell && !useStairs) {
+      // A ladder up the back wall through a two-cell opening in every slab.
+      const lx = sx;
+      const lz = z1 - 1;
+      ladders.push({ x: lx, z: lz, bottom: groundY + 1, top: groundY + (floors - 1) * storey + 1 });
+      for (let py = groundY + 1; py <= groundY + (floors - 1) * storey + 1; py++) {
+        put(lx, py, lz, opts.ladder, opts.ladderState);
+        put(lx, py, lz - 1, air);
+        put(lx + 1, py, lz, air);
+        put(lx + 1, py, lz - 1, air);
+      }
+      for (let f = 1; f < floors; f++) {
+        const top = groundY + f * storey;
+        put(lx, top, lz - 1, air);
+        put(lx + 1, top, lz, air);
+        put(lx + 1, top, lz - 1, air);
+        if (opts.rail) {
+          put(lx + 2, top + 1, lz, opts.rail);
+          put(lx + 2, top + 1, lz - 1, opts.rail);
+          put(lx, top + 1, lz - 2, opts.rail);
+          put(lx + 1, top + 1, lz - 2, opts.rail);
+        }
+      }
     }
     // Elevator shaft: a 2×2 opening through every floor slab at the back-right corner, railed.
     const layout = houseLayout(x, y, z, opts);
@@ -539,6 +593,7 @@ export class BuildTools {
             if (px === Math.floor((room.x0 + room.x1) / 2) && (pz === room.z0 || pz === room.z1)) continue; // leave the doorway free
             if (room.base === groundY && pz < z && (px === doorX || px === doorX + 1 || px === doorX - 1)) continue; // and the lobby
             if (layout.shaft && Math.abs(px - layout.shaft.x - 0.5) < 2 && Math.abs(pz - layout.shaft.z - 0.5) < 2) continue; // and the lift
+            if (inStairwell(px, pz)) continue;
             const item = set[n++ % set.length];
             put(px, room.base + 1, pz, item.id, item.state ?? 0);
             if (item.on !== undefined) put(px, room.base + 2, pz, item.on);
@@ -552,7 +607,7 @@ export class BuildTools {
         let n = 0;
         for (let px = x0 + 2; px <= x1 - 2; px += 2) {
           for (const pz of [z0 + 2, z1 - 3]) {
-            if (f < floors - 1 && Math.abs(pz - (z1 - 2)) <= 1 && px >= x0 + 1 && px <= x0 + 2 + storey) continue; // keep the stairs clear
+            if (inStairwell(px, pz)) continue; // keep the stairwell clear
             const item = perFloor[n++ % perFloor.length];
             if (item === undefined) continue;
             put(px, base + 1, pz, item.id, item.state ?? 0);
@@ -622,6 +677,7 @@ export class BuildTools {
       outward: -1,
       rooms: roomRects,
       stairs: stairFlights,
+      ladders,
       air,
       lamp: opts.lamp,
       wall: opts.wall,

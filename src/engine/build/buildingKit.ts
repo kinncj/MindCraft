@@ -2,7 +2,7 @@ import { BlockState } from '../blocks/BlockState';
 import type { BlockRegistry } from '../blocks/registry';
 import { resolveBlockId } from '../blocks/blocks';
 import { SHAPES } from '../blocks/shapes';
-import { DIR_PX } from '../world/coords';
+import { DIR_PX, DIR_PZ } from '../world/coords';
 import type { EarthworkKind, EarthworkOptions, FeatureKind, FeatureKit, FurnitureItem, HouseOptions } from './BuildTools';
 
 /**
@@ -94,6 +94,12 @@ export function flagRows(registry: BlockRegistry, name: string): number[][] | nu
   const art = FLAG_ART[name];
   if (!art) return null;
   return art.rows.map((row) => [...row].map((ch) => (ch === '.' ? 0 : registry.numericOf(art.colors[ch] ?? 'color_white'))));
+}
+
+/** A ladder on the back wall (the wall at +z) faces -z, toward the room. */
+export function ladderRotationOnBackWall(): number {
+  for (let r = 0; r < 4; r++) if (SHAPES.ladder.occludes(DIR_PZ, BlockState.withRotation(0, r))) return r;
+  return 0;
 }
 
 /** Which quarter turn makes a stairs block climb toward +x. */
@@ -196,6 +202,8 @@ export function houseOptions(registry: BlockRegistry, a: BuildingArgs): HouseOpt
     doorState: 0,
     stairs: /stone|brick|cobble/.test(a.wall ?? '') ? id('stone_stairs', 'planks_stairs') : id('planks_stairs', 'planks'),
     stairRotation: stairRotationTowardPlusX(),
+    ladder: id('ladder', 'planks'),
+    ladderState: BlockState.withRotation(0, ladderRotationOnBackWall()),
     lamp: maybe('lamp'),
     lantern: maybe('lantern'),
     rail: maybe('fence'),
