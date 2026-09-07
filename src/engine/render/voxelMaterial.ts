@@ -45,7 +45,7 @@ export function createBucketMaterials(atlas: TextureAtlas, dayLight: { value: nu
   const normalScale = new THREE.Vector2(0.9, 0.9);
 
   const standard = (extra: THREE.MeshStandardMaterialParameters): THREE.Material =>
-    new THREE.MeshStandardMaterial({ map, normalMap, normalScale, roughnessMap, roughness: 1, metalness: 0, envMapIntensity: 0.55, ...extra });
+    new THREE.MeshStandardMaterial({ map, normalMap, normalScale, roughnessMap, roughness: 1, metalness: 0, envMapIntensity: 0.35, ...extra });
   const lambert = (extra: THREE.MeshLambertMaterialParameters): THREE.Material => new THREE.MeshLambertMaterial({ map, ...extra });
   const make = pbr ? standard : lambert;
 

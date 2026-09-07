@@ -37,6 +37,15 @@ export class EnvironmentSystem implements System {
   private envBakedAt = -10;
   private envBakedTime = -1;
   private underwater = false;
+  /** The baked sky, for PBR materials only (flat materials would just darken). */
+  envMap: THREE.Texture | null = null;
+  private envListeners = new Set<(map: THREE.Texture | null) => void>();
+
+  onEnvMap(listener: (map: THREE.Texture | null) => void): () => void {
+    this.envListeners.add(listener);
+    listener(this.envMap);
+    return () => this.envListeners.delete(listener);
+  }
 
   constructor(
     private scene: THREE.Scene,
@@ -206,7 +215,8 @@ export class EnvironmentSystem implements System {
     this.sky.material.dispose();
     this.sky.geometry.dispose();
     this.sky = null;
-    this.scene.environment = null;
+    this.envMap = null;
+    for (const listener of this.envListeners) listener(null);
     this.scene.background = new THREE.Color(this.skyColor);
     this.envTarget?.dispose();
     this.envTarget = null;
@@ -220,9 +230,9 @@ export class EnvironmentSystem implements System {
     const dir = new THREE.Vector3(Math.cos(angle), Math.sin(angle), -0.3).normalize();
     u.sunPosition.value.copy(dir);
     const cloudy = this.weather !== 'sunny';
-    u.turbidity.value = cloudy ? 14 : 4 + (1 - sunUp) * 6;
-    u.rayleigh.value = cloudy ? 0.8 : 1.2 + (1 - sunUp) * 2.2;
-    u.mieCoefficient.value = cloudy ? 0.02 : 0.005 + (1 - sunUp) * 0.02;
+    u.turbidity.value = cloudy ? 8 : 3 + (1 - sunUp) * 5;
+    u.rayleigh.value = cloudy ? 1.0 : 1.4 + (1 - sunUp) * 2.0;
+    u.mieCoefficient.value = cloudy ? 0.012 : 0.004 + (1 - sunUp) * 0.015;
     this.sky.position.set(this.focus.x, this.focus.y, this.focus.z);
     // Re-bake the environment every couple of seconds or when time jumps.
     if (elapsed - this.envBakedAt > 2 || Math.abs(this.timeOfDay - this.envBakedTime) > 0.05) {
@@ -231,9 +241,10 @@ export class EnvironmentSystem implements System {
       const target = this.pmrem.fromScene(this.sky as unknown as THREE.Scene, 0.04);
       this.envTarget?.dispose();
       this.envTarget = target;
-      this.scene.environment = target.texture;
       this.scene.background = target.texture;
       this.scene.backgroundBlurriness = 0;
+      this.envMap = target.texture;
+      for (const listener of this.envListeners) listener(target.texture);
     }
   }
 

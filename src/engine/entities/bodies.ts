@@ -3,14 +3,15 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 
 /** Little block bodies for the creatures. All original, all friendly. */
 
-const style = { rounded: false };
+const style: { rounded: boolean; envMap: THREE.Texture | null } = { rounded: false, envMap: null };
 
 /** Cinema mode rounds every body part and gives it a soft PBR finish. */
-export function setBodyStyle(next: { rounded: boolean }): void {
+export function setBodyStyle(next: { rounded: boolean; envMap?: THREE.Texture | null }): void {
   style.rounded = next.rounded;
+  if (next.envMap !== undefined) style.envMap = next.envMap;
 }
 
-export function bodyStyle(): { rounded: boolean } {
+export function bodyStyle(): { rounded: boolean; envMap: THREE.Texture | null } {
   return { ...style };
 }
 
@@ -19,8 +20,10 @@ export function bodyGeometry(w: number, h: number, d: number): THREE.BufferGeome
   return new RoundedBoxGeometry(w, h, d, 3, Math.min(w, h, d) * 0.3);
 }
 
-export function bodyMaterial(color: string): THREE.Material {
-  return style.rounded ? new THREE.MeshStandardMaterial({ color, roughness: 0.65, metalness: 0 }) : new THREE.MeshLambertMaterial({ color });
+export function bodyMaterial(color: string, map?: THREE.Texture | null): THREE.Material {
+  return style.rounded
+    ? new THREE.MeshStandardMaterial({ color, map: map ?? null, roughness: 0.65, metalness: 0, envMap: style.envMap, envMapIntensity: 0.3 })
+    : new THREE.MeshLambertMaterial({ color, map: map ?? null });
 }
 
 export function box(w: number, h: number, d: number, color: string): THREE.Mesh {

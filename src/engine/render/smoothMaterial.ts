@@ -18,6 +18,8 @@ varying vec3 vWPos;
 varying vec3 vWNormal;
 uniform vec3 fillColor;
 uniform float dayLight;
+uniform float time;
+uniform float flowSpeed;
 varying float vSky;
 varying float vBlock;
 
@@ -34,17 +36,19 @@ void triplanar(out vec3 weights, out vec4 topRect) {
 }
 `;
 
-export function createSmoothMaterials(atlas: TextureAtlas, dayLight: { value: number }): Record<SmoothKind, THREE.Material> {
+export function createSmoothMaterials(atlas: TextureAtlas, dayLight: { value: number }, time: { value: number } = { value: 0 }): Record<SmoothKind, THREE.Material> {
   atlas.buildHiRes();
   const map = atlas.hiResTexture ?? atlas.texture ?? undefined;
   const normalMap = atlas.normalTexture ?? undefined;
   const roughnessMap = atlas.roughnessTexture ?? undefined;
 
-  const make = (fill: string, extra: THREE.MeshStandardMaterialParameters): THREE.Material => {
-    const material = new THREE.MeshStandardMaterial({ map, normalMap, roughnessMap, roughness: 1, metalness: 0, envMapIntensity: 0.55, ...extra });
+  const make = (fill: string, extra: THREE.MeshStandardMaterialParameters, flowSpeed = 0): THREE.Material => {
+    const material = new THREE.MeshStandardMaterial({ map, normalMap, roughnessMap, roughness: 1, metalness: 0, envMapIntensity: 0.35, ...extra });
     material.onBeforeCompile = (shader) => {
       shader.uniforms.dayLight = dayLight;
       shader.uniforms.fillColor = { value: new THREE.Color(fill) };
+      shader.uniforms.time = time;
+      shader.uniforms.flowSpeed = { value: flowSpeed };
       shader.vertexShader =
         'attribute vec4 tileTop;\nattribute vec4 tileSide;\nattribute float skylight;\nattribute float blocklight;\n' +
         'flat varying vec4 vTileTop;\nflat varying vec4 vTileSide;\nvarying vec3 vWPos;\nvarying vec3 vWNormal;\nvarying float vSky;\nvarying float vBlock;\n' +
@@ -82,9 +86,12 @@ export function createSmoothMaterials(atlas: TextureAtlas, dayLight: { value: nu
             '#include <normal_fragment_maps>',
             [
               '#ifdef USE_NORMALMAP',
-              'vec3 nx = tileSample(normalMap, vTileSide, vWPos.zy).xyz * 2.0 - 1.0;',
-              'vec3 ny = tileSample(normalMap, tTop, vWPos.xz).xyz * 2.0 - 1.0;',
-              'vec3 nz = tileSample(normalMap, vTileSide, vWPos.xy).xyz * 2.0 - 1.0;',
+              // Water drifts: two scrolling copies of the wave normals, blended.
+              'vec2 drift = vec2(time * 0.05, time * 0.03) * flowSpeed;',
+              'vec3 nx = tileSample(normalMap, vTileSide, vWPos.zy + drift).xyz * 2.0 - 1.0;',
+              'vec3 ny = tileSample(normalMap, tTop, vWPos.xz + drift).xyz * 2.0 - 1.0;',
+              'if (flowSpeed > 0.0) ny = normalize(ny + tileSample(normalMap, tTop, vWPos.xz * 1.7 - drift * 1.3).xyz * 2.0 - 1.0);',
+              'vec3 nz = tileSample(normalMap, vTileSide, vWPos.xy + drift).xyz * 2.0 - 1.0;',
               'vec3 bump = vec3(0.0, nx.y, nx.x) * tw.x + vec3(ny.x, 0.0, ny.y) * tw.y + vec3(nz.x, nz.y, 0.0) * tw.z;',
               'vec3 worldN = normalize(normalize(vWNormal) + bump * normalScale.x * 0.8);',
               'normal = normalize((viewMatrix * vec4(worldN, 0.0)).xyz);',
@@ -102,13 +109,14 @@ export function createSmoothMaterials(atlas: TextureAtlas, dayLight: { value: nu
             ].join('\n'),
           );
     };
-    material.customProgramCacheKey = () => `smooth-${fill}`;
+    material.customProgramCacheKey = () => `smooth-${fill}-${flowSpeed}`;
     return material;
   };
 
   return {
     terrain: make('#8a6a44', { normalScale: new THREE.Vector2(1, 1) }),
     foliage: make('#3f9a4c', { normalScale: new THREE.Vector2(0.6, 0.6), roughness: 0.9 }),
-    water: make('#3d8fd6', { transparent: true, opacity: 0.8, depthWrite: false, roughness: 0.06, metalness: 0.05, envMapIntensity: 1.3, normalScale: new THREE.Vector2(0.35, 0.35) }),
+    water: make('#3d8fd6', { transparent: true, opacity: 0.78, depthWrite: false, roughness: 0.05, metalness: 0.05, envMapIntensity: 1.4, normalScale: new THREE.Vector2(0.5, 0.5) }, 1),
+    wood: make('#6b4423', { normalScale: new THREE.Vector2(1.2, 1.2), roughness: 0.85 }),
   };
 }

@@ -112,3 +112,24 @@ describe('creatures and water', () => {
     expect(walker.y).toBeCloseTo(4.5, 1);
   });
 });
+
+describe('plugging water', () => {
+  it('water is replaceable so a block can be placed into it, and water never overwrites water', () => {
+    expect(blocks.byId('water')?.replaceable).toBe(true);
+    const world = flat();
+    const fluids = new FluidSystem(world, blocks);
+    world.setBlock(8, 5, 8, B.water, 0);
+    fluids.settle();
+    // A brick dropped into the stream stops it and the far side drains.
+    world.setBlock(9, 5, 8, B.brick, 0);
+    world.setBlock(9, 5, 7, B.brick, 0);
+    world.setBlock(9, 5, 9, B.brick, 0);
+    fluids.settle();
+    expect(world.getBlock(9, 5, 8)).toBe(B.brick);
+    expect(level(world, 8, 5, 8)).toBe(FLUID_SOURCE);
+    // Neighbors of the source keep their own levels: never clobbered by a weaker flow.
+    world.setBlock(7, 5, 8, B.water, 0);
+    fluids.settle();
+    expect(level(world, 7, 5, 8)).toBe(FLUID_SOURCE);
+  });
+});

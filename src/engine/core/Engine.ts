@@ -21,6 +21,7 @@ import { LightEngine } from '../lighting/LightEngine';
 import { PlayerController } from '../physics/PlayerController';
 import { isFluidAt } from '../physics/collision';
 import { FluidSystem } from '../world/FluidSystem';
+import { PostFx } from '../render/PostFx';
 import { ChunkMesher } from '../render/ChunkMesher';
 import { ChunkRenderer } from '../render/ChunkRenderer';
 import { CloudLayer } from '../render/CloudLayer';
@@ -104,6 +105,9 @@ declare global {
       blockAt: (x: number, y: number, z: number) => string | null;
       surfaceAt: (x: number, z: number) => number;
       isReady: () => boolean;
+      renderStats: () => { pbr: boolean; smooth: boolean; postFx: boolean; meshes: number; envMap: boolean };
+      setPostFx: (on: boolean) => void;
+      setPostFxOptions: (options: { ao?: boolean; bloom?: boolean; vignette?: boolean }) => void;
       spawn: () => { x: number; y: number; z: number };
       lastTap: () => unknown;
       pick: (clientX: number, clientY: number) => { x: number; y: number; z: number; face: number } | null;
@@ -129,6 +133,7 @@ export class Engine {
   readonly camera: CameraSystem;
   private mesher: ChunkMesher;
   readonly fluids: FluidSystem;
+  private postFx: PostFx;
   readonly environment: EnvironmentSystem;
   readonly entities: EntitySystem;
   readonly chunks: ChunkManager;
@@ -236,6 +241,11 @@ export class Engine {
     // one. Start it after the tap has been handled so the tap itself stays snappy.
     this.renderer.domElement.addEventListener('pointerdown', () => setTimeout(() => void this.audio.start(), 250), { passive: true });
     this.clouds = new CloudLayer(this.scene, options.generator.seed);
+    this.postFx = new PostFx(this.renderer, this.scene, this.camera.camera);
+    this.environment.onEnvMap((map) => {
+      this.chunkRenderer.setEnvMap(map);
+      setBodyStyle({ rounded: this.mesher.smooth, envMap: map });
+    });
 
     this.chunks = new ChunkManager(this.world, this.generator, lighting, mesher, options.storage, {
       viewRadius: options.viewRadius ?? (this.lowPower ? 4 : 7),
@@ -358,6 +368,8 @@ export class Engine {
   }
 
   static detectSoftwareRendering(): boolean {
+    // `?power=high` forces the full renderer (testing on software GL).
+    if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('power') === 'high') return false;
     try {
       const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
@@ -640,7 +652,9 @@ export class Engine {
     // Gentle water shimmer.
     const water = this.chunkRenderer.materials.water as THREE.MeshLambertMaterial;
     water.opacity = 0.78 + Math.sin(this.loopElapsed() * 1.4) * 0.06;
-    this.renderer.render(this.scene, this.camera.camera);
+    this.chunkRenderer.time.value = this.loopElapsed();
+    if (this.postFx.enabled) this.postFx.render();
+    else this.renderer.render(this.scene, this.camera.camera);
   }
 
   private elapsedClock = new THREE.Clock();
@@ -653,6 +667,7 @@ export class Engine {
     const height = this.options.container.clientHeight || 1;
     this.renderer.setSize(width, height);
     this.camera.resize(width, height);
+    this.postFx.resize(width, height);
   };
 
   // --- Public API for the app layer -----------------------------------------
@@ -676,7 +691,10 @@ export class Engine {
   /** Materials, smooth surfaces, rounded bodies, and draw distance for a mode. */
   private applyRendering(def: VisualModeDefinition): void {
     const pbr = def.rendering.pbr && !this.lowPower;
+    this.renderer.shadowMap.type = pbr ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     this.chunkRenderer.setPbr(pbr);
+    this.clouds.setVisible(!pbr);
+    this.postFx.setEnabled(pbr && def.rendering.postFx);
     this.chunks.options.viewRadius = (this.lowPower ? 4 : 7) + def.rendering.viewRadiusBonus;
     const smooth = pbr && def.rendering.smooth;
     setBodyStyle({ rounded: smooth });
@@ -739,6 +757,9 @@ export class Engine {
       },
       surfaceAt: (x, z) => this.world.height(x, z),
       isReady: () => this.settled,
+      renderStats: () => ({ pbr: this.chunkRenderer.isPbr, smooth: this.mesher.smooth, postFx: this.postFx.enabled, meshes: this.chunkRenderer.meshCount, envMap: this.scene.environment !== null }),
+      setPostFx: (on) => this.postFx.setEnabled(on),
+      setPostFxOptions: (options) => this.postFx.setOptions(options),
       spawn: () => this.spawn,
       lastTap: () => this.interaction.state.lastTap,
       pick: (clientX, clientY) => {

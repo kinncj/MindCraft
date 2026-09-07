@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { bodyGeometry, bodyStyle } from './bodies';
+import { bodyGeometry, bodyMaterial, bodyStyle } from './bodies';
 import type { System } from '../core/System';
 import type { PlayerController } from '../physics/PlayerController';
 import { box, disposeGroup } from './bodies';
@@ -23,9 +23,9 @@ export function buildAvatarBody(colors: PlayerLook): AvatarParts {
   const faceTexture = paintFace(colors.skin, colors.hair);
   const headMaterials: THREE.Material[] = [];
   for (let i = 0; i < 6; i++) {
-    if (i === 4 && faceTexture) headMaterials.push(new THREE.MeshLambertMaterial({ map: faceTexture }));
-    else if (i === 2) headMaterials.push(new THREE.MeshLambertMaterial({ color: colors.hair }));
-    else headMaterials.push(new THREE.MeshLambertMaterial({ color: colors.skin }));
+    if (i === 4 && faceTexture) headMaterials.push(bodyMaterial('#ffffff', faceTexture));
+    else if (i === 2) headMaterials.push(bodyMaterial(colors.hair));
+    else headMaterials.push(bodyMaterial(colors.skin));
   }
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.46, 0.46), headMaterials);
   head.position.y = 1.6;
@@ -75,6 +75,7 @@ function paintFace(skin: string, hair: string): THREE.Texture | null {
   ctx.fillRect(4, 10, 1, 1);
   ctx.fillRect(11, 10, 1, 1);
   const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
   texture.magFilter = THREE.NearestFilter;
   texture.minFilter = THREE.NearestFilter;
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -138,9 +139,9 @@ export class PlayerAvatar implements System {
     this.legLeft = parts.legLeft;
     this.legRight = parts.legRight;
 
-    const sleeve = new THREE.Mesh(bodyGeometry(0.14, 0.14, 0.4), new THREE.MeshBasicMaterial({ color: colors.shirt }));
+    const sleeve = new THREE.Mesh(bodyGeometry(0.14, 0.14, 0.4), bodyMaterial(colors.shirt));
     sleeve.position.z = 0.14;
-    const hand = new THREE.Mesh(bodyGeometry(0.13, 0.13, 0.14), new THREE.MeshBasicMaterial({ color: colors.skin }));
+    const hand = new THREE.Mesh(bodyGeometry(0.13, 0.13, 0.14), bodyMaterial(colors.skin));
     hand.position.z = -0.13;
     this.firstPersonArm.add(sleeve, hand);
   }

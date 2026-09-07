@@ -16,6 +16,8 @@ export class ChunkRenderer {
   readonly group = new THREE.Group();
   materials: Record<RenderBucket, THREE.Material>;
   smoothMaterials: Record<SmoothKind, THREE.Material> | null = null;
+  /** Seconds, for animated water. */
+  readonly time = { value: 0 };
   private meshes = new Map<string, Partial<Record<RenderBucket, THREE.Mesh>> & { smooth?: Partial<Record<SmoothKind, THREE.Mesh>> }>();
   private pbr = false;
 
@@ -41,11 +43,30 @@ export class ChunkRenderer {
       }
     }
     for (const material of Object.values(old)) material.dispose();
-    if (pbr && !this.smoothMaterials) this.smoothMaterials = createSmoothMaterials(this.atlas, this.dayLight);
+    if (pbr && !this.smoothMaterials) this.smoothMaterials = createSmoothMaterials(this.atlas, this.dayLight, this.time);
+    this.applyEnvMap();
   }
 
   get isPbr(): boolean {
     return this.pbr;
+  }
+
+  private envMap: THREE.Texture | null = null;
+
+  /** Sky reflections and fill light for the PBR materials. */
+  setEnvMap(map: THREE.Texture | null): void {
+    this.envMap = map;
+    this.applyEnvMap();
+  }
+
+  private applyEnvMap(): void {
+    const all = [...Object.values(this.materials), ...Object.values(this.smoothMaterials ?? {})];
+    for (const material of all) {
+      if (material instanceof THREE.MeshStandardMaterial && material.envMap !== this.envMap) {
+        material.envMap = this.envMap;
+        material.needsUpdate = true;
+      }
+    }
   }
 
   setMeshes(chunk: Chunk, data: ChunkMeshes): void {

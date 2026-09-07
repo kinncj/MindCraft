@@ -95,7 +95,7 @@ export type BlockBehavior = {
 };
 
 /** Which smooth surface a natural block joins in Cinema mode. */
-export type SmoothKind = 'terrain' | 'foliage' | 'water';
+export type SmoothKind = 'terrain' | 'foliage' | 'water' | 'wood';
 
 export type BlockDefinition = {
   /** Human-stable string id used in files and code. */

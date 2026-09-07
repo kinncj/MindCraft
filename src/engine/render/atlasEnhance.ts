@@ -5,7 +5,9 @@
  * art stays original pixel art underneath.
  */
 
-export const HI_RES_SCALE = 4;
+import { paintRealTile } from './realMaterials';
+
+export const HI_RES_SCALE = 8;
 
 /** Base roughness per texture key prefix (0 = mirror, 1 = chalk). */
 const ROUGHNESS: Array<[RegExp, number]> = [
@@ -41,6 +43,8 @@ function isSmooth(key: string): boolean {
 
 export function enhanceTile(tile: HTMLCanvasElement, key: string, seed: number): MaterialTiles | null {
   const size = tile.width * HI_RES_SCALE;
+  const real = paintRealTile(key, size, seed);
+  if (real) return materialFromReal(real, key, seed);
   const src = tile.getContext('2d')?.getImageData(0, 0, tile.width, tile.height);
   if (!src) return null;
   const color = document.createElement('canvas');
@@ -114,6 +118,56 @@ export function enhanceTile(tile: HTMLCanvasElement, key: string, seed: number):
   const rr = noise(seed * 31 + 5);
   for (let i = 0; i < size * size; i++) {
     const v = Math.max(0, Math.min(1, base + (rr() - 0.5) * (smooth ? 0.04 : 0.16) - height[i] * 0.1));
+    roughData.data[i * 4] = Math.round(v * 255);
+    roughData.data[i * 4 + 1] = Math.round(v * 255);
+    roughData.data[i * 4 + 2] = Math.round(v * 255);
+    roughData.data[i * 4 + 3] = 255;
+  }
+  rctx.putImageData(roughData, 0, 0);
+  return { color, normal, roughness: rough };
+}
+
+/** Color, normal, and roughness maps from a generated photo-like tile. */
+function materialFromReal(real: { color: Uint8ClampedArray; height: Float32Array; size: number }, key: string, seed: number): MaterialTiles | null {
+  const size = real.size;
+  const color = document.createElement('canvas');
+  color.width = color.height = size;
+  const normal = document.createElement('canvas');
+  normal.width = normal.height = size;
+  const rough = document.createElement('canvas');
+  rough.width = rough.height = size;
+  const cctx = color.getContext('2d');
+  const nctx = normal.getContext('2d');
+  const rctx = rough.getContext('2d');
+  if (!cctx || !nctx || !rctx) return null;
+  const image = cctx.createImageData(size, size);
+  image.data.set(real.color);
+  cctx.putImageData(image, 0, 0);
+
+  const height = real.height;
+  const h = (x: number, y: number): number => height[((y + size) % size) * size + ((x + size) % size)];
+  const strength = isSmooth(key) ? 0.9 : 3.2;
+  const normalData = nctx.createImageData(size, size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = (h(x + 1, y - 1) + 2 * h(x + 1, y) + h(x + 1, y + 1) - h(x - 1, y - 1) - 2 * h(x - 1, y) - h(x - 1, y + 1)) * strength;
+      const dy = (h(x - 1, y + 1) + 2 * h(x, y + 1) + h(x + 1, y + 1) - h(x - 1, y - 1) - 2 * h(x, y - 1) - h(x + 1, y - 1)) * strength;
+      const len = Math.hypot(dx, dy, 1);
+      const di = (y * size + x) * 4;
+      normalData.data[di] = Math.round(((-dx / len) * 0.5 + 0.5) * 255);
+      normalData.data[di + 1] = Math.round(((-dy / len) * 0.5 + 0.5) * 255);
+      normalData.data[di + 2] = Math.round(((1 / len) * 0.5 + 0.5) * 255);
+      normalData.data[di + 3] = 255;
+    }
+  }
+  nctx.putImageData(normalData, 0, 0);
+
+  const base = roughnessFor(key);
+  const rr = noise(seed * 31 + 5);
+  const roughData = rctx.createImageData(size, size);
+  for (let i = 0; i < size * size; i++) {
+    // Crevices are rougher, high spots a little smoother.
+    const v = Math.max(0.03, Math.min(1, base + (0.5 - height[i]) * 0.25 + (rr() - 0.5) * 0.06));
     roughData.data[i * 4] = Math.round(v * 255);
     roughData.data[i * 4 + 1] = Math.round(v * 255);
     roughData.data[i * 4 + 2] = Math.round(v * 255);

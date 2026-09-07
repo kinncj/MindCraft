@@ -6,3 +6,6 @@ test-results/
 .DS_Store
 *.local
 *.tsbuildinfo
+
+# local screenshot scripts
+/.*.mjs

@@ -35,6 +35,11 @@ export class CloudLayer implements System {
     scene.add(this.group);
   }
 
+  /** Cinema draws a real sky instead of block clouds. */
+  setVisible(on: boolean): void {
+    this.group.visible = on;
+  }
+
   setFocus(x: number, z: number): void {
     this.focus = { x, z };
   }

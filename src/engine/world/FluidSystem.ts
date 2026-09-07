@@ -40,9 +40,11 @@ export class FluidSystem implements System {
     return id !== 0 && this.registry.get(id)?.collision === 'fluid';
   }
 
+  /** Air, or something soft like grass and flowers. Never other water. */
   private canFlowInto(id: number): boolean {
     if (id === 0) return true;
-    return this.registry.get(id)?.replaceable === true;
+    const def = this.registry.get(id);
+    return def?.replaceable === true && def.collision !== 'fluid';
   }
 
   private level(x: number, y: number, z: number): number {

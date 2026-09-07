@@ -33,7 +33,7 @@ export type SmoothMeshData = {
 
 export type SmoothMeshes = Partial<Record<SmoothKind, SmoothMeshData>>;
 
-export const SMOOTH_KINDS: SmoothKind[] = ['terrain', 'foliage', 'water'];
+export const SMOOTH_KINDS: SmoothKind[] = ['terrain', 'foliage', 'water', 'wood'];
 const ISO = 0.45;
 const BORDER = 1;
 const SIZE = CHUNK_SIZE + 2 * BORDER; // samples per side, with a border for continuity

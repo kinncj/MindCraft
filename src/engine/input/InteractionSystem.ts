@@ -64,25 +64,26 @@ export class InteractionSystem implements System {
 
   /** What a tap at these normalized coords would hit. Public for tests. */
   pickAt(ndcX: number, ndcY: number): BlockHit | null {
-    return this.pick(ndcX, ndcY);
+    return this.pick(ndcX, ndcY, this.bridge.getMode() === 'remove');
   }
 
-  private pick(ndcX: number, ndcY: number): BlockHit | null {
+  /** Water is only a target when removing it; otherwise taps reach the ground beneath. */
+  private pick(ndcX: number, ndcY: number, seeFluids: boolean): BlockHit | null {
     const ray = this.camera.viewMode === 'first' ? this.camera.forwardRay() : this.camera.ray(ndcX, ndcY);
-    return raycastBlocks(this.world, this.registry, ray, this.camera.viewMode === 'first' ? REACH : REACH * 6);
+    return raycastBlocks(this.world, this.registry, ray, this.camera.viewMode === 'first' ? REACH : REACH * 6, seeFluids ? undefined : (def) => def.collision !== 'fluid');
   }
 
   update(): void {
     for (const tap of this.input.taps) {
       const ray = this.camera.viewMode === 'first' ? this.camera.forwardRay() : this.camera.ray(tap.ndcX, tap.ndcY);
       if (this.bridge.tapEntity?.(ray)) continue;
-      const hit = this.pick(tap.ndcX, tap.ndcY);
+      const mode = this.bridge.getMode();
+      const removing = tap.button === 2 || mode === 'remove';
+      const hit = this.pick(tap.ndcX, tap.ndcY, removing);
       if (!hit) {
         this.state.lastTap = { hit: null, action: 'miss' };
         continue;
       }
-      const mode = this.bridge.getMode();
-      const removing = tap.button === 2 || mode === 'remove';
       if (removing) this.state.lastTap = { hit, action: this.removeAt(hit) ? 'removed' : 'remove-failed' };
       else if (mode === 'place') this.state.lastTap = { hit, action: this.placeOrInteract(hit) };
       else if (mode === 'interact') this.state.lastTap = { hit, action: this.interact(hit.x, hit.y, hit.z, hit.face) ? 'interacted' : 'nothing-to-interact' };
@@ -91,9 +92,9 @@ export class InteractionSystem implements System {
     if (this.input.pressed.has('r')) this.build.rotateClipboard();
 
     const hover = this.camera.viewMode === 'first' ? { ndcX: 0, ndcY: 0 } : this.input.hover;
-    const hit = hover ? this.pick(hover.ndcX, hover.ndcY) : null;
-    this.state.highlight = hit ? { x: hit.x, y: hit.y, z: hit.z } : null;
     const mode = this.bridge.getMode();
+    const hit = hover ? this.pick(hover.ndcX, hover.ndcY, mode === 'remove') : null;
+    this.state.highlight = hit ? { x: hit.x, y: hit.y, z: hit.z } : null;
     this.state.placement = hit && mode === 'place' ? this.placementFor(hit) : null;
     this.state.selection = hit ? this.selectionFor(hit, mode) : null;
   }
