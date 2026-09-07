@@ -29,6 +29,16 @@ in seven pushed phases (each green on 100+ unit tests, typecheck, and build):
 7. **Sound** (ADR-0009): generative Tone.js soundtrack by biome and time of day,
    synth effects, mute/music/volume, `audio_*` tools. No audio files.
 
+8. **Premium UI** (dark-glass design system), then follow-ups the user asked for
+   during play: a **tiny trained neural brain** for creatures (ADR-0010, 600 weights,
+   `npm run train:brain`), an **Interact** tool, two prebuilt maps (**Toy Land**
+   bedroom, **Sunny Town**) drawn by a MapBuilder inside the flat generator, zoom
+   buttons and D-pad zoom, **villager chat that builds** (ADR-0011: rules, the
+   browser's built-in on-device model behind a parent toggle, outside agents via
+   `window.mindcraftChat`; villagers lay blocks by hand, undoable), a live 3D
+   **dress-up preview** with boy/girl styles, rider facing and a chase camera for
+   vehicles, and a block picker for robots.
+
 Docs kept in step: README, CLAUDE.md, gameplay scope, kid-friendly principles,
 storage and export/import ops docs, ADR-0003/0004 amendments, ADR-0006..0009.
 `npm audit fix` cleared the three transitive advisories; checkout/setup-node
@@ -42,7 +52,8 @@ actions bumped to v5.
   `Brain` interface leaves room for a parent-gated mode.
 - Crafting is playful (nothing consumed); logic edits by pistons bypass undo.
 - Tools are the single capability surface; the UI and agents share code paths.
-- Local Playwright runs are off by user request (laptop load); CI runs them.
+- Local Playwright runs are off by user request (laptop load); CI runs them. Single
+  headless screenshot passes were used to eyeball the UI and maps.
 
 ## Unfinished / follow-up
 
