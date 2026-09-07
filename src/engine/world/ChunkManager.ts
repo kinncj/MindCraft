@@ -5,6 +5,8 @@ import { Chunk } from './Chunk';
 import { CHUNK_SIZE, chunkKey, parseChunkKey, toChunkCoord } from './coords';
 import type { GeneratorConfig, WorldGenerator } from './generation/Generator';
 import type { GenerateRequest, GenerateResponse } from './generation/generation.worker';
+import { packRegion } from '../render/meshRegion';
+import type { MeshRequest, MeshResponse } from '../render/mesh.worker';
 import type { VoxelWorld } from './VoxelWorld';
 
 /** Persisted chunk contents, or null when the chunk was never edited. */
@@ -27,9 +29,11 @@ export type ChunkManagerOptions = {
   /** Mesh this many chunks per frame at most. */
   meshBudget: number;
   useWorker: boolean;
+  /** Mesh in background workers (default: when workers exist). */
+  meshWorkers: number;
 };
 
-const DEFAULTS: ChunkManagerOptions = { viewRadius: 6, generateBudget: 2, meshBudget: 3, useWorker: true };
+const DEFAULTS: ChunkManagerOptions = { viewRadius: 6, generateBudget: 2, meshBudget: 3, useWorker: true, meshWorkers: 2 };
 
 /**
  * Streams the world around a focus point: loads saved chunks or generates
@@ -46,6 +50,12 @@ export class ChunkManager implements System {
   private nextJob = 1;
   private meshSink: ((chunk: Chunk, meshes: ChunkMeshes) => void) | null = null;
   private removeSink: ((key: string) => void) | null = null;
+  private meshWorkers: Worker[] = [];
+  private meshJobs = new Map<number, string>();
+  private nextMeshJob = 1;
+  private nextWorker = 0;
+  /** Chunks meshed in a worker so far (debug). */
+  meshedInWorker = 0;
   private applyTemplate: ((chunk: Chunk) => void) | null = null;
   /** Chunks fully loaded (generated + lit). Read by tests and the spawn logic. */
   readonly readyKeys = new Set<string>();
@@ -59,6 +69,27 @@ export class ChunkManager implements System {
     options: Partial<ChunkManagerOptions> = {},
   ) {
     this.options = { ...DEFAULTS, ...options };
+    if (this.options.useWorker && this.options.meshWorkers > 0 && typeof Worker !== 'undefined') {
+      for (let i = 0; i < this.options.meshWorkers; i++) {
+        try {
+          const worker = new Worker(new URL('../render/mesh.worker.ts', import.meta.url), { type: 'module' });
+          worker.onmessage = (event: MessageEvent<MeshResponse>) => this.onMeshed(event.data);
+          worker.onerror = () => {
+            // Fall back to meshing on the main thread for the rest of the session.
+            for (const w of this.meshWorkers) w.terminate();
+            this.meshWorkers = [];
+            for (const key of this.meshJobs.values()) {
+              const { cx, cz } = parseChunkKey(key);
+              this.world.getChunk(cx, cz)?.setDirty();
+            }
+            this.meshJobs.clear();
+          };
+          this.meshWorkers.push(worker);
+        } catch {
+          break;
+        }
+      }
+    }
     if (this.options.useWorker && typeof Worker !== 'undefined') {
       try {
         this.worker = new Worker(new URL('./generation/generation.worker.ts', import.meta.url), { type: 'module' });
@@ -133,7 +164,7 @@ export class ChunkManager implements System {
       }
     }
     await Promise.all(jobs);
-    this.meshDirty(Infinity);
+    this.meshDirty(Infinity, true);
   }
 
   update(): void {
@@ -247,7 +278,7 @@ export class ChunkManager implements System {
     await Promise.all(jobs);
   }
 
-  private meshDirty(budget: number): void {
+  private meshDirty(budget: number, sync = false): void {
     if (!this.meshSink) return;
     const dirty = this.world
       .allChunks()
@@ -257,13 +288,42 @@ export class ChunkManager implements System {
         d: this.priority(c.cx, c.cz),
       }))
       .sort((a, b) => a.d - b.d);
+    const useWorkers = !sync && this.meshWorkers.length > 0;
+    // Workers take a few jobs at a time; more only queues memory.
+    const inFlightCap = this.meshWorkers.length * 3;
     let done = 0;
     for (const { chunk } of dirty) {
       if (done >= budget) break;
-      chunk.dirtyMesh = false;
-      this.meshSink(chunk, this.mesher.build(chunk));
+      const key = chunkKey(chunk.cx, chunk.cz);
+      if (useWorkers) {
+        if (this.meshJobs.size >= inFlightCap) break;
+        chunk.dirtyMesh = false;
+        const id = this.nextMeshJob++;
+        this.meshJobs.set(id, key);
+        const region = packRegion(this.world, chunk.cx, chunk.cz);
+        const request: MeshRequest = { id, region, smooth: this.mesher.smooth };
+        const worker = this.meshWorkers[this.nextWorker++ % this.meshWorkers.length];
+        worker.postMessage(request, [region.blocks, region.states, region.sky, region.light, region.heights]);
+      } else {
+        chunk.dirtyMesh = false;
+        this.meshSink(chunk, this.mesher.build(chunk));
+      }
       done++;
     }
+  }
+
+  private onMeshed(response: MeshResponse): void {
+    const key = this.meshJobs.get(response.id);
+    this.meshJobs.delete(response.id);
+    if (!key) return;
+    const chunk = this.world.getChunk(response.cx, response.cz);
+    if (!chunk) return; // unloaded meanwhile
+    this.meshedInWorker += 1;
+    this.meshSink?.(chunk, response.meshes);
+  }
+
+  get meshJobsInFlight(): number {
+    return this.meshJobs.size;
   }
 
   /** World-space center of the loaded area, for effects that follow the player. */
@@ -272,6 +332,8 @@ export class ChunkManager implements System {
   }
 
   dispose(): void {
+    for (const w of this.meshWorkers) w.terminate();
+    this.meshWorkers = [];
     this.worker?.terminate();
     this.worker = null;
   }

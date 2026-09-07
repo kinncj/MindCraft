@@ -3,7 +3,7 @@ import type { BlockRegistry } from '../blocks/registry';
 import { fluidHeight } from '../blocks/shapes';
 import type { Chunk } from '../world/Chunk';
 import { CHUNK_SIZE, WORLD_HEIGHT } from '../world/coords';
-import type { VoxelWorld } from '../world/VoxelWorld';
+import type { MeshWorldView } from './meshRegion';
 import type { TextureAtlas } from './TextureAtlas';
 
 /**
@@ -53,7 +53,7 @@ const CUBE_EDGES: Array<[number, number]> = [
 
 export class SmoothMesher {
   constructor(
-    private world: VoxelWorld,
+    private world: MeshWorldView,
     private registry: BlockRegistry,
     private atlas: TextureAtlas,
   ) {}
@@ -89,16 +89,12 @@ export class SmoothMesher {
     return out;
   }
 
-  /** Highest column in this chunk and its neighbors. */
+  /** Highest column in this chunk and its one-block border. */
   private regionTop(chunk: Chunk): number {
     let top = 0;
-    for (let dz = -1; dz <= 1; dz++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        const c = this.world.getChunk(chunk.cx + dx, chunk.cz + dz);
-        if (!c) continue;
-        for (let lz = 0; lz < CHUNK_SIZE; lz++) for (let lx = 0; lx < CHUNK_SIZE; lx++) top = Math.max(top, c.height(lx, lz));
-      }
-    }
+    const baseX = chunk.cx * CHUNK_SIZE - BORDER;
+    const baseZ = chunk.cz * CHUNK_SIZE - BORDER;
+    for (let z = 0; z < SIZE; z++) for (let x = 0; x < SIZE; x++) top = Math.max(top, this.world.height(baseX + x, baseZ + z));
     return top;
   }
 

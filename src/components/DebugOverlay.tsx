@@ -75,6 +75,8 @@ export function DebugOverlay() {
         )}
         <dt>Errors</dt>
         <dd className={errors.length ? 'debug-error' : undefined}>{errors.length === 0 ? 'none' : `${errors.length} (loop skipped ${getEngine()?.loop.errors ?? 0} frames)`}</dd>
+        <dt>Frame</dt>
+        <dd>{snap?.render ? `${String(snap.render.fps)} fps · ${String(snap.render.frameMs)} ms · ${String(snap.render.drawCalls)} draws · ${String(snap.render.triangles)} tris · mesh jobs ${String(snap.render.meshJobs)} (worker meshed ${String(snap.render.meshedInWorker)})` : '-'}</dd>
         <dt>Render</dt>
         <dd>{snap?.render ? JSON.stringify(snap.render) : '-'}</dd>
         <dt>Browser</dt>

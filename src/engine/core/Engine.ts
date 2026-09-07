@@ -113,7 +113,7 @@ declare global {
       blockAt: (x: number, y: number, z: number) => string | null;
       surfaceAt: (x: number, z: number) => number;
       isReady: () => boolean;
-      renderStats: () => { pbr: boolean; smooth: boolean; postFx: boolean; meshes: number; envMap: boolean };
+      renderStats: () => Record<string, unknown>;
       setPostFx: (on: boolean) => void;
       setPostFxOptions: (options: { ao?: boolean; bloom?: boolean; vignette?: boolean }) => void;
       spawn: () => { x: number; y: number; z: number };
@@ -696,7 +696,23 @@ export class Engine {
 
   private framesSinceBlocked = 0;
 
+  /** Rolling frame timing for the debug overlay. */
+  private perf = { fps: 0, frameMs: 0, last: 0 };
+  private shadowFrame = 0;
+
   private render(): void {
+    const now = performance.now();
+    if (this.perf.last > 0) {
+      const ms = now - this.perf.last;
+      this.perf.frameMs += (ms - this.perf.frameMs) * 0.1;
+      this.perf.fps = 1000 / Math.max(1, this.perf.frameMs);
+    }
+    this.perf.last = now;
+    // Phones refresh the sun shadow every third frame; nobody notices, the GPU does.
+    if (this.renderer.shadowMap.enabled) {
+      this.renderer.shadowMap.autoUpdate = false;
+      this.renderer.shadowMap.needsUpdate = !this.mobile || this.shadowFrame++ % 3 === 0;
+    }
     // A sheet is open: the world behind it is static. Skip GPU work so
     // phones with blurred glass panels do not crawl.
     if (this.input.blocked) {
@@ -889,7 +905,21 @@ export class Engine {
       },
       surfaceAt: (x, z) => this.world.height(x, z),
       isReady: () => this.settled,
-      renderStats: () => ({ pbr: this.chunkRenderer.isPbr, smooth: this.mesher.smooth, postFx: this.postFx.enabled, meshes: this.chunkRenderer.meshCount, envMap: this.scene.environment !== null }),
+      renderStats: () => ({
+        pbr: this.chunkRenderer.isPbr,
+        smooth: this.mesher.smooth,
+        postFx: this.postFx.enabled,
+        meshes: this.chunkRenderer.meshCount,
+        envMap: this.environment.envMap !== null,
+        fps: Math.round(this.perf.fps),
+        frameMs: Math.round(this.perf.frameMs * 10) / 10,
+        drawCalls: this.renderer.info.render.calls,
+        triangles: this.renderer.info.render.triangles,
+        meshJobs: this.chunks.meshJobsInFlight,
+        meshedInWorker: this.chunks.meshedInWorker,
+        mobile: this.mobile,
+        lowPower: this.lowPower,
+      }),
       setPostFx: (on) => this.postFx.setEnabled(on),
       setPostFxOptions: (options) => this.postFx.setOptions(options),
       spawn: () => this.spawn,

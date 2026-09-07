@@ -4,7 +4,7 @@ import type { BlockRegistry } from '../blocks/registry';
 import { SHAPES } from '../blocks/shapes';
 import type { Chunk } from '../world/Chunk';
 import { CHUNK_SIZE, DIRECTIONS, WORLD_HEIGHT, localIndex, oppositeDirection } from '../world/coords';
-import type { VoxelWorld } from '../world/VoxelWorld';
+import type { MeshWorldView } from './meshRegion';
 import { SmoothMesher, type SmoothMeshes } from './SmoothMesher';
 import type { TextureAtlas } from './TextureAtlas';
 
@@ -43,7 +43,7 @@ export class ChunkMesher {
   private smoothMesher: SmoothMesher;
 
   constructor(
-    private world: VoxelWorld,
+    private world: MeshWorldView,
     private registry: BlockRegistry,
     private atlas: TextureAtlas,
   ) {
