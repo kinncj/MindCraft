@@ -3,6 +3,7 @@ import { blocks } from '../engine/blocks/blocks';
 import { blockIconDataUrl } from '../game/blockIcons';
 import { useContainer, useGameStore } from '../game/gameStore';
 import { KidButton } from './KidButton';
+import { Sheet } from './ui/Sheet';
 
 type Pos = { x: number; y: number; z: number };
 
@@ -30,18 +31,7 @@ export function MagicDeliveryBoxPanel() {
   const selectedDef = blocks.byId(selectedBlockType);
 
   return (
-    <div className="panel-backdrop" role="presentation">
-      <section className="panel magic-box-panel" role="dialog" aria-label={box.name} aria-modal="true">
-        <header className="panel-header">
-          <h2>
-            <span aria-hidden="true">📦</span> {box.name}
-          </h2>
-          <KidButton onClick={closePanels} aria-label="Close the box">
-            ✖ Close
-          </KidButton>
-        </header>
-
-        <p className="panel-hint">Put blocks inside. Take blocks out. Saved with your world.</p>
+    <Sheet title={box.name} emoji="📦" onClose={closePanels} hint="Put blocks inside. Take blocks out. Saved with your world.">
 
         {renaming ? (
           <form
@@ -126,7 +116,6 @@ export function MagicDeliveryBoxPanel() {
               🧹 Empty the box
             </KidButton>
           ))}
-      </section>
-    </div>
+    </Sheet>
   );
 }

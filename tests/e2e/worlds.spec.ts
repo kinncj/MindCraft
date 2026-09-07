@@ -8,7 +8,7 @@ test('reset asks for confirmation and grows a fresh world', async ({ page }) => 
   await waitForSaved(page);
   const oldId = await page.evaluate(() => window.mindcraft.getState().currentWorldId);
 
-  await openMenu(page);
+  await openMenu(page, 'reset');
   await page.getByRole('button', { name: 'Reset the world' }).click();
   await expect(page.getByRole('dialog', { name: 'Reset World?' })).toBeVisible();
   await page.getByRole('button', { name: 'Reset World', exact: true }).click();
@@ -22,7 +22,7 @@ test('cancel leaves the world alone', async ({ page }) => {
   await startGame(page);
   const spot = await skySpot(page);
   await callTool(page, 'world_place_block', { ...spot, block: 'brick' });
-  await openMenu(page);
+  await openMenu(page, 'reset');
   await page.getByRole('button', { name: 'Reset the world' }).click();
   await page.getByRole('button', { name: 'Cancel' }).click();
   expect(await blockAt(page, spot.x, spot.y, spot.z)).toBe('brick');
@@ -30,7 +30,7 @@ test('cancel leaves the world alone', async ({ page }) => {
 
 test('Toy Land replaces the world after confirmation', async ({ page }) => {
   await startGame(page);
-  await openMenu(page);
+  await openMenu(page, 'reset');
   await page.getByRole('button', { name: 'Start a Toy Land world' }).click();
   await expect(page.getByRole('dialog', { name: 'Start Toy Land?' })).toBeVisible();
   await page.getByRole('button', { name: 'Start Toy Land', exact: true }).click();
@@ -47,16 +47,14 @@ test('several worlds can be created, switched, and persist separately', async ({
   await callTool(page, 'world_place_block', { ...spot, block: 'brick' });
   await waitForSaved(page);
 
-  await openMenu(page);
-  await page.getByRole('button', { name: 'See all your worlds' }).click();
+  await openMenu(page, 'worlds');
   await page.getByLabel('Make a new world').fill('Castle');
   await page.getByRole('button', { name: '🌱 New meadow' }).click();
   await expect.poll(() => page.evaluate(() => window.mindcraft.getState().worldName)).toBe('Castle');
   await page.waitForFunction(() => window.mindcraftDebug?.isReady() === true, undefined, { timeout: 45_000 });
   await waitForSaved(page);
 
-  await openMenu(page);
-  await page.getByRole('button', { name: 'See all your worlds' }).click();
+  await openMenu(page, 'worlds');
   await page.getByRole('button', { name: 'Open My World' }).click();
   await expect.poll(() => page.evaluate(() => window.mindcraft.getState().worldName)).toBe('My World');
   await expect.poll(() => blockAt(page, spot.x, spot.y, spot.z), { timeout: 30_000 }).toBe('brick');

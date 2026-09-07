@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useGameStore } from '../game/gameStore';
 import { parseWorldImportFile, MAX_IMPORT_FILE_BYTES } from '../importExport/validateWorldImport';
 import { KidButton } from './KidButton';
+import { Sheet } from './ui/Sheet';
 
 // File.text() is missing in some environments (jsdom included), so fall
 // back to the older FileReader API.
@@ -67,9 +68,7 @@ export function ImportWorldDialog() {
         }}
       />
       {pendingText !== null && (
-        <div className="panel-backdrop" role="presentation">
-          <section className="panel dialog" role="dialog" aria-label="Import this world?" aria-modal="true">
-            <h2>Import this world?</h2>
+        <Sheet title="Import this world?" emoji="📂" onClose={() => setPendingText(null)} kind="dialog">
             <p>
               <strong>{pendingName}</strong> is ready to move in.
             </p>
@@ -80,8 +79,7 @@ export function ImportWorldDialog() {
               </KidButton>
               <KidButton onClick={() => setPendingText(null)}>Cancel</KidButton>
             </div>
-          </section>
-        </div>
+        </Sheet>
       )}
     </>
   );

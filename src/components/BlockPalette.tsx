@@ -2,7 +2,7 @@ import { blocks } from '../engine/blocks/blocks';
 import type { BlockCategory } from '../engine/blocks/BlockDefinition';
 import { blockIconDataUrl } from '../game/blockIcons';
 import { useGameStore } from '../game/gameStore';
-import { KidButton } from './KidButton';
+import { Sheet } from './ui/Sheet';
 
 const CATEGORIES: Array<{ id: BlockCategory; label: string; emoji: string }> = [
   { id: 'friends', label: 'Friends & Rides', emoji: '🐶' },
@@ -29,17 +29,7 @@ export function BlockPalette() {
   const palette = blocks.palette();
 
   return (
-    <div className="panel-backdrop" role="presentation">
-      <section className="panel palette-panel" role="dialog" aria-label="All blocks" aria-modal="true">
-        <header className="panel-header">
-          <h2>
-            <span aria-hidden="true">🧱</span> All blocks
-          </h2>
-          <KidButton onClick={closePanels} aria-label="Close the block list">
-            ✖ Close
-          </KidButton>
-        </header>
-        <p className="panel-hint">Tap a block to put it in slot {hotbarIndex + 1}.</p>
+    <Sheet title="All blocks" emoji="🧱" onClose={closePanels} hint={`Tap a block to put it in slot ${hotbarIndex + 1}.`}>
         {CATEGORIES.map((category) => {
           const items = palette.filter((def) => def.category === category.id);
           if (items.length === 0) return null;
@@ -72,7 +62,6 @@ export function BlockPalette() {
             </div>
           );
         })}
-      </section>
-    </div>
+    </Sheet>
   );
 }

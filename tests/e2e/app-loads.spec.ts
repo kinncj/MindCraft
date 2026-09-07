@@ -16,18 +16,20 @@ test('the game loads with a splash screen and all main controls', async ({ page 
   await waitForGround(page);
 });
 
-test('the menu holds export, import, reset, worlds, and how-to-play', async ({ page }) => {
+test('the menu has submenus for sharing, resetting, worlds, and how-to-play', async ({ page }) => {
   await startGame(page);
   await openMenu(page);
   await expect(page.getByRole('dialog', { name: 'Menu' })).toBeVisible();
+  await page.getByRole('button', { name: 'Save & share' }).click();
   await expect(page.getByRole('button', { name: 'Export your world to a file' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Import a world from a file' })).toBeVisible();
+  await page.getByRole('button', { name: 'Back' }).click();
+  await page.getByRole('button', { name: 'Start over' }).click();
   await expect(page.getByRole('button', { name: 'Reset the world' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'See all your worlds' })).toBeVisible();
-
+  await page.getByRole('button', { name: 'Back' }).click();
   await page.getByRole('button', { name: 'How to play' }).click();
-  await expect(page.getByText('Drag to look around, scroll to zoom, arrows or WASD to move')).toBeVisible();
-
+  await expect(page.getByText(/Drag to look around, scroll to zoom/)).toBeVisible();
+  await page.getByRole('button', { name: 'Back' }).click();
   await page.getByRole('button', { name: 'Back to building' }).click();
   await expect(page.getByRole('dialog', { name: 'Menu' })).not.toBeVisible();
 });

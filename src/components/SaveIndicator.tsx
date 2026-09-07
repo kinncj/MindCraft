@@ -12,7 +12,7 @@ export function SaveIndicator() {
   return (
     <div className={`save-indicator save-indicator-${saveState}`} role="status" aria-live="polite">
       <span aria-hidden="true">{saveState === 'saved' ? '✅' : saveState === 'saving' ? '💾' : saveState === 'error' ? '⚠️' : '🧱'}</span>{' '}
-      {MESSAGES[saveState]}
+      <span className="save-indicator-text">{MESSAGES[saveState]}</span>
     </div>
   );
 }

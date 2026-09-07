@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGameStore, type WorldPreset } from '../game/gameStore';
 import { KidButton } from './KidButton';
+import { Sheet } from './ui/Sheet';
 
 type ResetWorldDialogProps = {
   preset?: WorldPreset;
@@ -35,9 +36,7 @@ export function ResetWorldDialog({ preset = 'meadow' }: ResetWorldDialogProps) {
         {copy.button}
       </KidButton>
       {open && (
-        <div className="panel-backdrop" role="presentation">
-          <section className="panel dialog" role="dialog" aria-label={copy.title} aria-modal="true">
-            <h2>{copy.title}</h2>
+        <Sheet title={copy.title} emoji={preset === 'toyland' ? '🧸' : '🌱'} onClose={() => setOpen(false)} kind="dialog">
             <p>{copy.blurb}</p>
             <p>You can export your world first if you want to keep it.</p>
             <div className="dialog-buttons">
@@ -53,8 +52,7 @@ export function ResetWorldDialog({ preset = 'meadow' }: ResetWorldDialogProps) {
               <KidButton onClick={() => setOpen(false)}>Cancel</KidButton>
               <KidButton onClick={() => void exportWorld()}>Export First</KidButton>
             </div>
-          </section>
-        </div>
+        </Sheet>
       )}
     </>
   );

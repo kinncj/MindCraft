@@ -7,7 +7,7 @@ test('export downloads a valid versioned world file with the edits', async ({ pa
   const spot = await skySpot(page);
   await callTool(page, 'world_place_block', { ...spot, block: 'brick' });
   await waitForSaved(page);
-  await openMenu(page);
+  await openMenu(page, 'share');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export your world to a file' }).click();
   const download = await downloadPromise;
@@ -22,7 +22,7 @@ test('export downloads a valid versioned world file with the edits', async ({ pa
 
 test('a v1 export imports as a new flat world and opens', async ({ page }) => {
   await startGame(page);
-  await openMenu(page);
+  await openMenu(page, 'share');
 
   const worldFile = {
     schemaVersion: 1,
@@ -67,7 +67,7 @@ test('a v1 export imports as a new flat world and opens', async ({ page }) => {
 
 test('import rejects a file that is not a world', async ({ page }) => {
   await startGame(page);
-  await openMenu(page);
+  await openMenu(page, 'share');
   await page.setInputFiles('[data-testid="import-file-input"]', {
     name: 'junk.json',
     mimeType: 'application/json',

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { getEngine } from '../game/engineRef';
 import { useGameStore } from '../game/gameStore';
 import { KidButton } from './KidButton';
+import { Sheet } from './ui/Sheet';
 
 type Payload = { id: string; name?: string; variant?: string };
 
@@ -22,12 +23,7 @@ export function PetPanel() {
   const emoji = pet.variant === 'cat' ? '🐱' : '🐶';
 
   return (
-    <div className="panel-backdrop" role="presentation">
-      <section className="panel dialog" role="dialog" aria-label={`${pet.name}`} aria-modal="true">
-        <h2>
-          <span aria-hidden="true">{emoji}</span> {pet.name}
-        </h2>
-        <p className="panel-hint">{pet.name} is feeling {pet.mood}.</p>
+    <Sheet title={pet.name ?? 'Your pet'} emoji={emoji} onClose={closePanels} kind="dialog" hint={`${pet.name} is feeling ${pet.mood}.`}>
         <form
           className="rename-form"
           onSubmit={(event) => {
@@ -100,10 +96,6 @@ export function PetPanel() {
         ) : (
           <KidButton onClick={() => setConfirmBye(true)}>👋 Say goodbye</KidButton>
         )}
-        <KidButton onClick={closePanels} aria-label="Close" autoFocus>
-          ✖ Close
-        </KidButton>
-      </section>
-    </div>
+    </Sheet>
   );
 }

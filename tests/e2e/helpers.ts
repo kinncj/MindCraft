@@ -45,9 +45,12 @@ export async function waitForGround(page: Page): Promise<void> {
   await page.waitForFunction(() => window.mindcraftDebug?.isReady() === true, undefined, { timeout: 45_000 });
 }
 
-/** Opens the game menu, where export/import/reset live. */
-export async function openMenu(page: Page): Promise<void> {
+/** Opens the game menu and, optionally, one of its submenus. */
+export async function openMenu(page: Page, section?: 'share' | 'reset' | 'looks' | 'worlds' | 'help'): Promise<void> {
   await page.getByRole('button', { name: 'Open the menu' }).click();
+  if (!section) return;
+  const rows = { share: 'Save & share', reset: 'Start over', looks: 'World looks', worlds: 'See all your worlds', help: 'How to play' };
+  await page.getByRole('button', { name: rows[section] }).click();
 }
 
 export function callTool(page: Page, name: string, input: Record<string, unknown> = {}): Promise<unknown> {

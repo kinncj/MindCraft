@@ -3,6 +3,7 @@ import { TALK_CHOICES, jobById } from '../engine/entities/villagers';
 import { getEngine } from '../game/engineRef';
 import { useGameStore } from '../game/gameStore';
 import { KidButton } from './KidButton';
+import { Sheet } from './ui/Sheet';
 
 type Payload = { id: string; name?: string; variant?: string };
 
@@ -20,11 +21,15 @@ export function VillagerPanel() {
   const shown = line ?? job?.greeting ?? '👋 Hi!';
 
   return (
-    <div className="panel-backdrop" role="presentation">
-      <section className="panel dialog villager-panel" role="dialog" aria-label={`${villager.name} the ${job?.label ?? 'villager'}`} aria-modal="true">
-        <h2>
-          <span aria-hidden="true">{job?.emoji ?? '🧑'}</span> {villager.name} the {job?.label ?? 'Villager'}
-        </h2>
+    <Sheet
+      title={`${villager.name} the ${job?.label ?? 'Villager'}`}
+      emoji={job?.emoji ?? '🧑'}
+      onClose={() => {
+        setLine(null);
+        closePanels();
+      }}
+      kind="dialog"
+    >
         <p className="speech-bubble" role="status" aria-live="polite">
           {shown}
         </p>
@@ -48,16 +53,6 @@ export function VillagerPanel() {
             </KidButton>
           ))}
         </div>
-        <KidButton
-          onClick={() => {
-            setLine(null);
-            closePanels();
-          }}
-          aria-label="Close"
-        >
-          ✖ Close
-        </KidButton>
-      </section>
-    </div>
+    </Sheet>
   );
 }

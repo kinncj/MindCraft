@@ -50,6 +50,8 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   `build_stamp_blueprint`, `villager_talk`, `pet_adopt`, `vehicle_mount`, … — exposed through WebMCP
   (`navigator.modelContext`) and `window.mindcraftTools`, so agents can play too.
 - Works on desktop, tablet, and phone with **keyboard and mouse, touch, or a gamepad**.
+  Every panel is a bottom sheet on phones and a card on bigger screens; the menu has
+  submenus with a back button; buttons are thumb-sized and respect notches.
 
 ## Controls
 
@@ -152,7 +154,7 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 1. ~~World~~ — done: biomes, big oaks, flower meadows, ladders, clouds, particles, ghost
 2. ~~Build mode~~ — done: room, fill, paint, copy/paste, mirror, blueprints
 3. ~~Life layer~~ — done: furniture, car and boat, pets, villagers with jobs, dress-up
-4. **UI refresh** — a modern menu with submenus that fits a phone
+4. ~~UI refresh~~ — done: bottom sheets, a menu with submenus, a tools drawer, safe areas
 5. **Crafting and logic** — a picture recipe book, buttons/levers/wire/lamps/pistons,
    a programmable robot with Scratch-style cards
 6. **Sound** — Tone.js music by biome and time of day, effects, a big mute button

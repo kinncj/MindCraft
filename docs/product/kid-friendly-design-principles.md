@@ -4,9 +4,11 @@ The player is about six. These rules shape every screen and interaction.
 
 ## Big and obvious
 
-- Buttons are large, rounded, and labeled with an emoji plus one or two words
-- The selected block is highlighted three ways: border, lift, and the side panel
-- No nested menus. Everything important is one tap away.
+- Buttons are at least 48px tall, rounded, and labeled with an emoji plus one or two words
+- The selected block lifts out of the hotbar and shows its name
+- One menu with shallow submenus: every row says what is behind it, and a big ‹ Back
+  button always returns. Panels are bottom sheets on phones and cards on desktops.
+- The tools live behind one Tools button so the play screen stays clear
 
 ## Friendly words
 

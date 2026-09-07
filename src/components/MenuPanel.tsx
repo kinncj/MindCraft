@@ -1,16 +1,30 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGameStore } from '../game/gameStore';
 import { ExportWorldButton } from './ExportWorldButton';
 import { ImportWorldDialog } from './ImportWorldDialog';
 import { ResetWorldDialog } from './ResetWorldDialog';
 import { VisualModeSelector } from './VisualModeSelector';
 import { WorldSettings } from './WorldSettings';
+import { WorldsList } from './WorldsList';
 import { KidButton } from './KidButton';
+import { MenuRow } from './ui/MenuRow';
+import { Sheet } from './ui/Sheet';
+
+type Page = 'main' | 'help' | 'looks' | 'worlds' | 'share' | 'reset' | 'about';
+
+const TITLES: Record<Page, { title: string; emoji: string }> = {
+  main: { title: 'Menu', emoji: '🧱' },
+  help: { title: 'How to play', emoji: '❓' },
+  looks: { title: 'World looks', emoji: '🌈' },
+  worlds: { title: 'Your worlds', emoji: '🌍' },
+  share: { title: 'Save & share', emoji: '💾' },
+  reset: { title: 'Start over', emoji: '🔄' },
+  about: { title: 'About', emoji: 'ℹ️' },
+};
 
 /**
- * The game menu, opened with the Menu button or Escape. Holds everything
- * that is not moment-to-moment play: how to play, settings, worlds,
- * export/import, and reset.
+ * The game menu: one sheet, a main list, and submenus with a back
+ * button. Everything that is not moment-to-moment play lives here.
  */
 export function MenuPanel() {
   const openPanel = useGameStore((state) => state.openPanel);
@@ -18,57 +32,83 @@ export function MenuPanel() {
   const setOpenPanel = useGameStore((state) => state.setOpenPanel);
   const storageAvailable = useGameStore((state) => state.storageAvailable);
   const worldName = useGameStore((state) => state.worldName);
-  const [showHelp, setShowHelp] = useState(false);
+  const [page, setPage] = useState<Page>('main');
 
-  if (openPanel !== 'menu') return null;
+  const open = openPanel === 'menu' || openPanel === 'worlds';
+  useEffect(() => {
+    if (openPanel === 'worlds') setPage('worlds');
+    else if (openPanel === 'menu') setPage('main');
+  }, [openPanel]);
+
+  if (!open) return null;
+  const { title, emoji } = TITLES[page];
 
   return (
-    <div className="panel-backdrop" role="presentation">
-      <section className="panel menu-panel" role="dialog" aria-label="Menu" aria-modal="true">
-        <h2>
-          <span aria-hidden="true">🧱</span> Menu
-        </h2>
-        <div className="menu-items">
-          <KidButton tone="primary" onClick={closePanels} autoFocus>
+    <Sheet title={title} emoji={emoji} ariaLabel={page === 'main' ? 'Menu' : title} onClose={closePanels} onBack={page === 'main' ? undefined : () => setPage('main')} testId="menu">
+      {page === 'main' && (
+        <div className="menu-list">
+          <KidButton tone="primary" className="menu-primary" onClick={closePanels} autoFocus>
             ▶️ Back to building
           </KidButton>
-          <KidButton onClick={() => setShowHelp((value) => !value)} aria-expanded={showHelp}>
-            ❓ How to play
-          </KidButton>
-          {showHelp && (
-            <ul className="welcome-tips menu-help">
-              <li>Walk with WASD or the arrow keys, jump with space, hold Ctrl to run</li>
-              <li>Tap the ground or a block to build</li>
-              <li>Use the 🧽 Remove button (or right-click) to take blocks away</li>
-              <li>Drag to look around, scroll to zoom, arrows or WASD to move</li>
-              <li>Press V (or zoom all the way in) to look through your own eyes</li>
-              <li>Press E for all the blocks, and ↩️ Undo if you make a mistake</li>
-              <li>Tap doors to open them, beds to sleep, chairs to sit, and the 📦 Magic Delivery Box to store treasures</li>
-              <li>Find 🐶 Friends & Rides in the block list: puppies, kitties, neighbors, a car and a boat</li>
-              <li>Tap a car or boat to ride it, then tap it again (or press space) to hop off</li>
-              <li>The animals are just friends — they like watching you build</li>
-            </ul>
-          )}
-          <KidButton onClick={() => setOpenPanel('dressup')} aria-label="Dress up your character">
-            👕 Dress up
-          </KidButton>
+          <MenuRow emoji="❓" label="How to play" hint="Controls for keyboard, touch, and gamepad" onClick={() => setPage('help')} />
+          <MenuRow emoji="👕" label="Dress up" hint="Shirt, pants, hair, and a hat" onClick={() => setOpenPanel('dressup')} ariaLabel="Dress up your character" />
+          <MenuRow emoji="🌈" label="World looks" hint="Visual mode, sky, and weather" onClick={() => setPage('looks')} />
+          <MenuRow emoji="🌍" label="My worlds" hint={`Playing: ${worldName}`} onClick={() => setPage('worlds')} ariaLabel="See all your worlds" />
+          <MenuRow emoji="💾" label="Save & share" hint="Export and import world files" onClick={() => setPage('share')} />
+          <MenuRow emoji="🔄" label="Start over" hint="Fresh meadow or Toy Land" onClick={() => setPage('reset')} />
+          <MenuRow emoji="ℹ️" label="About" hint="Privacy and credits" onClick={() => setPage('about')} />
+          <p className="menu-footer">
+            {storageAvailable ? 'Your world is saved on this computer. Want to keep it forever? Export it!' : 'This browser cannot save — export your world to keep it!'}
+          </p>
+        </div>
+      )}
+      {page === 'help' && (
+        <ul className="welcome-tips menu-help">
+          <li>🚶 Walk with WASD or the arrow keys, jump with space, hold Ctrl to run</li>
+          <li>👆 Tap the ground or a block to build; the green ghost shows where</li>
+          <li>🧽 Use the Remove tool (or right-click) to take blocks away</li>
+          <li>🖱️ Drag to look around, scroll to zoom, arrows or WASD to move</li>
+          <li>👀 Press V (or zoom all the way in) to look through your own eyes</li>
+          <li>🧱 Press E for all the blocks, and Undo if you make a mistake</li>
+          <li>🛠️ The Tools button has Room, Fill, Paint, Copy, Paste, Mirror, and Blueprints</li>
+          <li>🚪 Tap doors to open them, beds to sleep, chairs to sit, boxes to store treasures</li>
+          <li>🐶 Find Friends & Rides in the block list: puppies, kitties, neighbors, a car and a boat</li>
+          <li>🚗 Tap a car or boat to ride it, then tap it again (or press space) to hop off</li>
+          <li>📱 On a phone: joystick to walk, Jump button, pinch to zoom</li>
+          <li>🎮 Gamepad: sticks move and look, A jumps, RT builds, LT removes, Start opens this menu</li>
+          <li>🐰 The animals are just friends — they like watching you build</li>
+        </ul>
+      )}
+      {page === 'looks' && (
+        <>
           <VisualModeSelector />
           <WorldSettings />
-          <h3>Your world: {worldName}</h3>
-          <KidButton onClick={() => setOpenPanel('worlds')} aria-label="See all your worlds">
-            🌍 My worlds
-          </KidButton>
+        </>
+      )}
+      {page === 'worlds' && <WorldsList />}
+      {page === 'share' && (
+        <div className="menu-list">
+          <p className="sheet-hint">Worlds are saved on this computer. A file keeps one forever, or moves it to another computer.</p>
           <ExportWorldButton />
           <ImportWorldDialog />
+        </div>
+      )}
+      {page === 'reset' && (
+        <div className="menu-list">
+          <p className="sheet-hint">Both of these replace the world you are playing now. You can export it first.</p>
           <ResetWorldDialog />
           <ResetWorldDialog preset="toyland" />
         </div>
-        <p className="menu-footer">
-          {storageAvailable
-            ? 'Your world is saved on this computer. Want to keep it forever? Export it!'
-            : 'This browser cannot save — export your world to keep it!'}
-        </p>
-      </section>
-    </div>
+      )}
+      {page === 'about' && (
+        <div className="menu-list about">
+          <p>
+            <strong>MindCraft 2.0</strong> is a creative block game made for a six-year-old. No accounts, no ads, no internet needed — everything stays on this device.
+          </p>
+          <p>No monsters, no health, no failing. Just building, animals, friends, and cozy nights.</p>
+          <p>Original code and art, MIT licensed. Not affiliated with Minecraft, Mojang, Microsoft, Roblox, or The Sims.</p>
+        </div>
+      )}
+    </Sheet>
   );
 }

@@ -1,37 +1,33 @@
 import { useEffect } from 'react';
 import { GameCanvas } from '../game/GameCanvas';
 import { useGameStore } from '../game/gameStore';
-import { blocks } from '../engine/blocks/blocks';
-import { blockIconDataUrl } from '../game/blockIcons';
 import { BlockPalette } from '../components/BlockPalette';
 import { BlueprintsPanel } from '../components/BlueprintsPanel';
 import { DressUpPanel } from '../components/DressUpPanel';
-import { PetPanel } from '../components/PetPanel';
-import { VillagerPanel } from '../components/VillagerPanel';
-import { ToolsBar } from '../components/ToolsBar';
 import { Hotbar } from '../components/Hotbar';
-import { SaveIndicator } from '../components/SaveIndicator';
 import { MagicDeliveryBoxPanel } from '../components/MagicDeliveryBoxPanel';
 import { MenuPanel } from '../components/MenuPanel';
+import { PetPanel } from '../components/PetPanel';
+import { SaveIndicator } from '../components/SaveIndicator';
 import { SleepPanel } from '../components/SleepPanel';
+import { Toast } from '../components/Toast';
+import { ToolsDrawer } from '../components/ToolsDrawer';
+import { VillagerPanel } from '../components/VillagerPanel';
 import { VirtualControls } from '../components/VirtualControls';
 import { WelcomePanel } from '../components/WelcomePanel';
-import { WorldsPanel } from '../components/WorldsPanel';
-import { Toast } from '../components/Toast';
-import { KidButton } from '../components/KidButton';
+import { IconButton } from '../components/ui/IconButton';
 import './App.css';
 
 export function App() {
   const ready = useGameStore((state) => state.ready);
   const storageAvailable = useGameStore((state) => state.storageAvailable);
-  const selectedBlockType = useGameStore((state) => state.selectedBlockType);
   const viewMode = useGameStore((state) => state.viewMode);
   const toggleViewMode = useGameStore((state) => state.toggleViewMode);
   const canUndo = useGameStore((state) => state.canUndo);
   const canRedo = useGameStore((state) => state.canRedo);
-  const controllerActive = useGameStore((state) => state.controllerActive);
   const undo = useGameStore((state) => state.undo);
   const redo = useGameStore((state) => state.redo);
+  const controllerActive = useGameStore((state) => state.controllerActive);
   const init = useGameStore((state) => state.init);
 
   useEffect(() => {
@@ -42,7 +38,6 @@ export function App() {
     function onKeyDown(event: KeyboardEvent) {
       const state = useGameStore.getState();
       if (event.key === 'Escape') {
-        // Escape closes whatever is open; with nothing open it opens the menu.
         if (state.openPanel === 'none') state.setOpenPanel('menu');
         else state.closePanels();
         return;
@@ -73,28 +68,20 @@ export function App() {
     );
   }
 
-  const selectedDef = blocks.byId(selectedBlockType);
-  const selectedIcon = blockIconDataUrl(selectedBlockType);
-
   return (
     <div className="app">
       <GameCanvas />
 
       <header className="top-bar">
         <div className="brand" aria-label="MindCraft">
-          <span aria-hidden="true">🧱</span> MindCraft
+          <span aria-hidden="true">🧱</span>
+          <span className="brand-text">MindCraft</span>
         </div>
         <SaveIndicator />
         <div className="top-actions">
-          <KidButton onClick={undo} disabled={!canUndo} aria-label="Undo the last change">
-            ↩️ Undo
-          </KidButton>
-          <KidButton onClick={redo} disabled={!canRedo} aria-label="Redo">
-            ↪️ Redo
-          </KidButton>
-          <KidButton onClick={() => useGameStore.getState().setOpenPanel('menu')} aria-label="Open the menu">
-            📋 Menu
-          </KidButton>
+          <IconButton emoji="↩️" label="Undo the last change" onClick={undo} disabled={!canUndo} />
+          <IconButton emoji="↪️" label="Redo" onClick={redo} disabled={!canRedo} />
+          <IconButton emoji="☰" label="Open the menu" onClick={() => useGameStore.getState().setOpenPanel('menu')} />
         </div>
       </header>
 
@@ -104,20 +91,9 @@ export function App() {
         </div>
       )}
 
-      <div className="mode-bar">
-        {selectedDef && (
-          <div
-            className="selected-block"
-            style={selectedIcon ? { backgroundImage: `url(${selectedIcon})`, backgroundColor: selectedDef.color } : { background: selectedDef.color }}
-          >
-            {!selectedIcon && <span aria-hidden="true">{selectedDef.emoji}</span>} {selectedDef.label}
-          </div>
-        )}
-        <KidButton onClick={toggleViewMode} aria-label="Change camera view">
-          {viewMode === 'third' ? '👀 My eyes' : '🧍 Behind me'}
-        </KidButton>
+      <div className="side-actions">
+        <IconButton emoji={viewMode === 'third' ? '👀' : '🧍'} label="Change camera view" onClick={toggleViewMode} />
       </div>
-      <ToolsBar />
 
       {(viewMode === 'first' || controllerActive) && (
         <div className="crosshair" aria-hidden="true">
@@ -125,6 +101,7 @@ export function App() {
         </div>
       )}
 
+      <ToolsDrawer />
       <Hotbar />
       <VirtualControls />
       <BlockPalette />
@@ -134,7 +111,6 @@ export function App() {
       <DressUpPanel />
       <MagicDeliveryBoxPanel />
       <SleepPanel />
-      <WorldsPanel />
       <MenuPanel />
       <WelcomePanel />
       <Toast />

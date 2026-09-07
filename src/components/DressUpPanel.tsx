@@ -1,6 +1,7 @@
 import { useGameStore } from '../game/gameStore';
 import type { PlayerLookState } from '../game/store/types';
 import { KidButton } from './KidButton';
+import { Sheet } from './ui/Sheet';
 
 const COLORS = ['#ffb03c', '#e8574f', '#4a7fd6', '#67c23a', '#9b6bd8', '#f291bb', '#ffd94a', '#f3efe7', '#3a3a3a', '#8a6238', '#4fa8e8', '#2f9149'];
 const SKINS = ['#f2c79a', '#e0ac69', '#c68642', '#8d5524', '#5c3a1e', '#ffdbac'];
@@ -34,16 +35,7 @@ export function DressUpPanel() {
   const closePanels = useGameStore((state) => state.closePanels);
   if (openPanel !== 'dressup') return null;
   return (
-    <div className="panel-backdrop" role="presentation">
-      <section className="panel palette-panel" role="dialog" aria-label="Dress up" aria-modal="true">
-        <header className="panel-header">
-          <h2>
-            <span aria-hidden="true">👕</span> Dress up
-          </h2>
-          <KidButton onClick={closePanels} aria-label="Close dress up">
-            ✖ Close
-          </KidButton>
-        </header>
+    <Sheet title="Dress up" emoji="👕" onClose={closePanels}>
         <Swatches label="Shirt" colors={COLORS} value={look.shirt} onPick={(shirt) => setLook({ shirt })} />
         <Swatches label="Pants" colors={COLORS} value={look.pants} onPick={(pants) => setLook({ pants })} />
         <Swatches label="Skin" colors={SKINS} value={look.skin} onPick={(skin) => setLook({ skin })} />
@@ -56,7 +48,6 @@ export function DressUpPanel() {
             </KidButton>
           ))}
         </div>
-      </section>
-    </div>
+    </Sheet>
   );
 }

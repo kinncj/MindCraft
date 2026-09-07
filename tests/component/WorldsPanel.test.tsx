@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { WorldsPanel } from '../../src/components/WorldsPanel';
+import { MenuPanel } from '../../src/components/MenuPanel';
 import { useGameStore } from '../../src/game/gameStore';
 import { resetGameStore } from './helpers';
 
-describe('WorldsPanel', () => {
+describe('Worlds page', () => {
   beforeEach(() => {
     resetGameStore();
     useGameStore.setState({ storageAvailable: false, ready: true, openPanel: 'worlds' });
@@ -13,7 +13,7 @@ describe('WorldsPanel', () => {
 
   it('creates a meadow and a Toy Land, opens between them, and deletes with confirmation', async () => {
     const user = userEvent.setup();
-    render(<WorldsPanel />);
+    render(<MenuPanel />);
     await user.type(screen.getByLabelText('Make a new world'), 'Castle');
     await user.click(screen.getByRole('button', { name: '🌱 New meadow' }));
     await waitFor(() => expect(useGameStore.getState().worldName).toBe('Castle'));
