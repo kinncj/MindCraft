@@ -6,6 +6,7 @@ import { rleEncode } from '../storage/chunkCodec';
 import { db } from '../storage/db';
 import type { StoredWorld } from '../storage/db';
 import { DEFAULT_SETTINGS, normalizeSettings } from '../storage/settingsRepository';
+import { DEFAULT_HELPER_MODEL, HELPER_MODELS } from '../engine/chat/WebLlmProvider';
 import { WorldStore } from '../storage/worldStore';
 import { getEngine } from './engineRef';
 import { createWorldRecord } from './store/worldRecords';
@@ -27,6 +28,16 @@ let changeSeq = 0;
 const AUDIO_KEY = 'mindcraft-audio';
 const SMART_KEY = 'mindcraft-smart-chat';
 const HELPER_KEY = 'mindcraft-helper';
+const HELPER_MODEL_KEY = 'mindcraft-helper-model';
+
+function loadHelperModel(): string {
+  try {
+    const id = typeof localStorage !== 'undefined' ? localStorage.getItem(HELPER_MODEL_KEY) : null;
+    return id && HELPER_MODELS.some((m) => m.id === id) ? id : DEFAULT_HELPER_MODEL;
+  } catch {
+    return DEFAULT_HELPER_MODEL;
+  }
+}
 
 function loadHelperEnabled(): boolean {
   try {
@@ -479,13 +490,29 @@ export const useGameStore = create<GameState>((set, get) => {
       const engine = getEngine();
       if (engine) engine.chat.smart = on;
     },
-    helper: { status: loadHelperEnabled() ? 'loading' : 'none', progress: 0, text: '', enabled: loadHelperEnabled() },
+    helper: { status: loadHelperEnabled() ? 'loading' : 'none', progress: 0, text: '', enabled: loadHelperEnabled(), model: loadHelperModel() },
+    async setHelperModel(id) {
+      const engine = getEngine();
+      try {
+        localStorage.setItem(HELPER_MODEL_KEY, id);
+      } catch {
+        // fine
+      }
+      const wasReady = get().helper.status === 'ready';
+      set({ helper: { ...get().helper, model: id } });
+      if (engine) await engine.chat.helper.setModel(id);
+      if (wasReady) {
+        set({ helper: { ...get().helper, status: 'none' } });
+        await get().downloadHelper();
+      }
+    },
     async downloadHelper() {
       const engine = getEngine();
       if (!engine) return;
+      await engine.chat.helper.setModel(get().helper.model);
       if (engine.chat.helper.ready) {
         engine.chat.helper.enabled = true;
-        set({ helper: { status: 'ready', progress: 1, text: 'Ready', enabled: true } });
+        set({ helper: { ...get().helper, status: 'ready', progress: 1, text: 'Ready', enabled: true } });
         return;
       }
       const resuming = get().helper.enabled;
@@ -495,7 +522,7 @@ export const useGameStore = create<GameState>((set, get) => {
         await engine.chat.helper.load();
         engine.chat.helper.enabled = true;
         saveHelperEnabled(true);
-        set({ helper: { status: 'ready', progress: 1, text: 'Ready', enabled: true } });
+        set({ helper: { ...get().helper, status: 'ready', progress: 1, text: 'Ready', enabled: true } });
         if (!resuming) get().showToast('✨ The smarter helper is ready! Villagers understand more now.');
       } catch (error) {
         set({ helper: { ...get().helper, status: 'error', text: error instanceof Error ? error.message : 'Could not load the helper.' } });
@@ -521,7 +548,7 @@ export const useGameStore = create<GameState>((set, get) => {
       const { deleteHelperModel } = await import('../engine/chat/WebLlmProvider');
       await deleteHelperModel().catch(() => undefined);
       saveHelperEnabled(false);
-      set({ helper: { status: 'none', progress: 0, text: '', enabled: false } });
+      set({ helper: { ...get().helper, status: 'none', progress: 0, text: '', enabled: false } });
       get().showToast('The helper was removed from this device.');
     },
     audio: loadAudio(),

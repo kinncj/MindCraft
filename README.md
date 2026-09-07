@@ -119,6 +119,16 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 
 Every keyboard action also has a visible button, so a kid who can't type can still play.
 
+## Helper sizes
+
+A grown-up picks the helper size in Menu → Friends: **Fast** (Qwen 2.5 0.5B, about
+400 MB, phones and tablets), **Smart** (1.5B, about 1 GB, laptops and iPad Pro), or
+**Smartest** (3B, about 2 GB, desktops with a graphics card). Bigger models follow
+long, detailed requests far better. Whatever the model answers, the child's own words
+are parsed too: a building request is always built from the words (type, size, floors,
+material, colours, furniture, people, flag), so a small model that copies its example
+still produces the right building.
+
 ## Debugging the helper
 
 Open the game with `?debug=true` to get a small overlay with the helper model that

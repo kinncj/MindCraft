@@ -12,6 +12,17 @@ import { CHAT_TOOL_ALLOWLIST, type ChatContext, type ChatProvider, type ChatRepl
  */
 
 export const DEFAULT_HELPER_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+
+/** The sizes a grown-up can pick. Bigger understands more and needs more memory. */
+export const HELPER_MODELS: Array<{ id: string; label: string; downloadMB: number; memoryMB: number; hint: string }> = [
+  { id: 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC', label: 'Fast', downloadMB: 400, memoryMB: 1000, hint: 'Phones and tablets. Simple requests.' },
+  { id: 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC', label: 'Smart', downloadMB: 1000, memoryMB: 1700, hint: 'Laptops, iPad Pro. Understands long requests.' },
+  { id: 'Qwen2.5-3B-Instruct-q4f16_1-MLC', label: 'Smartest', downloadMB: 2000, memoryMB: 2600, hint: 'Desktops with a graphics card.' },
+];
+
+export function helperModelInfo(id: string): (typeof HELPER_MODELS)[number] {
+  return HELPER_MODELS.find((m) => m.id === id) ?? HELPER_MODELS[0];
+}
 /** Phones and tablets get a smaller model that fits their GPU memory limits. */
 export const SMALL_HELPER_MODEL = 'SmolLM2-360M-Instruct-q4f16_1-MLC';
 /** Below this storage-buffer limit the 0.5B model cannot load. */
@@ -221,6 +232,18 @@ export class WebLlmProvider implements ChatProvider {
 
   get ready(): boolean {
     return this.engine !== null;
+  }
+
+  get model(): string {
+    return this.modelId;
+  }
+
+  /** Switch sizes; a loaded model is unloaded and must be loaded again. */
+  async setModel(id: string): Promise<void> {
+    if (id === this.modelId) return;
+    this.modelId = id;
+    this.info = null;
+    await this.unload();
   }
 
   /** Downloads (first time) or loads from the cache. Safe to call again. */

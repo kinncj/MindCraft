@@ -35,3 +35,16 @@ for a real small LLM behind a download button.
 - The provider is tested with a fake engine; the real model is exercised only
   in a browser with WebGPU.
 - `entity_list` and the chat panel show which provider answered.
+
+
+## Sizes (2026-09-07)
+
+Three Qwen 2.5 Instruct sizes are offered (0.5B, 1.5B, 3B, all q4f16 with a q4f32
+fallback and a SmolLM2-360M fallback for GPUs that cannot bind a gigabyte). Safari
+runs the model on the main thread and without JSON-grammar decoding. Replies time out
+after 25 s and fall back to the rules. The prompt carries exact JSON templates for
+every allowed tool and four worked examples. Because small models copy their
+examples, the chat agent parses the child's words itself: when they describe a
+building, the parsed building call replaces the model's, and its people and flag
+come along; when the model gives no usable action, the rules act. The model keeps
+its own spoken line.

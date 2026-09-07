@@ -90,7 +90,9 @@ export type SettingsSlice = {
   setSmartChat: (on: boolean) => void;
   /** The downloadable helper model: a parent's choice, kept on the device. */
   /** `napping`: unloaded to free memory while Cinema runs on a phone or tablet; wakes when the look changes. */
-  helper: { status: 'none' | 'loading' | 'downloading' | 'ready' | 'error' | 'napping'; progress: number; text: string; enabled: boolean };
+  helper: { status: 'none' | 'loading' | 'downloading' | 'ready' | 'error' | 'napping'; progress: number; text: string; enabled: boolean; model: string };
+  /** Pick a helper size (model id); a loaded helper is downloaded again at the new size. */
+  setHelperModel: (id: string) => Promise<void>;
   napHelper: () => Promise<void>;
   downloadHelper: () => Promise<void>;
   setHelperEnabled: (on: boolean) => void;

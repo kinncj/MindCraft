@@ -6,6 +6,7 @@ import { ExportWorldButton } from './ExportWorldButton';
 import { ImportWorldDialog } from './ImportWorldDialog';
 import { ResetWorldDialog } from './ResetWorldDialog';
 import { VisualModeSelector } from './VisualModeSelector';
+import { HELPER_MODELS, helperModelInfo } from '../engine/chat/WebLlmProvider';
 import { WorldSettings } from './WorldSettings';
 import { WorldsList } from './WorldsList';
 import { KidButton } from './KidButton';
@@ -47,6 +48,7 @@ export function MenuPanel() {
   const smartChat = useGameStore((state) => state.smartChat);
   const setSmartChat = useGameStore((state) => state.setSmartChat);
   const helper = useGameStore((state) => state.helper);
+  const setHelperModel = useGameStore((state) => state.setHelperModel);
   const downloadHelper = useGameStore((state) => state.downloadHelper);
   const setHelperEnabled = useGameStore((state) => state.setHelperEnabled);
   const removeHelper = useGameStore((state) => state.removeHelper);
@@ -193,7 +195,8 @@ export function MenuPanel() {
           <div className="helper-card">
             {helper.status === 'ready' ? (
               <>
-                <p className="sheet-hint">A small language model lives on this device now. Villagers understand all sorts of requests.</p>
+                <p className="sheet-hint">The {helperModelInfo(helper.model).label.toLowerCase()} helper lives on this device now. Villagers understand all sorts of requests.</p>
+                <HelperSizePicker current={helper.model} onPick={(id) => void setHelperModel(id)} />
                 <div className="dialog-buttons">
                   <KidButton tone={helper.enabled ? 'primary' : 'default'} aria-pressed={helper.enabled} onClick={() => setHelperEnabled(!helper.enabled)}>
                     {helper.enabled ? '✨ Helper on' : '✨ Helper off'}
@@ -223,11 +226,12 @@ export function MenuPanel() {
             ) : confirmDownload ? (
               <>
                 <p className="sheet-hint">
-                  This downloads a small language model (about 400 MB, once) from its host on the internet and keeps it on this device. Nothing the child types is ever sent anywhere. It needs a recent browser with WebGPU.
+                  This downloads a language model (about {helperModelInfo(helper.model).downloadMB} MB, once) from its host on the internet and keeps it on this device. Nothing the child types is ever sent anywhere. It needs a recent browser with WebGPU.
                 </p>
+                <HelperSizePicker current={helper.model} onPick={(id) => void setHelperModel(id)} />
                 <div className="dialog-buttons">
                   <KidButton tone="primary" onClick={() => { setConfirmDownload(false); void downloadHelper(); }} aria-label="Yes, download the helper">
-                    ⬇️ Yes, download (400 MB)
+                    ⬇️ Yes, download ({helperModelInfo(helper.model).downloadMB} MB)
                   </KidButton>
                   <KidButton onClick={() => setConfirmDownload(false)}>Not now</KidButton>
                 </div>
@@ -271,5 +275,19 @@ export function MenuPanel() {
         </div>
       )}
     </Sheet>
+  );
+}
+
+/** Fast, Smart, or Smartest: a grown-up picks how much memory the helper may use. */
+function HelperSizePicker({ current, onPick }: { current: string; onPick: (id: string) => void }) {
+  return (
+    <div className="setting-group" role="group" aria-label="Helper size">
+      {HELPER_MODELS.map((m) => (
+        <KidButton key={m.id} tone={m.id === current ? 'primary' : 'default'} aria-pressed={m.id === current} onClick={() => onPick(m.id)}>
+          {m.label} · {m.downloadMB >= 1000 ? `${m.downloadMB / 1000} GB` : `${m.downloadMB} MB`}
+          <span className="setting-hint">{m.hint}</span>
+        </KidButton>
+      ))}
+    </div>
   );
 }
