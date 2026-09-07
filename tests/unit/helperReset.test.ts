@@ -1,6 +1,18 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest';
 
+// This jsdom has no usable localStorage on an opaque origin: give the tests a plain one.
+const memory = new Map<string, string>();
+Object.defineProperty(globalThis, 'localStorage', {
+  configurable: true,
+  value: {
+    getItem: (k: string) => memory.get(k) ?? null,
+    setItem: (k: string, v: string) => void memory.set(k, String(v)),
+    removeItem: (k: string) => void memory.delete(k),
+    clear: () => memory.clear(),
+  },
+});
+
 describe('helper crash-loop guard', () => {
   beforeEach(() => {
     localStorage.clear();
