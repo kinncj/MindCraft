@@ -39,6 +39,11 @@ in seven pushed phases (each green on 100+ unit tests, typecheck, and build):
    **dress-up preview** with boy/girl styles, rider facing and a chase camera for
    vehicles, and a block picker for robots.
 
+9. **Helper model** (ADR-0012): Qwen2.5-0.5B-Instruct via WebLLM behind a parent's
+   two-tap download in Menu → Friends; worker-backed, JSON-forced, filtered; lazy
+   chunk; the only deliberate network exception. Real model untested here (no WebGPU
+   in this environment); provider tested with a fake engine.
+
 Docs kept in step: README, CLAUDE.md, gameplay scope, kid-friendly principles,
 storage and export/import ops docs, ADR-0003/0004 amendments, ADR-0006..0009.
 `npm audit fix` cleared the three transitive advisories; checkout/setup-node
