@@ -475,7 +475,7 @@ export class EntitySystem implements System {
   /** Did a ray hit a creature or vehicle? Returns it (does not pet it). */
   pick(ray: Ray): Entity | null {
     this.raycaster.set(new THREE.Vector3(ray.ox, ray.oy, ray.oz), new THREE.Vector3(ray.dx, ray.dy, ray.dz));
-    this.raycaster.far = 12;
+    this.raycaster.far = 42; // as far as blocks can be tapped in third person (REACH * 6)
     let best: { entity: Entity; d: number } | null = null;
     for (const entity of this.entities) {
       if (entity === this.mounted) continue;

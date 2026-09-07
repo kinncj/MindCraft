@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { IconButton } from './IconButton';
 import { Icon, type IconName } from './icons';
 
@@ -22,8 +22,19 @@ type SheetProps = {
  * scrollable body.
  */
 export function Sheet({ title, emoji, icon, ariaLabel, onClose, onBack, children, kind = 'sheet', hint, testId }: SheetProps) {
+  // On touch screens the tap that opened the sheet still delivers a click a
+  // moment later; if it lands on the backdrop it would close the sheet at once.
+  const openedAt = useRef(typeof performance !== 'undefined' ? performance.now() : 0);
   return (
-    <div className={`sheet-backdrop sheet-backdrop-${kind}`} role="presentation" onClick={(event) => event.target === event.currentTarget && onClose()}>
+    <div
+      className={`sheet-backdrop sheet-backdrop-${kind}`}
+      role="presentation"
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (typeof performance !== 'undefined' && performance.now() - openedAt.current < 450) return;
+        onClose();
+      }}
+    >
       <section className={`sheet sheet-${kind}`} role="dialog" aria-label={ariaLabel ?? title} aria-modal="true" data-testid={testId}>
         <header className="sheet-header">
           {onBack ? <IconButton icon="back" label="Back" onClick={onBack} className="sheet-back" /> : <span className="sheet-spacer" />}
