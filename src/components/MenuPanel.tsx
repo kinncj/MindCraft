@@ -131,7 +131,9 @@ export function MenuPanel() {
           <li>🚪 Tap doors to open them, beds to sleep, chairs to sit, boxes to store treasures</li>
           <li>🐶 Find Friends & Rides in the block list: puppies, kitties, neighbors, robots, a car and a boat</li>
           <li>💬 Tap a neighbor to chat: ask for a house, a castle, a puppy, or a dance</li>
-          <li>🚗 Tap a car or boat to ride it, then tap it again (or press space) to hop off</li>
+          <li>🪽 Tap Jump twice quickly (or the wing button) to fly: hold Jump to rise, Sneak to sink, land to stop</li>
+          <li>🚗 Tap a car, motorbike, or boat to ride it, then tap it again (or press space) to hop off</li>
+          <li>✈️ Planes need speed to take off, then Jump climbs and Sneak dives; helicopters lift with Jump. Tap them again (or press E) to hop out</li>
           <li>🎚️ Levers, buttons, and plates power wires, lamps, pistons, doors, and note blocks</li>
           <li>🤖 Tap a robot to give it a card program: forward, place, repeat…</li>
           <li>📱 On a phone: joystick to walk, Jump button, pinch to zoom</li>

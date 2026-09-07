@@ -118,7 +118,7 @@ describe('vehicles', () => {
     expect(entities.mount(car)).toBe(true);
     expect(player.mounted).toBe(true);
     entities.driveInput = { forward: true, back: false, left: false, right: false };
-    for (let i = 0; i < 90; i++) entities.update(1 / 60, i / 60);
+    for (let i = 0; i < 60; i++) entities.update(1 / 60, i / 60);
     expect(car.x).toBeGreaterThan(6);
     expect(player.x).toBeCloseTo(car.x, 1); // rider moves with it
     for (let y = 3; y <= 5; y++) for (let z = 4; z <= 12; z++) world.setBlock(14, y, z, B.stone);

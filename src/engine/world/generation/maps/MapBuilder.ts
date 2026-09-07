@@ -125,7 +125,7 @@ export class MapBuilder {
     this.entities.push({ id: `m${this.nextEntity++}`, kind: 'pet', variant: kind, name, x, y: this.floorY + 1, z, brain, data: { brain } });
   }
 
-  vehicle(kind: 'car' | 'boat', x: number, z: number, color?: string, y?: number): void {
+  vehicle(kind: 'car' | 'boat' | 'motorcycle' | 'plane' | 'helicopter', x: number, z: number, color?: string, y?: number): void {
     this.entities.push({ id: `m${this.nextEntity++}`, kind: 'vehicle', variant: kind, x, y: y ?? this.floorY + 0.5, z, brain: 'wander', data: color ? { color } : {} });
   }
 

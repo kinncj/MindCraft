@@ -49,6 +49,10 @@ export type UiSlice = {
   toggleViewMode: () => void;
   zoom: (delta: number) => void;
   dance: () => void;
+  /** Creative flight (double-tap jump, or the wing button). */
+  flying: boolean;
+  toggleFly: () => void;
+  setFlying: (flying: boolean) => void;
   setHistoryState: (canUndo: boolean, canRedo: boolean) => void;
   setControllerActive: (active: boolean) => void;
   setMirror: (enabled: boolean) => void;

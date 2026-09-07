@@ -92,10 +92,11 @@ const TOOL_HINTS: Record<string, string> = {
   villager_stay: 'stay put {}',
   villager_dance: 'you dance {}',
   player_dance: 'the child dances {}',
+  player_fly: 'the child flies {on: true|false}',
   time_set: 'set time {mode: day|night|sunset}',
   weather_set: 'set weather {weather: sunny|rain|snow}',
   pet_adopt: 'give a pet {kind: dog|cat|bunny}',
-  vehicle_spawn: 'give a ride {kind: car|boat}',
+  vehicle_spawn: 'give a ride {kind: car|motorcycle|boat|plane|helicopter}',
   entity_spawn: 'spawn an animal {kind: chick|butterfly|cow|sheep}',
   audio_play: 'play a sound {sound}',
 };

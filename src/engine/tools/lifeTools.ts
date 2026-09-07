@@ -77,6 +77,12 @@ export function registerLifeTools(engine: Engine): void {
     },
   });
   tools.register({
+    name: 'player_fly',
+    description: 'Creative flight on or off (default: toggle). While flying, jump rises and sneak sinks.',
+    inputSchema: { type: 'object', properties: { on: { type: 'boolean' } } },
+    execute: ({ on }: { on?: boolean }) => ({ flying: engine.setFlying(on ?? !engine.player.flying) }),
+  });
+  tools.register({
     name: 'player_dance',
     description: 'The player dances for a few seconds.',
     inputSchema: { type: 'object', properties: { seconds: num } },
@@ -173,9 +179,9 @@ export function registerLifeTools(engine: Engine): void {
   });
   tools.register({
     name: 'vehicle_spawn',
-    description: 'A new car or boat near the player or at (x, z). Boats need water.',
-    inputSchema: { type: 'object', properties: { kind: { type: 'string', enum: ['car', 'boat'] }, x: num, z: num }, required: ['kind'] },
-    execute: ({ kind, x, z }: { kind: 'car' | 'boat'; x?: number; z?: number }) => {
+    description: 'A new ride near the player or at (x, z): car, motorcycle, boat (needs water), plane, or helicopter.',
+    inputSchema: { type: 'object', properties: { kind: { type: 'string', enum: ['car', 'boat', 'motorcycle', 'plane', 'helicopter'] }, x: num, z: num }, required: ['kind'] },
+    execute: ({ kind, x, z }: { kind: 'car' | 'boat' | 'motorcycle' | 'plane' | 'helicopter'; x?: number; z?: number }) => {
       const at = near(x, z);
       const top = engine.world.height(Math.round(at.x), Math.round(at.z));
       return describe(entities.spawnVehicle(kind, at.x, top >= 0 ? top + 0.5 : engine.player.y, at.z));

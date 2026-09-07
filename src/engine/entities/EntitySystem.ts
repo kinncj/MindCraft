@@ -11,7 +11,7 @@ import { RobotRunner, validateProgram, type RobotProgram } from './robot';
 import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
 import { StayBrain } from './Brain';
 import type { Entity, EntityKind, StoredEntity } from './Entity';
-import { Vehicle, type DriveInput, type VehicleKind } from './vehicles';
+import { VEHICLE_COLORS, VEHICLE_KINDS, Vehicle, type DriveInput, type VehicleKind } from './vehicles';
 import { PET_NAMES, VILLAGER_NAMES, jobById, randomJob, randomName, type TalkChoice } from './villagers';
 
 let nextId = 1;
@@ -133,7 +133,7 @@ export class EntitySystem implements System {
   }
 
   spawnVehicle(kind: VehicleKind, x: number, y: number, z: number, color?: string): Entity {
-    const vehicle = new Vehicle(kind, this.world, this.registry, { x, y, z }, color ?? (kind === 'car' ? '#e8574f' : '#c98d4b'));
+    const vehicle = new Vehicle(kind, this.world, this.registry, { x, y, z }, color ?? VEHICLE_COLORS[kind]);
     const entity = this.base('vehicle', vehicle.group, x, z, new WanderBrain(0), 0);
     entity.y = y;
     entity.variant = kind;
@@ -363,8 +363,8 @@ export class EntitySystem implements System {
         entity = this.spawnPet(s.variant, s.x, s.z, s.name, typeof s.data?.brain === 'string' ? (s.data.brain as string) : 'neural');
       } else if (s.kind === 'villager') {
         entity = this.spawnVillager(s.variant ?? 'random', s.x, s.z, s.name, s.home);
-      } else if (s.kind === 'vehicle' && (s.variant === 'car' || s.variant === 'boat')) {
-        entity = this.spawnVehicle(s.variant, s.x, s.y, s.z, typeof s.data?.color === 'string' ? (s.data.color as string) : undefined);
+      } else if (s.kind === 'vehicle' && (VEHICLE_KINDS as string[]).includes(s.variant ?? '')) {
+        entity = this.spawnVehicle(s.variant as VehicleKind, s.x, s.y, s.z, typeof s.data?.color === 'string' ? (s.data.color as string) : undefined);
       } else if (s.kind === 'robot') {
         const program = validateProgram(s.data?.program) ?? [];
         const blockId = typeof s.data?.blockId === 'number' ? (s.data.blockId as number) : 0;

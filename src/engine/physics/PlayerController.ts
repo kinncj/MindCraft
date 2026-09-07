@@ -28,6 +28,9 @@ const SWIM_UP_VELOCITY = 3.6;
 const STEP_HEIGHT = 1.05; // walk up a full block without jumping — kids hate ledges
 const TERMINAL = -40;
 const CLIMB_SPEED = 3;
+const FLY_SPEED = 9;
+const FLY_SPRINT = 16;
+const FLY_VERTICAL = 7;
 
 /**
  * The player's body: an axis-aligned box swept through the block shapes.
@@ -50,6 +53,15 @@ export class PlayerController {
   seated: { x: number; y: number; z: number } | null = null;
   /** Riding a vehicle: the entity system drives the position. */
   mounted = false;
+  /** Creative flight: no gravity, jump rises, sneak sinks, landing ends it. */
+  flying = false;
+
+  setFlying(on: boolean): void {
+    if (on === this.flying) return;
+    this.flying = on;
+    this.vy = 0;
+    if (on) this.onGround = false;
+  }
   facing = 0; // radians around y
   /** True while the body is being animated as walking. */
   moving = false;
@@ -151,6 +163,24 @@ export class PlayerController {
       const c = this.current(Math.round(this.x), Math.round(this.y + 0.3), Math.round(this.z));
       this.vx += c.x * CURRENT_SPEED;
       this.vz += c.z * CURRENT_SPEED;
+    }
+
+    // Flying: steady speed in every direction, no gravity; touching down lands.
+    if (this.flying) {
+      const speed = input.sprint ? FLY_SPRINT : FLY_SPEED;
+      if (this.moving) {
+        const len = Math.hypot(mx, mz);
+        this.vx = (mx / len) * speed;
+        this.vz = (mz / len) * speed;
+      }
+      const wantY = input.jump ? FLY_VERTICAL : input.sneak ? -FLY_VERTICAL : 0;
+      this.vy += (wantY - this.vy) * Math.min(1, dt * 10);
+      this.onGround = false;
+      this.moveBy(this.vx * dt, this.vy * dt, this.vz * dt);
+      this.y = Math.max(0, Math.min(WORLD_HEIGHT - PLAYER_HEIGHT, this.y));
+      if (input.sneak && this.onGround) this.setFlying(false); // came down onto ground
+      else this.onGround = false;
+      return;
     }
 
     // Vertical.

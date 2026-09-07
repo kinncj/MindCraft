@@ -56,6 +56,7 @@ export function GameCanvas() {
         onCrafted: (blockId, label, count) => useGameStore.getState().receiveCrafted(blockId, label, count),
         onGift: (blockId, label) => useGameStore.getState().receiveGift(blockId, label),
         onVillagerSay: (id, text) => useGameStore.getState().pushVillagerLine(id, 'villager', text),
+        onFlyChanged: (flying) => useGameStore.getState().setFlying(flying),
         onGamepadActive: (active) => useGameStore.getState().setControllerActive(active),
         onCommand: (command) => {
           const s = useGameStore.getState();

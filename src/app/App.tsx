@@ -28,6 +28,8 @@ export function App() {
   const toggleViewMode = useGameStore((state) => state.toggleViewMode);
   const zoom = useGameStore((state) => state.zoom);
   const dance = useGameStore((state) => state.dance);
+  const flying = useGameStore((state) => state.flying);
+  const toggleFly = useGameStore((state) => state.toggleFly);
   const canUndo = useGameStore((state) => state.canUndo);
   const canRedo = useGameStore((state) => state.canRedo);
   const undo = useGameStore((state) => state.undo);
@@ -101,6 +103,7 @@ export function App() {
         <IconButton icon="minus" label="Zoom out" onClick={() => zoom(3)} />
         <IconButton icon={viewMode === 'third' ? 'eye' : 'person'} label="Change camera view" onClick={toggleViewMode} />
         <IconButton icon="sparkle" label="Dance" onClick={dance} />
+        <IconButton icon="fly" label={flying ? 'Stop flying' : 'Fly'} onClick={toggleFly} tone={flying ? 'accent' : undefined} />
         <IconButton icon={audio.muted ? 'mute' : 'sound'} label={audio.muted ? 'Unmute sound' : 'Mute sound'} onClick={() => setAudio({ muted: !audio.muted })} />
       </div>
 

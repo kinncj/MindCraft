@@ -28,7 +28,8 @@
   `weather_*`, `camera_*`, `history_*`) via WebMCP and `window.mindcraftTools`
 - Build tools: room, fill, paint, copy/paste with rotation, mirror, six blueprint cards
 - Life layer: sit on chairs, switch TVs and lamps, a fridge that stores, a stove that
-  sizzles, ladders; a drivable car and boat; puppies and kitties that follow or stay;
+  sizzles, ladders; rides with arcade-real physics (car, motorbike, boat, airplane,
+  helicopter); creative flight; flowing water; puppies and kitties that follow, stay, or swim;
   villagers with eight pretend jobs, picture dialogue, gifts, and "let's play"
 - Dress-up with a live 3D preview: boy/girl style, shirt, pants/skirt, skin, hair, hats
 - Villager chat (ADR-0011): rules, the browser's built-in on-device model behind a

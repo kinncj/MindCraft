@@ -248,6 +248,9 @@ const DEFINITIONS: BlockDefinitionInput[] = [
   { id: 'sink', numericId: 103, label: 'Sink', category: 'furniture', emoji: '🚰', color: '#dfe6ea', shape: 'slab', textures: { top: 'sink_top', side: 'sink', bottom: 'sink' }, behavior: { onPlace: () => BlockState.withTopHalf(0, true), onInteract: (ctx) => { ctx.perform('splash', { position: ctx.position }); return true; } } },
   // Friends & rides 110..119: placing one of these spawns a creature or vehicle.
   { id: 'car', numericId: 110, label: 'Car', category: 'friends', emoji: '🚗', color: '#e8574f', spawns: { kind: 'vehicle', variant: 'car' }, textures: { top: 'car', side: 'car', bottom: 'car' } },
+  { id: 'motorcycle', numericId: 116, label: 'Motorbike', category: 'friends', emoji: '🏍️', color: '#2f6fd6', spawns: { kind: 'vehicle', variant: 'motorcycle' }, textures: { top: 'motorcycle', side: 'motorcycle', bottom: 'motorcycle' } },
+  { id: 'plane', numericId: 117, label: 'Airplane', category: 'friends', emoji: '✈️', color: '#f2f2f2', spawns: { kind: 'vehicle', variant: 'plane' }, textures: { top: 'plane', side: 'plane', bottom: 'plane' } },
+  { id: 'helicopter', numericId: 118, label: 'Helicopter', category: 'friends', emoji: '🚁', color: '#ffd94a', spawns: { kind: 'vehicle', variant: 'helicopter' }, textures: { top: 'helicopter', side: 'helicopter', bottom: 'helicopter' } },
   { id: 'boat', numericId: 111, label: 'Boat', category: 'friends', emoji: '⛵', color: '#c98d4b', spawns: { kind: 'vehicle', variant: 'boat' }, textures: { top: 'boat', side: 'boat', bottom: 'boat' } },
   { id: 'dog', numericId: 112, label: 'Puppy', category: 'friends', emoji: '🐶', color: '#c98d4b', spawns: { kind: 'pet', variant: 'dog' }, textures: { top: 'dog', side: 'dog', bottom: 'dog' } },
   { id: 'cat', numericId: 113, label: 'Kitty', category: 'friends', emoji: '🐱', color: '#f2903c', spawns: { kind: 'pet', variant: 'cat' }, textures: { top: 'cat', side: 'cat', bottom: 'cat' } },

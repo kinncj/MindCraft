@@ -137,10 +137,17 @@ export class RuleChatProvider implements ChatProvider {
     if (/\b(puppy|dog|doggy)\b/.test(text)) return say(`A puppy for you! 🐶 Take good care of it!`, [{ tool: 'pet_adopt', args: { kind: 'dog' } }]);
     if (/\b(kitty|cat|kitten)\b/.test(text)) return say(`A kitty! 🐱 So soft!`, [{ tool: 'pet_adopt', args: { kind: 'cat' } }]);
     if (/\b(bunny|rabbit)\b/.test(text)) return say(`Hop hop! 🐰 Here comes a bunny!`, [{ tool: 'entity_spawn', args: { kind: 'bunny' } }]);
+    if (/\b(fly|flying|wings)\b/.test(text) && !/\b(butterfly|fly (a )?(plane|kite))\b/.test(text)) {
+      const off = /\b(stop|land|no more|down)\b/.test(text);
+      return say(off ? `Coming in to land! 🛬` : `Up, up, and away! 🪽 Hold Jump to rise, Sneak to come down.`, [{ tool: 'player_fly', args: { on: !off } }]);
+    }
     if (/\b(chick|chicken|birdie)\b/.test(text)) return say(`Cheep cheep! 🐤`, [{ tool: 'entity_spawn', args: { kind: 'chick' } }]);
     if (/\bbutterfly\b/.test(text)) return say(`A butterfly! 🦋 So pretty!`, [{ tool: 'entity_spawn', args: { kind: 'butterfly' } }]);
     if (/\bcar\b/.test(text) && !/\bcarpet\b/.test(text)) return say(`Vroom vroom! 🚗 Here's a car!`, [{ tool: 'vehicle_spawn', args: { kind: 'car' } }]);
     if (/\bboat\b/.test(text)) return say(`Ahoy! ⛵ Put it on the water!`, [{ tool: 'vehicle_spawn', args: { kind: 'boat' } }]);
+    if (/\b(motorbike|motorcycle|bike)\b/.test(text)) return say(`Brrrm! 🏍️ Lean into the turns!`, [{ tool: 'vehicle_spawn', args: { kind: 'motorcycle' } }]);
+    if (/\b(plane|airplane|aeroplane|jet)\b/.test(text)) return say(`✈️ Go fast, then hold Jump to take off!`, [{ tool: 'vehicle_spawn', args: { kind: 'plane' } }]);
+    if (/\b(helicopter|chopper|heli)\b/.test(text)) return say(`🚁 Hold Jump to lift off!`, [{ tool: 'vehicle_spawn', args: { kind: 'helicopter' } }]);
 
     // --- Chit-chat ---
     if (/\b(hi|hello|hey|howdy|yo|good morning|good night)\b/.test(text)) return say(`Hi there! I'm ${v.name} the ${v.jobLabel}! 👋`);

@@ -44,6 +44,7 @@ export const CHAT_TOOL_ALLOWLIST = [
   'villager_say',
   'villager_dance',
   'player_dance',
+  'player_fly',
   'time_set',
   'weather_set',
   'pet_adopt',

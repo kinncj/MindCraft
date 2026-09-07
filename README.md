@@ -42,8 +42,11 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   rotation, a **Mirror** toggle, and six **blueprint cards** (cozy house, castle tower,
   bridge, garden, pool, treehouse) to stamp down and change.
 - **A life layer**: chairs you can sit on, TVs and lamps that switch on, a fridge that
-  stores food, a stove that sizzles, ladders to climb, a **car** and a **boat** to
-  drive, **puppies and kitties** that follow you (rename them, tell them to stay),
+  stores food, a stove that sizzles, ladders to climb, rides with real-feel physics
+  (a **car** that brakes and grips, a **motorbike** that leans, a **boat**, an
+  **airplane** that needs runway speed to take off, a **helicopter** that hovers),
+  **creative flight** (double-tap Jump), **flowing water** that pours, spreads, and
+  drains like the real thing, **puppies and kitties** that follow you (and swim),
   and **villagers with jobs** (baker, farmer, builder, doctor, teacher, firefighter,
   shopkeeper, musician) who chat in pictures, hand out gifts, and play along.
 - **Dress up** with a live spinning 3D preview: boy or girl style, shirt, pants or
@@ -101,7 +104,9 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 | Pick a block | `1`–`9`, hotbar, `E` for all blocks | hotbar, ➕ More | LB / RB, D-pad up |
 | Build tools | Tools button, `R` turns a paste | Tools button | D-pad down cycles, D-pad left turns |
 | Interact only | Tools → Interact | Tools → Interact | D-pad down to it |
-| Ride / hop off | tap the car or boat, `Space` to hop off (camera follows behind) | tap | RT, A to hop off |
+| Fly | double-tap `Space` or the 🪽 button; hold `Space` to rise, `Shift` to sink, land to stop | double-tap Jump / 🪽 | double-tap A |
+| Ride / hop off | tap a car, bike, boat, plane, or helicopter; `Space` hops off ground rides, `E` any ride (camera follows behind) | tap it again | RT, A hops off ground rides |
+| Fly a plane / helicopter | `W` throttle up, `S` down, `A D` bank or turn, `Space` climb, `Shift` dive or land | joystick + Jump | left stick, A |
 | Chat with a villager | tap them, then type or tap a chip | tap, chips | RT on them, chips |
 | Dance | `X` or the ✦ button (friends nearby join in) | ✦ button | — |
 | Crafting | `C`, a crafting table, or Menu → Crafting | Menu → Crafting | Start → Crafting |

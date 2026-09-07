@@ -41,7 +41,8 @@ export type IconName =
   | 'blocks'
   | 'chat'
   | 'send'
-  | 'sparkle';
+  | 'sparkle'
+  | 'fly';
 
 type Props = SVGProps<SVGSVGElement> & { name: IconName; size?: number };
 
@@ -227,6 +228,12 @@ const paths: Record<IconName, JSX.Element> = {
     </>
   ),
   send: <path d="M3 11 21 3l-6 18-3-8z" />,
+  fly: (
+    <>
+      <path d="M12 4c-1.2 0-2 .9-2 2v3.2L3.5 13v2l6.5-2v3.2l-2 1.3V19l4-1 4 1v-1.5l-2-1.3V13l6.5 2v-2L14 9.2V6c0-1.1-.8-2-2-2z" />
+      <path d="M11 6h2v3h-2z" fill="var(--icon-2)" />
+    </>
+  ),
   sparkle: (
     <>
       <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z" />

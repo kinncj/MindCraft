@@ -46,7 +46,10 @@ const PAD = {
 } as const;
 
 /** Things a controller asks the app layer to do (not world input). */
-export type PadCommand = 'menu' | 'hotbar_next' | 'hotbar_prev' | 'toggle_view' | 'toggle_mode' | 'undo' | 'palette' | 'rotate' | 'tool_next' | 'zoom_cycle';
+export type PadCommand = 'menu' | 'hotbar_next' | 'hotbar_prev' | 'toggle_view' | 'toggle_mode' | 'undo' | 'palette' | 'rotate' | 'tool_next' | 'zoom_cycle' | 'fly_toggle';
+
+/** Two jump presses this close together toggle flying (keyboard, touch, or pad). */
+export const DOUBLE_TAP_SECONDS = 0.32;
 
 /**
  * Keyboard, mouse, touch, and the virtual joystick, folded into one
@@ -90,6 +93,9 @@ export class InputSystem implements System {
   private padActiveUntil = 0;
   private padTapQueued: Tap[] = [];
   private padCommands: PadCommand[] = [];
+  private jumpWasDown = false;
+  private lastJumpDown = -10;
+  private clock = 0;
   private pad = { moveX: 0, moveY: 0, lookX: 0, lookY: 0, jump: false, sprint: false, sneak: false };
 
   constructor(private canvas: HTMLElement) {
@@ -116,6 +122,12 @@ export class InputSystem implements System {
     f.left = !blocked && (k.has('a') || k.has('arrowleft') || touchInput.x < -0.3 || p.moveX < -0.3);
     f.right = !blocked && (k.has('d') || k.has('arrowright') || touchInput.x > 0.3 || p.moveX > 0.3);
     f.jump = !blocked && (k.has(' ') || touchInput.jump || p.jump);
+    this.clock += dt;
+    if (f.jump && !this.jumpWasDown) {
+      if (this.clock - this.lastJumpDown < DOUBLE_TAP_SECONDS) this.padCommands.push('fly_toggle');
+      this.lastJumpDown = this.clock;
+    }
+    this.jumpWasDown = f.jump;
     f.sneak = !blocked && (k.has('shift') || p.sneak);
     f.sprint = !blocked && (k.has('control') || p.sprint);
     f.lookDX = blocked ? 0 : this.lookDX + p.lookX;

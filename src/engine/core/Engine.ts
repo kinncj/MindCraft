@@ -40,6 +40,7 @@ import type { GeneratorConfig, WorldGenerator } from '../world/generation/Genera
 import { VoxelWorld } from '../world/VoxelWorld';
 import { VISUAL_MODES, type VisualModeDefinition } from '../../shaders/visualModes';
 import { setBodyStyle } from '../entities/bodies';
+import { VEHICLE_KINDS, VEHICLE_LABELS, type VehicleKind } from '../entities/vehicles';
 import type { TimeMode, VisualModeId, WeatherMode } from '../../types/game';
 import { GameLoop } from './GameLoop';
 import type { Chunk } from '../world/Chunk';
@@ -73,6 +74,7 @@ export type EngineBridge = {
   onGift?(blockId: number, label: string): void;
   /** A villager said something (chat reply or villager_say). */
   onVillagerSay?(villagerId: string, text: string): void;
+  onFlyChanged?(flying: boolean): void;
   /** Something crafted: put it in the hotbar. */
   onCrafted?(blockId: number, label: string, count: number): void;
   /** Logic events the app may react to (a note block playing). */
@@ -283,7 +285,8 @@ export class Engine {
         if (entity.vehicle) {
           this.entities.mount(entity);
           this.audio.play('vroom');
-          bridge.toast(entity.variant === 'boat' ? '⛵ All aboard! Tap the boat again to hop off.' : '🚗 Vroom! Tap the car again to hop out.');
+          const info = VEHICLE_LABELS[(entity.variant ?? 'car') as VehicleKind] ?? VEHICLE_LABELS.car;
+          bridge.toast(`${info.emoji} ${info.hint}`);
           return true;
         }
         this.entities.pet(entity);
@@ -442,7 +445,8 @@ export class Engine {
     }
     if (this.input.frame.pressed.has('x')) this.dance();
     for (const command of this.input.frame.commands) {
-      if (command === 'toggle_view') this.camera.toggleViewMode();
+      if (command === 'fly_toggle') this.setFlying(!this.player.flying);
+      else if (command === 'toggle_view') this.camera.toggleViewMode();
       else if (command === 'rotate') this.build.rotateClipboard();
       else if (command === 'zoom_cycle') this.camera.cycleZoom();
       else this.options.bridge.onCommand?.(command);
@@ -466,8 +470,10 @@ export class Engine {
     const f = this.input.frame;
     const wasOnGround = this.player.onGround;
     if (this.entities.mounted) {
-      this.entities.driveInput = { forward: f.forward, back: f.back, left: f.left, right: f.right };
-      if (f.pressed.has(' ')) this.entities.dismount();
+      this.entities.driveInput = { forward: f.forward, back: f.back, left: f.left, right: f.right, up: f.jump, down: f.sneak, boost: f.sprint };
+      // Space hops out of ground rides; aircraft use Jump to climb, so they hop out with E (or a tap).
+      const flies = this.entities.mounted.vehicle?.flies ?? false;
+      if (f.pressed.has('e') || (!flies && f.pressed.has(' '))) this.entities.dismount();
       // The camera settles behind the vehicle unless the kid is dragging to look.
       const vehicle = this.entities.mounted.vehicle;
       if (vehicle && f.lookDX === 0 && f.lookDY === 0) {
@@ -480,7 +486,9 @@ export class Engine {
       return;
     }
     this.entities.driveInput = null;
+    const wasFlying = this.player.flying;
     this.player.update(dt, f, this.camera.yaw);
+    if (wasFlying && !this.player.flying) this.options.bridge.onFlyChanged?.(false);
     if (this.player.moving && (this.player.onGround || this.player.inWater)) this.audio.step(this.loopElapsed(), this.player.inWater);
     if (wasOnGround && !this.player.onGround && this.player.vy > 0) this.audio.play('jump');
   }
@@ -532,9 +540,11 @@ export class Engine {
   }
 
   private spawnFromCard(spec: { kind: 'vehicle' | 'pet' | 'villager' | 'robot'; variant: string }, x: number, y: number, z: number): boolean {
-    if (spec.kind === 'vehicle' && (spec.variant === 'car' || spec.variant === 'boat')) {
-      const e = this.entities.spawnVehicle(spec.variant, x, y - 0.5, z);
-      this.options.bridge.toast(spec.variant === 'car' ? '🚗 A car! Tap it to drive.' : '⛵ A boat! Put it on water and tap it.');
+    if (spec.kind === 'vehicle' && (VEHICLE_KINDS as string[]).includes(spec.variant)) {
+      const kind = spec.variant as VehicleKind;
+      const e = this.entities.spawnVehicle(kind, x, y - 0.5, z);
+      const info = VEHICLE_LABELS[kind];
+      this.options.bridge.toast(kind === 'boat' ? '⛵ A boat! Put it on water and tap it.' : `${info.emoji} A ${info.label.toLowerCase()}! Tap it to ride.`);
       this.particles.burst(e.x, e.y + 0.5, e.z, '#ffffff', 14, 0.8);
       return true;
     }
@@ -584,6 +594,15 @@ export class Engine {
   }
 
   /** The player dances for a few seconds; nearby friends join in. */
+  /** Creative flight on or off; kids double-tap jump or use the wing button. */
+  setFlying(on: boolean): boolean {
+    if (this.entities.mounted) return false;
+    this.player.setFlying(on);
+    this.options.bridge.onFlyChanged?.(on);
+    if (on) this.options.bridge.toast('🪽 Flying! Hold Jump to go up, Sneak to come down.');
+    return this.player.flying;
+  }
+
   dance(seconds = 6): void {
     this.avatar.danceUntil = this.loopElapsed() + seconds;
     this.audio.play('happy');

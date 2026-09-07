@@ -415,6 +415,15 @@ export const useGameStore = create<GameState>((set, get) => {
       getEngine()?.dance();
       get().showToast('💃 Dance party!');
     },
+    flying: false,
+    toggleFly() {
+      const engine = getEngine();
+      if (!engine) return;
+      set({ flying: engine.setFlying(!engine.player.flying) });
+    },
+    setFlying(flying) {
+      set({ flying });
+    },
     setHistoryState(canUndo, canRedo) {
       set({ canUndo, canRedo });
     },

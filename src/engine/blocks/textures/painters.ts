@@ -660,6 +660,44 @@ const boatCard = cardPainter('#4fa8e8', (ctx) => {
   ctx.fillStyle = '#4fa8e8';
   ctx.fillRect(1, 13, 14, 2);
 });
+const motorcycleCard = cardPainter('#2f6fd6', (ctx) => {
+  ctx.fillStyle = '#2f6fd6';
+  ctx.fillRect(4, 7, 8, 3);
+  ctx.fillRect(6, 5, 4, 2);
+  ctx.fillStyle = '#777777';
+  ctx.fillRect(10, 4, 3, 1);
+  ctx.fillStyle = '#3a3a3a';
+  ctx.fillRect(2, 9, 4, 4);
+  ctx.fillRect(10, 9, 4, 4);
+  ctx.fillStyle = '#fff3b0';
+  ctx.fillRect(12, 7, 2, 2);
+});
+const planeCard = cardPainter('#4fa8e8', (ctx) => {
+  ctx.fillStyle = '#4fa8e8';
+  ctx.fillRect(1, 1, 14, 14);
+  ctx.fillStyle = '#f2f2f2';
+  ctx.fillRect(2, 7, 12, 3);
+  ctx.fillRect(6, 3, 3, 10);
+  ctx.fillRect(2, 5, 2, 2);
+  ctx.fillStyle = '#e8574f';
+  ctx.fillRect(13, 7, 2, 3);
+  ctx.fillStyle = '#aee3ff';
+  ctx.fillRect(10, 8, 2, 1);
+});
+const helicopterCard = cardPainter('#4fa8e8', (ctx) => {
+  ctx.fillStyle = '#4fa8e8';
+  ctx.fillRect(1, 1, 14, 14);
+  ctx.fillStyle = '#3a3a3a';
+  ctx.fillRect(2, 3, 12, 1);
+  ctx.fillRect(8, 4, 1, 2);
+  ctx.fillStyle = '#ffd94a';
+  ctx.fillRect(5, 6, 7, 5);
+  ctx.fillRect(1, 7, 4, 2);
+  ctx.fillStyle = '#aee3ff';
+  ctx.fillRect(9, 7, 2, 2);
+  ctx.fillStyle = '#777777';
+  ctx.fillRect(4, 12, 9, 1);
+});
 const dogCard = cardPainter('#c98d4b', (ctx) => {
   ctx.fillStyle = '#c98d4b';
   ctx.fillRect(4, 5, 8, 7);
@@ -917,6 +955,9 @@ export const PAINTERS: Record<string, { paint: Painter; seed: number }> = {
   sink: { paint: sink, seed: 166 },
   sink_top: { paint: sinkTop, seed: 167 },
   car: { paint: carCard, seed: 170 },
+  motorcycle: { paint: motorcycleCard, seed: 112 },
+  plane: { paint: planeCard, seed: 113 },
+  helicopter: { paint: helicopterCard, seed: 114 },
   boat: { paint: boatCard, seed: 171 },
   dog: { paint: dogCard, seed: 172 },
   cat: { paint: catCard, seed: 173 },
