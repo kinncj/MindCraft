@@ -168,11 +168,82 @@ export class BuildTools {
     return edits;
   }
 
+  /**
+   * Simple shapes a kid asks for by name: pyramid, tower, cube, platform,
+   * wall, ring, tree, line. Centered on (x, z), bottom at y.
+   */
+  planShape(shape: string, x: number, y: number, z: number, id: number, size = 5): BlockEdit[] {
+    const edits: BlockEdit[] = [];
+    const put = (px: number, py: number, pz: number, bid = id, state = 0): void => {
+      edits.push({ x: px, y: py, z: pz, id: bid, state, entity: null });
+    };
+    const s = Math.max(2, Math.min(16, Math.round(size)));
+    const half = Math.floor(s / 2);
+    switch (shape) {
+      case 'pyramid':
+        for (let level = 0; level <= half; level++) {
+          for (let dx = -half + level; dx <= half - level; dx++) for (let dz = -half + level; dz <= half - level; dz++) put(x + dx, y + level, z + dz);
+        }
+        break;
+      case 'tower':
+        for (let h = 0; h < s * 2; h++) {
+          for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if (Math.abs(dx) === 2 || Math.abs(dz) === 2) put(x + dx, y + h, z + dz);
+        }
+        for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) if ((dx + dz) % 2 === 0 && (Math.abs(dx) === 2 || Math.abs(dz) === 2)) put(x + dx, y + s * 2, z + dz);
+        for (let h = 0; h < s * 2; h++) put(x, y + h, z, this.registry.byId('ladder')?.numericId ?? id, 0);
+        break;
+      case 'cube':
+      case 'box':
+        for (let dx = -half; dx <= half; dx++) for (let dy = 0; dy < s; dy++) for (let dz = -half; dz <= half; dz++) put(x + dx, y + dy, z + dz);
+        break;
+      case 'platform':
+      case 'floor':
+        for (let dx = -half; dx <= half; dx++) for (let dz = -half; dz <= half; dz++) put(x + dx, y, z + dz);
+        break;
+      case 'wall':
+        for (let dx = -half; dx <= half; dx++) for (let dy = 0; dy < Math.max(3, Math.ceil(s / 2)); dy++) put(x + dx, y + dy, z);
+        break;
+      case 'ring':
+      case 'circle':
+        for (let dx = -half; dx <= half; dx++) for (let dz = -half; dz <= half; dz++) {
+          const d = Math.hypot(dx, dz);
+          if (d <= half + 0.4 && d >= half - 0.6) put(x + dx, y, z + dz);
+        }
+        break;
+      case 'line':
+      case 'road':
+      case 'path':
+        for (let dz = -s; dz <= s; dz++) put(x, y, z + dz);
+        break;
+      case 'tree': {
+        const wood = this.registry.byId('wood')?.numericId ?? id;
+        const leaves = this.registry.byId('leaves')?.numericId ?? id;
+        for (let h = 0; h < 4; h++) put(x, y + h, z, wood);
+        for (let dy = 2; dy <= 5; dy++) {
+          const r = dy === 5 ? 0 : dy === 4 ? 1 : 2;
+          for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) if (!(dx === 0 && dz === 0 && dy < 4)) put(x + dx, y + dy, z + dz, leaves);
+        }
+        break;
+      }
+      case 'arch':
+        for (let h = 0; h < s; h++) {
+          put(x - half, y + h, z);
+          put(x + half, y + h, z);
+        }
+        for (let dx = -half; dx <= half; dx++) put(x + dx, y + s, z);
+        break;
+      default:
+        return [];
+    }
+    return edits;
+  }
+
   /** Edits for a stamp centered on (x, z) with its bottom at y, rotated. */
-  planStamp(stamp: Stamp, x: number, y: number, z: number, rotation: number): BlockEdit[] {
+  planStamp(stamp: Stamp, x: number, y: number, z: number, rotation: number, remap?: (id: number) => number): BlockEdit[] {
     const rotated = rotateStamp(stamp, rotation, this.registry);
     const origin = centeredOrigin(rotated, x, y, z);
-    return stampToEdits(rotated, origin.x, origin.y, origin.z);
+    const edits = stampToEdits(rotated, origin.x, origin.y, origin.z);
+    return remap ? edits.map((e) => ({ ...e, id: remap(e.id) })) : edits;
   }
 
   copy(a: Vec3, b: Vec3): boolean {

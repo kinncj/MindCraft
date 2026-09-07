@@ -33,6 +33,7 @@ function ctx(message: string): ChatContext {
     blueprints: [{ id: 'cozy_house', label: 'Cozy House' }],
     blocks: blocks.palette().map((d) => ({ id: d.id, label: d.label })),
     tools: [],
+    world: { timeOfDay: 0.3, weather: 'sunny', biome: 'meadow', worldName: 'Castle Land' },
   };
 }
 
@@ -47,7 +48,7 @@ describe('rule chat provider', () => {
     const brick = await rules.reply(ctx('put a brick here'));
     expect(brick.actions[0]).toMatchObject({ tool: 'world_place_block', args: { block: 'brick' } });
     const wall = await rules.reply(ctx('make a wall of glass'));
-    expect(wall.actions[0]).toMatchObject({ tool: 'world_fill', args: { block: 'glass' } });
+    expect(wall.actions[0]).toMatchObject({ tool: 'build_shape', args: { shape: 'wall', block: 'glass' } });
     expect(house.say.startsWith('🥖')).toBe(true);
   });
 
@@ -60,6 +61,23 @@ describe('rule chat provider', () => {
     expect((await rules.reply(ctx('hello'))).actions).toEqual([]);
     expect((await rules.reply(ctx('what is your job'))).say).toContain('Baker');
     expect((await rules.reply(ctx('zzzz qqq'))).say).toContain('Try');
+  });
+
+  it('answers questions about the world and builds shapes in colors', async () => {
+    expect((await rules.reply(ctx('what colour is the sky'))).say).toContain('bright blue');
+    const night = { ...ctx('what color is the sky?'), world: { timeOfDay: 0.8, weather: 'sunny', biome: 'forest', worldName: 'W' } };
+    expect((await rules.reply(night)).say).toContain('stars');
+    expect((await rules.reply(ctx("what's the weather"))).say).toContain('sunny');
+    expect((await rules.reply(ctx('where are we'))).say).toContain('meadow');
+    expect((await rules.reply(ctx('what is your favorite color'))).say).toContain('frosting');
+    const pyramid = await rules.reply(ctx('build a pyramid'));
+    expect(pyramid.actions[0]).toMatchObject({ tool: 'build_shape', args: { shape: 'pyramid', block: 'sandstone', size: 5 } });
+    const bigGlass = await rules.reply(ctx('make a big glass pyramid'));
+    expect(bigGlass.actions[0].args).toMatchObject({ shape: 'pyramid', block: 'glass', size: 9 });
+    const pinkHouse = await rules.reply(ctx('build a pink house'));
+    expect(pinkHouse.actions[0]).toMatchObject({ tool: 'build_stamp_blueprint', args: { blueprint: 'cozy_house', color: 'color_pink' } });
+    const trees = await rules.reply(ctx('plant a tree please'));
+    expect(trees.actions[0].args).toMatchObject({ shape: 'tree' });
     expect(findBlock('put a wood stairs please', blocks.palette().map((d) => ({ id: d.id, label: d.label })))?.id).toBe('planks_stairs');
   });
 });

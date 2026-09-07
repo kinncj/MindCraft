@@ -38,6 +38,7 @@ export function GameCanvas() {
       settings: { visualMode: store.visualMode, timeMode: store.timeMode, weather: store.weather, timeOfDay: world.settings.timeOfDay, look: store.look },
       entities: (world.entities ?? []) as import('../engine/entities/Entity').StoredEntity[],
       audio: store.audio,
+      worldName: world.name,
       bridge: {
         getSelectedBlockId: () => registry.byId(useGameStore.getState().selectedBlockType)?.numericId ?? 1,
         getMode: () => useGameStore.getState().mode,
@@ -72,12 +73,9 @@ export function GameCanvas() {
     engine.setViewMode(store.viewMode);
     engine.onAudioSettings = (settings) => useGameStore.getState().setAudio(settings);
     engine.chat.smart = store.smartChat;
-    // A helper the parent downloaded earlier loads from the cache in the background.
-    if (store.helper.enabled) {
-      void import('../engine/chat/WebLlmProvider').then(async ({ helperModelIsCached }) => {
-        if (await helperModelIsCached()) void useGameStore.getState().downloadHelper();
-      });
-    }
+    // A helper the parent chose earlier loads again (from the browser cache) in the background.
+    if (store.helper.enabled && store.helper.status !== 'ready') void useGameStore.getState().downloadHelper();
+    else if (store.helper.enabled) engine.chat.helper.enabled = true;
 
     const unsubWorld = engine.world.subscribe({
       onBlockChanged: () => useGameStore.getState().markDirty(),

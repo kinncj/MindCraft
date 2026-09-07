@@ -12,6 +12,7 @@ function ctx(message: string): ChatContext {
     blueprints: [{ id: 'cozy_house', label: 'Cozy House' }],
     blocks: [{ id: 'brick', label: 'Brick' }],
     tools: [{ name: 'build_stamp_blueprint', description: 'stamp' }, { name: 'world_save', description: 'save' }],
+    world: { timeOfDay: 0.3, weather: 'sunny', biome: 'meadow', worldName: 'W' },
   };
 }
 

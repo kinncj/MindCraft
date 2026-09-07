@@ -87,6 +87,7 @@ export type EngineOptions = {
   audio?: Partial<AudioSettings>;
   /** Pets, villagers, and vehicles saved with the world. */
   entities?: StoredEntity[] | null;
+  worldName?: string;
   /** Smaller radius for tests and slow machines. */
   viewRadius?: number;
   useWorker?: boolean;
@@ -319,6 +320,12 @@ export class Engine {
       player: () => this.playerState(),
       surface: (x, z) => this.world.height(x, z),
       say: (id, text) => bridge.onVillagerSay?.(id, text),
+      world: () => ({
+        timeOfDay: this.environment.time,
+        weather: this.environment.weatherName,
+        biome: this.generator instanceof InfiniteGenerator ? this.generator.biomeOf(Math.round(this.player.x), Math.round(this.player.z)) : 'town',
+        worldName: this.options.worldName ?? 'My World',
+      }),
     });
     this.disposeTools = exposeTools(this.tools, this.chat);
     registerCoreTools(this);

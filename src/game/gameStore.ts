@@ -461,18 +461,24 @@ export const useGameStore = create<GameState>((set, get) => {
       const engine = getEngine();
       if (engine) engine.chat.smart = on;
     },
-    helper: { status: 'none', progress: 0, text: '', enabled: loadHelperEnabled() },
+    helper: { status: loadHelperEnabled() ? 'loading' : 'none', progress: 0, text: '', enabled: loadHelperEnabled() },
     async downloadHelper() {
       const engine = getEngine();
       if (!engine) return;
-      set({ helper: { ...get().helper, status: 'downloading', progress: 0, text: 'Starting…' } });
-      engine.chat.helper.onProgress = (p) => set({ helper: { ...get().helper, status: 'downloading', progress: p.progress, text: p.text } });
+      if (engine.chat.helper.ready) {
+        engine.chat.helper.enabled = true;
+        set({ helper: { status: 'ready', progress: 1, text: 'Ready', enabled: true } });
+        return;
+      }
+      const resuming = get().helper.enabled;
+      set({ helper: { ...get().helper, status: resuming ? 'loading' : 'downloading', progress: 0, text: resuming ? 'Loading the helper…' : 'Starting…' } });
+      engine.chat.helper.onProgress = (p) => set({ helper: { ...get().helper, progress: p.progress, text: p.text } });
       try {
         await engine.chat.helper.load();
         engine.chat.helper.enabled = true;
         saveHelperEnabled(true);
         set({ helper: { status: 'ready', progress: 1, text: 'Ready', enabled: true } });
-        get().showToast('✨ The smarter helper is ready! Villagers understand more now.');
+        if (!resuming) get().showToast('✨ The smarter helper is ready! Villagers understand more now.');
       } catch (error) {
         set({ helper: { ...get().helper, status: 'error', text: error instanceof Error ? error.message : 'Could not load the helper.' } });
       }

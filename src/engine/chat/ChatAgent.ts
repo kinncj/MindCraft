@@ -8,7 +8,8 @@ import { resolveBlockId } from '../blocks/blocks';
 import type { ToolRegistry } from '../tools/ToolRegistry';
 import { BuiltInModelProvider } from './BuiltInModelProvider';
 import { RuleChatProvider, rotationFromYaw } from './RuleChatProvider';
-import { WebLlmProvider } from './WebLlmProvider';
+import type { WebLlmProvider } from './WebLlmProvider';
+import { sharedHelper } from './helperSingleton';
 import { CHAT_TOOL_ALLOWLIST, HANDS_ON_TOOLS, type ChatAction, type ChatContext, type ChatProvider, type ChatReply, type ChatTurn } from './types';
 
 export type ChatResult = ChatReply & { provider: string; performed: string[] };
@@ -39,9 +40,10 @@ export class ChatAgent {
       surface: (x: number, z: number) => number;
       say: (villagerId: string, text: string) => void;
       helper?: WebLlmProvider;
+      world?: () => { timeOfDay: number; weather: string; biome: string; worldName: string };
     },
   ) {
-    this.helper = deps.helper ?? new WebLlmProvider();
+    this.helper = deps.helper ?? sharedHelper();
   }
 
   registerProvider(provider: ChatProvider | null): void {
@@ -81,6 +83,7 @@ export class ChatAgent {
       blueprints: BLUEPRINTS.map((b) => ({ id: b.id, label: b.label })),
       blocks: this.deps.registry.palette().filter((d) => !d.spawns).map((d) => ({ id: d.id, label: d.label })),
       tools: this.deps.tools.list().map((t) => ({ name: t.name, description: t.description })),
+      world: this.deps.world?.() ?? { timeOfDay: 0.3, weather: 'sunny', biome: 'meadow', worldName: 'My World' },
     };
   }
 
@@ -152,7 +155,16 @@ export class ChatAgent {
         const bp = blueprintById(String(a.blueprint));
         if (!bp) return null;
         const rotation = num(a.rotation, rotationFromYaw(ctx.player.yaw));
-        return { label: `Build ${bp.label}`, edits: this.deps.build.planStamp(bp.stamp, num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), rotation) };
+        const paint = typeof a.color === 'string' ? blockId(a.color) : null;
+        const planks = this.deps.registry.numericOf('planks');
+        const remap = paint ? (id: number) => (id === planks ? paint : id) : undefined;
+        return { label: `Build ${bp.label}`, edits: this.deps.build.planStamp(bp.stamp, num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), rotation, remap) };
+      }
+      case 'build_shape': {
+        const id = blockId(a.block) ?? this.deps.registry.numericOf('sandstone');
+        const shape = String(a.shape ?? 'pyramid');
+        const edits = this.deps.build.planShape(shape, num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), id, num(a.size, 5));
+        return edits.length ? { label: `Build a ${shape}`, edits } : null;
       }
       case 'build_room': {
         const id = blockId(a.block) ?? this.deps.registry.numericOf('planks');

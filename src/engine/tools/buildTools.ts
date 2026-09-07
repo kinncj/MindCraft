@@ -51,6 +51,16 @@ export function registerBuildTools(engine: Engine): void {
     },
   });
   tools.register({
+    name: 'build_shape',
+    description: 'Build a simple shape centered on (x, z) with its bottom at y: pyramid, tower, cube, platform, wall, ring, line, tree, arch. size 2-16.',
+    inputSchema: { type: 'object', properties: { shape: { type: 'string' }, block: { type: 'string' }, x: int, y: int, z: int, size: int }, required: ['shape', 'x', 'y', 'z'] },
+    execute: (a: { shape: string; block?: string; x: number; y: number; z: number; size?: number }) => {
+      const edits = build.planShape(a.shape, a.x, a.y, a.z, a.block ? blockId(a.block) : engine.registry.numericOf('sandstone'), a.size ?? 5);
+      if (edits.length === 0) throw new Error(`I do not know the shape "${a.shape}"`);
+      return { blocks: build.run(`Build a ${a.shape}`, edits) };
+    },
+  });
+  tools.register({
     name: 'build_list_blueprints',
     description: 'The blueprint cards you can stamp: id, label, size.',
     inputSchema: { type: 'object', properties: {} },

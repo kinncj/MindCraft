@@ -122,3 +122,20 @@ describe('blueprints', () => {
     expect(ids.has(B.bed)).toBe(true);
   });
 });
+
+describe('shapes', () => {
+  it('plans pyramids, towers, trees, and rejects unknown shapes', () => {
+    const { world, build } = setup();
+    const pyramid = build.planShape('pyramid', 10, 5, 10, B.sandstone, 5);
+    expect(pyramid.length).toBe(25 + 9 + 1);
+    expect(pyramid.some((e) => e.y === 7 && e.x === 10 && e.z === 10)).toBe(true);
+    const tower = build.planShape('tower', 20, 5, 20, B.stone_bricks, 4);
+    expect(tower.some((e) => e.id === B.ladder)).toBe(true);
+    expect(tower.filter((e) => e.y === 5).length).toBe(17);
+    const tree = build.planShape('tree', 30, 5, 30, B.wood, 5);
+    expect(tree.some((e) => e.id === B.leaves)).toBe(true);
+    expect(build.planShape('spaceship', 0, 0, 0, B.brick)).toEqual([]);
+    expect(build.run('Pyramid', pyramid)).toBe(35);
+    expect(world.getBlock(10, 7, 10)).toBe(B.sandstone);
+  });
+});

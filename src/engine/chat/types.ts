@@ -21,6 +21,8 @@ export type ChatContext = {
   blocks: Array<{ id: string; label: string }>;
   /** Tools the provider may call, with one-line descriptions. */
   tools: Array<{ name: string; description: string }>;
+  /** What the world looks like right now, for honest answers. */
+  world: { timeOfDay: number; weather: string; biome: string; worldName: string };
 };
 
 export interface ChatProvider {
@@ -32,6 +34,7 @@ export interface ChatProvider {
 /** Tools a chat reply is allowed to trigger. Everything else is dropped. */
 export const CHAT_TOOL_ALLOWLIST = [
   'build_stamp_blueprint',
+  'build_shape',
   'build_room',
   'world_place_block',
   'world_fill',
@@ -50,4 +53,4 @@ export const CHAT_TOOL_ALLOWLIST = [
 ] as const;
 
 /** Tools whose edits the villager performs by hand, block by block. */
-export const HANDS_ON_TOOLS = ['build_stamp_blueprint', 'build_room', 'world_place_block', 'world_fill'] as const;
+export const HANDS_ON_TOOLS = ['build_stamp_blueprint', 'build_shape', 'build_room', 'world_place_block', 'world_fill'] as const;

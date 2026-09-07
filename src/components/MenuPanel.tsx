@@ -200,9 +200,9 @@ export function MenuPanel() {
                   </KidButton>
                 </div>
               </>
-            ) : helper.status === 'downloading' ? (
+            ) : helper.status === 'downloading' || helper.status === 'loading' ? (
               <>
-                <p className="sheet-hint">Downloading the helper… {Math.round(helper.progress * 100)}%</p>
+                <p className="sheet-hint">{helper.status === 'loading' ? 'Loading the helper from this device…' : 'Downloading the helper…'} {Math.round(helper.progress * 100)}%</p>
                 <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(helper.progress * 100)}>
                   <div className="progress-bar" style={{ width: `${Math.round(helper.progress * 100)}%` }} />
                 </div>

@@ -79,7 +79,7 @@ export type SettingsSlice = {
   smartChat: boolean;
   setSmartChat: (on: boolean) => void;
   /** The downloadable helper model: a parent's choice, kept on the device. */
-  helper: { status: 'none' | 'downloading' | 'ready' | 'error'; progress: number; text: string; enabled: boolean };
+  helper: { status: 'none' | 'loading' | 'downloading' | 'ready' | 'error'; progress: number; text: string; enabled: boolean };
   downloadHelper: () => Promise<void>;
   setHelperEnabled: (on: boolean) => void;
   removeHelper: () => Promise<void>;

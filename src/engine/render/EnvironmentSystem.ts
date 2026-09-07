@@ -72,6 +72,10 @@ export class EnvironmentSystem implements System {
     return this.timeOfDay;
   }
 
+  get weatherName(): WeatherMode {
+    return this.weather;
+  }
+
   setTime(t: number): void {
     this.timeOfDay = ((t % 1) + 1) % 1;
   }
