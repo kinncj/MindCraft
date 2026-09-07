@@ -123,7 +123,7 @@ export function buildCat(color = '#f2903c'): THREE.Group {
   return group;
 }
 
-export type VillagerLook = { shirt: string; pants: string; skin: string; hair: string; hat?: string };
+export type VillagerLook = { shirt: string; pants: string; skin: string; hair: string; hat?: string; /** Long hair down the back (girls). */ long?: boolean };
 
 export function buildVillager(look: VillagerLook): THREE.Group {
   const group = new THREE.Group();
@@ -133,6 +133,14 @@ export function buildVillager(look: VillagerLook): THREE.Group {
   head.position.y = 1.6;
   const hair = box(0.48, 0.14, 0.48, look.hair);
   hair.position.y = 1.78;
+  if (look.long) {
+    const back = box(0.44, 0.42, 0.1, look.hair);
+    back.position.set(0, 1.5, -0.24);
+    group.add(back);
+    const bow = box(0.12, 0.08, 0.08, '#f291bb');
+    bow.position.set(0.18, 1.8, -0.2);
+    group.add(bow);
+  }
   const eyeL = box(0.06, 0.06, 0.02, '#3a3226');
   eyeL.position.set(-0.1, 1.64, 0.24);
   const eyeR = eyeL.clone();

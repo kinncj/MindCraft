@@ -52,6 +52,8 @@ export function VillagerPanel() {
     if (!trimmed || thinking) return;
     setText('');
     pushVillagerLine(villager.id, 'kid', trimmed);
+    // Sending lets the villager move again (to go and build, follow, or dance).
+    engine.setTalking(villager.id, false);
     setThinking(true);
     try {
       const result = await engine.chat.send(villager.id, trimmed);

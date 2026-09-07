@@ -11,7 +11,7 @@ export type ChatReply = { say: string; actions: ChatAction[] };
 export type ChatTurn = { who: 'kid' | 'villager'; text: string };
 
 export type ChatContext = {
-  villager: { id: string; name: string; job: string; jobLabel: string; emoji: string; x: number; z: number };
+  villager: { id: string; name: string; job: string; jobLabel: string; emoji: string; x: number; z: number; gender?: 'girl' | 'boy' };
   message: string;
   history: ChatTurn[];
   player: { x: number; y: number; z: number; yaw: number };

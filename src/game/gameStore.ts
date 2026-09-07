@@ -394,9 +394,14 @@ export const useGameStore = create<GameState>((set, get) => {
     containerVersion: 0,
 
     setOpenPanel(panel, payload = null) {
+      const before = get();
+      if (before.openPanel === 'villager' && before.panelPayload) getEngine()?.setTalking((before.panelPayload as { id: string }).id, false);
       set({ openPanel: panel, panelPayload: payload });
+      if (panel === 'villager' && payload) getEngine()?.setTalking((payload as { id: string }).id, true);
     },
     closePanels() {
+      const before = get();
+      if (before.openPanel === 'villager' && before.panelPayload) getEngine()?.setTalking((before.panelPayload as { id: string }).id, false);
       set({ openPanel: 'none', panelPayload: null });
     },
     showToast(message) {

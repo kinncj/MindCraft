@@ -45,6 +45,10 @@ export type Entity = {
   auto?: { turn: number; until: number; reverseUntil: number; lastX: number; lastZ: number; stuck: number };
   /** Villagers: the vehicle entity id they are riding. */
   riding?: string;
+  /** Villagers: girl or boy; the name matches. */
+  gender?: 'girl' | 'boy';
+  /** Villagers: in a chat with the child; stands still and faces them. */
+  talking?: boolean;
   /** Lifts: the floor heights they stop at (the platform's top surface) and where they are going. */
   lift?: { stops: number[]; target: number };
   /** Robots carry their program runner. */

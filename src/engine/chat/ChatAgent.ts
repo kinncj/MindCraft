@@ -83,7 +83,7 @@ export class ChatAgent {
     const sz = Math.round(player.z + dz * 7);
     const top = this.deps.surface(sx, sz);
     return {
-      villager: { id: entity.id, name: entity.name ?? 'Friend', job: job?.id ?? 'villager', jobLabel: job?.label ?? 'Villager', emoji: job?.emoji ?? '🧑', x: entity.x, z: entity.z },
+      villager: { id: entity.id, name: entity.name ?? 'Friend', job: job?.id ?? 'villager', jobLabel: job?.label ?? 'Villager', emoji: job?.emoji ?? '🧑', x: entity.x, z: entity.z, gender: entity.gender },
       message,
       history: this.history(villagerId),
       player,

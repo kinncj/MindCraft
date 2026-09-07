@@ -29,7 +29,26 @@ export const JOBS: VillagerJob[] = [
   { id: 'musician', label: 'Musician', emoji: '🎵', look: { shirt: '#f291bb', pants: '#9b6bd8', skin: '#8d5524', hair: '#3a3226', hat: '#9b6bd8' }, gift: () => B.star, giftLabel: 'Star', greeting: '👋 La la la! I make music! 🎵🎶', giftLine: '⭐ A star for my biggest fan!', playLine: '💃 Dance party! Follow me!', byeLine: '👋 Keep singing! 🎤' },
 ];
 
-export const VILLAGER_NAMES = ['Mia', 'Leo', 'Zoe', 'Max', 'Ava', 'Sam', 'Lily', 'Ben', 'Nia', 'Kai', 'Ruby', 'Eli', 'Ivy', 'Noah', 'Luna', 'Theo'];
+export type Gender = 'girl' | 'boy';
+
+export const GIRL_NAMES = ['Mia', 'Zoe', 'Ava', 'Lily', 'Nia', 'Ruby', 'Ivy', 'Luna', 'Emma', 'Sofia', 'Maya', 'Rosa', 'Nora', 'Ella', 'Aria', 'Yara'];
+export const BOY_NAMES = ['Leo', 'Max', 'Sam', 'Ben', 'Kai', 'Eli', 'Noah', 'Theo', 'Omar', 'Luca', 'Finn', 'Jude', 'Milo', 'Ravi', 'Owen', 'Hugo'];
+/** Every villager name (kept for older code and saves). */
+export const VILLAGER_NAMES = [...GIRL_NAMES, ...BOY_NAMES];
+
+/** A villager is a girl or a boy, and the name always matches. */
+export function randomIdentity(gender?: Gender): { gender: Gender; name: string } {
+  const g: Gender = gender ?? (Math.random() < 0.5 ? 'girl' : 'boy');
+  return { gender: g, name: randomName(g === 'girl' ? GIRL_NAMES : BOY_NAMES) };
+}
+
+/** The gender a saved name implies; a name we do not know keeps whatever was stored, or is a coin flip. */
+export function genderOfName(name: string | undefined, fallback?: Gender): Gender {
+  const first = (name ?? '').split(' ')[0];
+  if (GIRL_NAMES.includes(first)) return 'girl';
+  if (BOY_NAMES.includes(first)) return 'boy';
+  return fallback ?? (Math.random() < 0.5 ? 'girl' : 'boy');
+}
 export const PET_NAMES = ['Rex', 'Biscuit', 'Pickles', 'Waffles', 'Nugget', 'Mochi', 'Pepper', 'Coco', 'Ziggy', 'Bean', 'Peanut', 'Sunny'];
 
 export function jobById(id: string): VillagerJob | undefined {

@@ -7,12 +7,13 @@ import type { VoxelWorld } from '../world/VoxelWorld';
 import { FollowBrain, WanderBrain, createBrain, type Brain, type BrainSense } from './Brain';
 import { NeuralBrain } from '../ai/NeuralBrain';
 import { buildBunny, buildButterfly, buildCat, buildChick, buildDog, buildLift, buildRobot, buildVillager, disposeGroup } from './bodies';
+import { genderOfName, randomIdentity, type Gender } from './villagers';
 import { RobotRunner, validateProgram, type RobotProgram } from './robot';
 import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
 import { StayBrain } from './Brain';
 import type { Entity, EntityKind, StoredEntity } from './Entity';
 import { VEHICLE_COLORS, VEHICLE_KINDS, Vehicle, type DriveInput, type VehicleKind } from './vehicles';
-import { PET_NAMES, VILLAGER_NAMES, jobById, randomJob, randomName, type TalkChoice } from './villagers';
+import { PET_NAMES, jobById, randomJob, randomName, type TalkChoice } from './villagers';
 
 let nextId = 1;
 
@@ -125,15 +126,29 @@ export class EntitySystem implements System {
     return this.add(entity);
   }
 
-  spawnVillager(jobId: string | 'random', x: number, z: number, name = randomName(VILLAGER_NAMES), home?: { x: number; z: number }): Entity {
+  spawnVillager(jobId: string | 'random', x: number, z: number, name?: string, home?: { x: number; z: number }, gender?: Gender): Entity {
     const job = jobId === 'random' ? randomJob() : (jobById(jobId) ?? randomJob());
-    const entity = this.base('villager', buildVillager(job.look), x, z, new NeuralBrain('villager', home ?? { x, z }), 1.3);
-    entity.name = name;
+    // The name always matches the villager: a given name decides, otherwise both are drawn together.
+    const identity = name ? { gender: genderOfName(name, gender), name } : randomIdentity(gender);
+    const entity = this.base('villager', buildVillager({ ...job.look, long: identity.gender === 'girl' }), x, z, new NeuralBrain('villager', home ?? { x, z }), 1.3);
+    entity.name = identity.name;
     entity.variant = job.id;
     entity.home = home ?? { x, z };
     entity.persistent = true;
-    entity.data = { job: job.id };
+    entity.gender = identity.gender;
+    entity.data = { job: job.id, gender: identity.gender };
     return this.add(entity);
+  }
+
+  /** A villager being chatted with stands still and faces the child until the chat ends. */
+  setTalking(villagerId: string, on: boolean): void {
+    const entity = this.byId(villagerId);
+    if (!entity || entity.kind !== 'villager') return;
+    entity.talking = on;
+    if (on) {
+      entity.targetX = entity.x;
+      entity.targetZ = entity.z;
+    }
   }
 
   spawnVehicle(kind: VehicleKind, x: number, y: number, z: number, color?: string): Entity {
@@ -504,7 +519,7 @@ export class EntitySystem implements System {
       if (s.kind === 'pet' && (s.variant === 'dog' || s.variant === 'cat')) {
         entity = this.spawnPet(s.variant, s.x, s.z, s.name, typeof s.data?.brain === 'string' ? (s.data.brain as string) : 'neural');
       } else if (s.kind === 'villager') {
-        entity = this.spawnVillager(s.variant ?? 'random', s.x, s.z, s.name, s.home);
+        entity = this.spawnVillager(s.variant ?? 'random', s.x, s.z, s.name, s.home, s.data?.gender === 'girl' || s.data?.gender === 'boy' ? (s.data.gender as Gender) : undefined);
       } else if (s.kind === 'vehicle' && (VEHICLE_KINDS as string[]).includes(s.variant ?? '')) {
         entity = this.spawnVehicle(s.variant as VehicleKind, s.x, s.y, s.z, typeof s.data?.color === 'string' ? (s.data.color as string) : undefined);
       } else if (s.kind === 'lift') {
@@ -649,6 +664,13 @@ export class EntitySystem implements System {
         continue;
       }
 
+      if (entity.talking) {
+        // Chatting: hold still, face the child, breathe a little.
+        entity.group.rotation.y = Math.atan2(this.player.z - entity.z, this.player.x - entity.x) * -1 + Math.PI / 2;
+        entity.y += (this.groundY(entity.x, entity.z) - entity.y) * Math.min(1, dt * 10);
+        entity.group.position.set(entity.x, entity.y + Math.sin(elapsed * 2 + entity.phase) * 0.02, entity.z);
+        continue;
+      }
       const dx = entity.targetX - entity.x;
       const dz = entity.targetZ - entity.z;
       const distance = Math.hypot(dx, dz);

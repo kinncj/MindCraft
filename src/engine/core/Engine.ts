@@ -648,6 +648,11 @@ export class Engine {
   }
 
   /** The player dances for a few seconds; nearby friends join in. */
+  /** A chat with a villager starts (they stop and face the child) or ends. */
+  setTalking(villagerId: string, on: boolean): void {
+    this.entities.setTalking(villagerId, on);
+  }
+
   /** The player hops into a ride (from the vehicle sheet or a tool). */
   rideVehicle(id: string): boolean {
     const entity = this.entities.byId(id);

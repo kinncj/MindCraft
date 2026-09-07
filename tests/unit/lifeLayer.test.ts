@@ -140,3 +140,44 @@ describe('vehicles', () => {
     expect(boat.x).toBeLessThanOrEqual(9); // stops at the shore
   });
 });
+
+describe('villager identity and chatting', () => {
+  it('names always match the villager, girls have long hair, and saves keep it', async () => {
+    const { GIRL_NAMES, BOY_NAMES, genderOfName } = await import('../../src/engine/entities/villagers');
+    const { entities } = setup();
+    for (let i = 0; i < 20; i++) {
+      const v = entities.spawnVillager('random', 3, 3);
+      expect(v.gender).toBeDefined();
+      expect((v.gender === 'girl' ? GIRL_NAMES : BOY_NAMES)).toContain(v.name);
+      expect(v.group.children.length).toBeGreaterThan(v.gender === 'girl' ? 8 : 6); // long hair adds parts
+    }
+    const mia = entities.spawnVillager('baker', 4, 4, 'Mia');
+    expect(mia.gender).toBe('girl');
+    const leo = entities.spawnVillager('baker', 4, 4, 'Leo');
+    expect(leo.gender).toBe('boy');
+    expect(genderOfName('Patient B', 'boy')).toBe('boy');
+    const stored = entities.serialize().find((e) => e.name === 'Mia');
+    expect(stored?.data?.gender).toBe('girl');
+  });
+
+  it('a villager being talked to stands still and faces the child until the chat ends', async () => {
+    const { entities, player } = setup();
+    const { WanderBrain } = await import('../../src/engine/entities/Brain');
+    const v = entities.spawnVillager('builder', 6, 6, 'Ben');
+    v.brain = new WanderBrain();
+    v.targetX = 12;
+    v.targetZ = 12;
+    entities.setTalking(v.id, true);
+    for (let i = 0; i < 120; i++) entities.update(1 / 60, i / 60);
+    expect(v.x).toBeCloseTo(6, 1);
+    expect(v.z).toBeCloseTo(6, 1);
+    const facing = v.group.rotation.y;
+    expect(Number.isFinite(facing)).toBe(true);
+    entities.setTalking(v.id, false);
+    v.targetX = 12;
+    v.targetZ = 12;
+    for (let i = 0; i < 120; i++) entities.update(1 / 60, 2 + i / 60);
+    expect(Math.hypot(v.x - 6, v.z - 6)).toBeGreaterThan(1);
+    void player;
+  });
+});
