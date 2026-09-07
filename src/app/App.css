@@ -2249,6 +2249,29 @@ h3 {
   transition: width 0.2s ease;
 }
 
+/* Tablets and any touch screen: the tools button and the action column stay out of the move zone. */
+@media (pointer: coarse) {
+  .tools-fab {
+    top: calc(4.6rem + var(--safe-top));
+    bottom: auto;
+    left: calc(0.7rem + var(--safe-left));
+  }
+  .side-actions {
+    top: calc(4.6rem + var(--safe-top));
+    bottom: auto;
+    transform: none;
+  }
+  .move-zone {
+    height: 40vh;
+  }
+  .joystick {
+    top: calc(100% - 5.2rem - var(--safe-bottom) - 60px);
+  }
+  .jump-button {
+    bottom: calc(5.2rem + var(--safe-bottom));
+  }
+}
+
 /* --- ?debug=true overlay ------------------------------------------------ */
 
 .debug-overlay {

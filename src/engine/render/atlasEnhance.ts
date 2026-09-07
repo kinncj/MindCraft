@@ -41,8 +41,8 @@ function isSmooth(key: string): boolean {
   return /^(glass|ice|water|cloud|tv|lamp|light|logic_lamp|glow)/.test(key);
 }
 
-export function enhanceTile(tile: HTMLCanvasElement, key: string, seed: number): MaterialTiles | null {
-  const size = tile.width * HI_RES_SCALE;
+export function enhanceTile(tile: HTMLCanvasElement, key: string, seed: number, scale = HI_RES_SCALE): MaterialTiles | null {
+  const size = tile.width * scale;
   const real = paintRealTile(key, size, seed);
   if (real) return materialFromReal(real, key, seed);
   const src = tile.getContext('2d')?.getImageData(0, 0, tile.width, tile.height);
@@ -67,8 +67,8 @@ export function enhanceTile(tile: HTMLCanvasElement, key: string, seed: number):
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const sx = Math.floor(x / HI_RES_SCALE);
-      const sy = Math.floor(y / HI_RES_SCALE);
+      const sx = Math.floor(x / scale);
+      const sy = Math.floor(y / scale);
       const si = (sy * w + sx) * 4;
       const r = src.data[si];
       const g = src.data[si + 1];
@@ -76,9 +76,9 @@ export function enhanceTile(tile: HTMLCanvasElement, key: string, seed: number):
       const a = src.data[si + 3];
       // Fine grain and a soft bevel at texel edges give the "material" feel.
       const grain = smooth ? 1 : 1 + (rand() - 0.5) * 0.08;
-      const fx = x % HI_RES_SCALE;
-      const fy = y % HI_RES_SCALE;
-      const edge = !smooth && (fx === 0 || fy === 0 || fx === HI_RES_SCALE - 1 || fy === HI_RES_SCALE - 1) ? 0.93 : 1;
+      const fx = x % scale;
+      const fy = y % scale;
+      const edge = !smooth && (fx === 0 || fy === 0 || fx === scale - 1 || fy === scale - 1) ? 0.93 : 1;
       const k = grain * edge;
       const di = (y * size + x) * 4;
       colorData.data[di] = Math.min(255, r * k);

@@ -59,6 +59,11 @@ export function GameCanvas() {
         onFlyChanged: (flying) => useGameStore.getState().setFlying(flying),
         onGamepadActive: (active) => useGameStore.getState().setControllerActive(active),
         onPointerLock: (locked) => useGameStore.getState().setPointerLocked(locked),
+        onVisualModeFallback: (mode, reason) => {
+          const s = useGameStore.getState();
+          s.setVisualMode(mode);
+          s.showToast(`${reason}. Switched to ${mode === 'ultraRealistic' ? 'Ultra' : mode} so the game keeps running.`);
+        },
         onCommand: (command) => {
           const s = useGameStore.getState();
           if (command === 'menu') s.openPanel === 'none' ? s.setOpenPanel('menu') : s.closePanels();

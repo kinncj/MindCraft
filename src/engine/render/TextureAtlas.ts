@@ -62,10 +62,14 @@ export class TextureAtlas {
   }
 
   /** Builds the 64px material atlases once (a few hundred ms). */
+  /** Scale used for the material atlases (8 = 128px on desktops, 4 = 64px on phones and tablets). */
+  hiResScale = HI_RES_SCALE;
+  anisotropy = 4;
+
   buildHiRes(): boolean {
     if (this.hiResTexture) return true;
     if (typeof document === 'undefined') return false;
-    const tile = TILE_SIZE * HI_RES_SCALE;
+    const tile = TILE_SIZE * this.hiResScale;
     const width = this.columns * tile;
     const height = this.rows * tile;
     const make = (): [HTMLCanvasElement, CanvasRenderingContext2D] | null => {
@@ -82,7 +86,7 @@ export class TextureAtlas {
     this.keys.forEach((key, index) => {
       const small = paintTile(key);
       if (!small) return;
-      const tiles = enhanceTile(small, key, PAINTERS[key]?.seed ?? index);
+      const tiles = enhanceTile(small, key, PAINTERS[key]?.seed ?? index, this.hiResScale);
       if (!tiles) return;
       const col = index % this.columns;
       const row = Math.floor(index / this.columns);
@@ -95,7 +99,7 @@ export class TextureAtlas {
       t.magFilter = THREE.LinearFilter;
       t.minFilter = THREE.LinearMipmapLinearFilter;
       t.generateMipmaps = true;
-      t.anisotropy = 4;
+      t.anisotropy = this.anisotropy;
       if (srgb) t.colorSpace = THREE.SRGBColorSpace;
       return t;
     };

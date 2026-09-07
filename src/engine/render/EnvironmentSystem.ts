@@ -39,6 +39,8 @@ export class EnvironmentSystem implements System {
   private underwater = false;
   /** Phones cap the sun shadow map (set by the engine). */
   maxShadowMap = 4096;
+  /** How often the sky is re-baked into the environment map. */
+  bakeSeconds = 2;
   /** The baked sky, for PBR materials only (flat materials would just darken). */
   envMap: THREE.Texture | null = null;
   private envListeners = new Set<(map: THREE.Texture | null) => void>();
@@ -237,7 +239,7 @@ export class EnvironmentSystem implements System {
     u.mieCoefficient.value = cloudy ? 0.012 : 0.004 + (1 - sunUp) * 0.015;
     this.sky.position.set(this.focus.x, this.focus.y, this.focus.z);
     // Re-bake the environment every couple of seconds or when time jumps.
-    if (elapsed - this.envBakedAt > 2 || Math.abs(this.timeOfDay - this.envBakedTime) > 0.05) {
+    if (elapsed - this.envBakedAt > this.bakeSeconds || Math.abs(this.timeOfDay - this.envBakedTime) > 0.05) {
       this.envBakedAt = elapsed;
       this.envBakedTime = this.timeOfDay;
       const target = this.pmrem.fromScene(this.sky as unknown as THREE.Scene, 0.04);

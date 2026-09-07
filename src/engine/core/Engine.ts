@@ -68,6 +68,8 @@ export type EngineBridge = {
   onGamepadActive?(active: boolean): void;
   /** The mouse got grabbed (desktop game controls) or let go. */
   onPointerLock?(locked: boolean): void;
+  /** Cinema was too much for this device: the engine switched itself to a lighter mode. */
+  onVisualModeFallback?(mode: VisualModeId, reason: string): void;
   /** Called when the last template block was written; persist that fact. */
   onTemplateApplied?(): void;
   /** The player tapped a pet or villager: open its panel. */
@@ -194,7 +196,16 @@ export class Engine {
     this.mesher = mesher;
 
     this.environment = new EnvironmentSystem(this.scene, this.renderer, VISUAL_MODES[options.settings.visualMode], !this.lowPower);
-    if (this.mobile) this.environment.maxShadowMap = 2048;
+    if (this.mobile) {
+      this.environment.maxShadowMap = 2048;
+      this.environment.bakeSeconds = 6;
+      this.atlas.hiResScale = 4;
+      this.atlas.anisotropy = 1;
+    }
+    this.renderer.domElement.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault();
+      this.fallbackFromCinema('The graphics memory ran out');
+    });
     this.environment.setTimeMode(options.settings.timeMode);
     this.environment.setWeather(options.settings.weather);
     if (options.settings.timeOfDay !== undefined) this.environment.setTime(options.settings.timeOfDay);
@@ -267,7 +278,15 @@ export class Engine {
     this.chunks.onChunkRemoved((key) => this.chunkRenderer.removeChunk(key));
     this.setTemplate(options.template ?? []);
     this.chunks.onFirstGenerate((chunk) => this.applyTemplate(chunk));
+    if (options.settings.visualMode === 'cinema' && Engine.cinemaCrashedLastTime()) {
+      // Do not walk into the same crash twice: start lighter and say so.
+      options.settings.visualMode = 'ultraRealistic';
+      this.environment.applyVisualMode(VISUAL_MODES.ultraRealistic);
+      setTimeout(() => bridge.onVisualModeFallback?.('ultraRealistic', 'Cinema crashed last time on this device'), 0);
+    }
+    this.visualMode = options.settings.visualMode;
     this.applyRendering(VISUAL_MODES[options.settings.visualMode]);
+    this.armProbation(options.settings.visualMode);
 
     // Edits relight and remesh around the change.
     this.world.subscribe({
@@ -699,8 +718,12 @@ export class Engine {
     const water = this.chunkRenderer.materials.water as THREE.MeshLambertMaterial;
     water.opacity = 0.78 + Math.sin(this.loopElapsed() * 1.4) * 0.06;
     this.chunkRenderer.time.value = this.loopElapsed();
-    if (this.postFx.enabled) this.postFx.render();
-    else this.renderer.render(this.scene, this.camera.camera);
+    try {
+      if (this.postFx.enabled) this.postFx.render();
+      else this.renderer.render(this.scene, this.camera.camera);
+    } catch (error) {
+      this.fallbackFromCinema(`Drawing failed (${error instanceof Error ? error.message : String(error)})`);
+    }
   }
 
   private elapsedClock = new THREE.Clock();
@@ -730,8 +753,67 @@ export class Engine {
 
   setVisualMode(mode: VisualModeId): void {
     const def = VISUAL_MODES[mode];
-    this.environment.applyVisualMode(def);
-    this.applyRendering(def);
+    try {
+      this.environment.applyVisualMode(def);
+      this.applyRendering(def);
+      this.visualMode = mode;
+      this.armProbation(mode);
+    } catch (error) {
+      this.fallbackFromCinema(`Cinema could not start (${error instanceof Error ? error.message : String(error)})`);
+    }
+  }
+
+  private visualMode: VisualModeId = 'classic';
+  private probationTimer: ReturnType<typeof setTimeout> | null = null;
+  private static PROBATION_KEY = 'mindcraft-cinema-probation';
+
+  /**
+   * A crash-loop guard: Cinema marks itself "on probation" for ten seconds.
+   * If the page dies before that (Safari reloads a tab that runs out of
+   * memory), the next start refuses Cinema and explains why.
+   */
+  private armProbation(mode: VisualModeId): void {
+    if (this.probationTimer) clearTimeout(this.probationTimer);
+    this.probationTimer = null;
+    try {
+      if (mode !== 'cinema') {
+        localStorage.removeItem(Engine.PROBATION_KEY);
+        return;
+      }
+      localStorage.setItem(Engine.PROBATION_KEY, String(Date.now()));
+      this.probationTimer = setTimeout(() => {
+        try {
+          localStorage.removeItem(Engine.PROBATION_KEY);
+        } catch {
+          // Private mode: nothing to clear.
+        }
+      }, 10000);
+    } catch {
+      // Private mode: no guard, no harm.
+    }
+  }
+
+  /** Did the last Cinema session die within its first ten seconds? */
+  static cinemaCrashedLastTime(): boolean {
+    try {
+      return localStorage.getItem(Engine.PROBATION_KEY) !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  private fallbackFromCinema(reason: string): void {
+    if (this.visualMode !== 'cinema' && !VISUAL_MODES[this.options.settings.visualMode].rendering.pbr) return;
+    const mode: VisualModeId = 'ultraRealistic';
+    try {
+      localStorage.removeItem(Engine.PROBATION_KEY);
+      this.environment.applyVisualMode(VISUAL_MODES[mode]);
+      this.applyRendering(VISUAL_MODES[mode]);
+      this.visualMode = mode;
+    } catch {
+      // Even the fallback failed: the page is in trouble; the bridge still hears about it.
+    }
+    this.options.bridge.onVisualModeFallback?.(mode, reason);
   }
 
   /** Materials, smooth surfaces, rounded bodies, and draw distance for a mode. */
