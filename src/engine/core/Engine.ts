@@ -698,6 +698,38 @@ export class Engine {
 
   /** Rolling frame timing for the debug overlay. */
   private perf = { fps: 0, frameMs: 0, last: 0 };
+  /** Cinema steps itself down, one notch at a time, on any device that cannot hold it. */
+  private quality = { tier: 0, since: 0, checkedAt: 0 };
+  static readonly QUALITY_TIERS = ['full', 'no post-processing', 'lighter shadows and sky', 'shorter draw distance', 'back to Ultra'] as const;
+
+  get qualityTier(): string {
+    return Engine.QUALITY_TIERS[this.quality.tier];
+  }
+
+  private adaptQuality(now: number): void {
+    if (this.visualMode !== 'cinema' || this.input.blocked) {
+      this.quality.since = now;
+      return;
+    }
+    // Give the world five seconds to settle after any change, then judge every three.
+    if (now - this.quality.since < 5000 || now - this.quality.checkedAt < 3000) return;
+    this.quality.checkedAt = now;
+    if (this.perf.fps >= 34 || this.quality.tier >= Engine.QUALITY_TIERS.length - 1) return;
+    this.quality.tier += 1;
+    this.quality.since = now;
+    const tier = this.quality.tier;
+    if (tier === 1) this.postFx.setEnabled(false);
+    else if (tier === 2) {
+      this.environment.maxShadowMap = 2048;
+      this.environment.bakeSeconds = 6;
+      this.environment.applyVisualMode(VISUAL_MODES.cinema);
+    } else if (tier === 3) this.chunks.options.viewRadius = Math.max(4, this.chunks.options.viewRadius - 2);
+    else if (tier === 4) {
+      this.fallbackFromCinema(`This device could not hold Cinema at ${Math.round(this.perf.fps)} fps`);
+      return;
+    }
+    this.options.bridge.toast(`🎬 Cinema eased off (${Engine.QUALITY_TIERS[tier]}) to keep things smooth.`);
+  }
   private shadowFrame = 0;
 
   private render(): void {
@@ -708,6 +740,9 @@ export class Engine {
       this.perf.fps = 1000 / Math.max(1, this.perf.frameMs);
     }
     this.perf.last = now;
+    this.renderer.info.autoReset = false;
+    this.renderer.info.reset();
+    this.adaptQuality(now);
     // Phones refresh the sun shadow every third frame; nobody notices, the GPU does.
     if (this.renderer.shadowMap.enabled) {
       this.renderer.shadowMap.autoUpdate = false;
@@ -776,6 +811,7 @@ export class Engine {
       this.environment.applyVisualMode(def);
       this.applyRendering(def);
       this.visualMode = mode;
+      this.quality = { tier: 0, since: performance.now(), checkedAt: 0 };
       this.armProbation(mode);
     } catch (error) {
       this.fallbackFromCinema(`Cinema could not start (${error instanceof Error ? error.message : String(error)})`);
@@ -919,6 +955,7 @@ export class Engine {
         meshedInWorker: this.chunks.meshedInWorker,
         mobile: this.mobile,
         lowPower: this.lowPower,
+        quality: this.qualityTier,
       }),
       setPostFx: (on) => this.postFx.setEnabled(on),
       setPostFxOptions: (options) => this.postFx.setOptions(options),
