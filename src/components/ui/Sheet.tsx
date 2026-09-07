@@ -10,8 +10,8 @@ type SheetProps = {
   onClose: () => void;
   onBack?: () => void;
   children: ReactNode;
-  /** `sheet` slides up from the bottom on phones; `dialog` is a centered card; `full` is the game menu. */
-  kind?: 'sheet' | 'dialog' | 'full';
+  /** `sheet` slides up from the bottom on phones; `dialog` is a centered card; `full` is the game menu; `chat` fills the screen on phones and pins its last child to the bottom. */
+  kind?: 'sheet' | 'dialog' | 'full' | 'chat';
   hint?: string;
   testId?: string;
 };

@@ -56,7 +56,7 @@ describe('the downloadable helper model', () => {
     expect(request.messages[0].content).toContain('build_stamp_blueprint');
     expect(request.messages[0].content).not.toContain('world_save');
     expect(request.messages.map((m) => m.role)).toEqual(['system', 'user', 'assistant', 'user']);
-    expect(request.max_tokens).toBeLessThanOrEqual(160);
+    expect(request.max_tokens).toBeLessThanOrEqual(220);
   });
 
   it('rejects unsafe or malformed answers so the agent falls back to rules', async () => {

@@ -1,3 +1,4 @@
+import type { BlockDefinition } from '../blocks/BlockDefinition';
 import type { BlockRegistry } from '../blocks/registry';
 import { SHAPES, type AABB } from '../blocks/shapes';
 import {
@@ -69,7 +70,7 @@ function hitBox(ray: Ray, box: AABB, x: number, y: number, z: number): { t: numb
  * where they actually are. Flowers and torches (no collision boxes) use
  * their full cell so they stay easy to tap.
  */
-export function raycastBlocks(world: VoxelWorld, registry: BlockRegistry, ray: Ray, maxDistance: number): BlockHit | null {
+export function raycastBlocks(world: VoxelWorld, registry: BlockRegistry, ray: Ray, maxDistance: number, filter?: (def: BlockDefinition) => boolean): BlockHit | null {
   let x = Math.floor(ray.ox + 0.5);
   let y = Math.floor(ray.oy + 0.5);
   let z = Math.floor(ray.oz + 0.5);
@@ -94,7 +95,7 @@ export function raycastBlocks(world: VoxelWorld, registry: BlockRegistry, ray: R
       const id = world.getBlock(x, y, z);
       if (id !== 0) {
         const def = registry.get(id);
-        if (def) {
+        if (def && (!filter || filter(def))) {
           const state = world.getState(x, y, z);
           const boxes = SHAPES[def.shape].boxes(state);
           const candidates = boxes.length > 0 ? boxes : [PICK_FULL];

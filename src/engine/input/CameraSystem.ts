@@ -118,6 +118,8 @@ export class CameraSystem implements System {
       this.registry,
       { ox: this.eye.x, oy: this.eye.y, oz: this.eye.z, dx: offset.x, dy: offset.y, dz: offset.z },
       this.distance,
+      // Water and plants never push the camera: you can dive and see.
+      (def) => def.collision === 'solid',
     );
     const allowed = hit ? Math.max(0.6, hit.distance - 0.4) : this.distance;
     const position = this.camera.position.copy(this.eye).add(offset.multiplyScalar(allowed));

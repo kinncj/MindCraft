@@ -149,7 +149,7 @@ export class RuleChatProvider implements ChatProvider {
     if (/\b(thank|thanks|love you|awesome|cool|great job|good job|nice)\b/.test(text)) return say(`Aww, thank you! You're the best! 💛`);
     if (/\b(bye|goodbye|see you|later)\b/.test(text)) return say(`Bye bye! Come back soon! 👋`);
     if (/\b(joke|funny)\b/.test(text)) return say(`Why did the block go to school? To get a little smarter! 😆`);
-    if (/\b(help|what can you do|ideas)\b/.test(text)) {
+    if (/\b(help|what can (you|we) do|what should we do|what (do|can) we do|what to do|what now|ideas|bored)\b/.test(text)) {
       return say(`I can build a house, a castle, a pyramid, a tower, a bridge, a pool, a tree… any color you like! Or say "follow me", "dance", or "make it night". 🏠🏰🔺`);
     }
     return say(`Hmm, I'm not sure about "${ctx.message.slice(0, 40)}". Try "build a pink house", "make a pyramid", "what color is the sky", or "let's dance"! 😊`);

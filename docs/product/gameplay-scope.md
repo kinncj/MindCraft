@@ -13,7 +13,7 @@
   nature, lights, and furniture (bed, table, chair, bookshelf, TV, painting, cake)
 - Minecraft-style voxel lighting, recomputed only around each edit: sealed shelters
   are dark until lit; sky light leaks through doors and windows
-- Day/night cycle (or always-day / always-night), rain and snow, three visual modes
+- Day/night cycle (or always-day / always-night), rain and snow, four visual modes (Cinema is the opt-in "AAA" look)
 - Friendly animals (bunnies, chicks, butterflies) and pets/villagers driven by a tiny
   on-device neural brain (ADR-0010); pettable
 - Place, Interact (tap only), and Remove modes, undo and redo (buttons, Ctrl+Z, controller B)

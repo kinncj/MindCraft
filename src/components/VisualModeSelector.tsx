@@ -6,6 +6,7 @@ const MODE_EMOJI: Record<string, string> = {
   classic: '🌈',
   ultraRealistic: '🌄',
   claudeDream: '✨',
+  cinema: '🎬',
 };
 
 /** Three big buttons: Classic, Ultra, and Claude Dream. */

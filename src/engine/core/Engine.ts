@@ -19,6 +19,7 @@ import { InputSystem, type PadCommand } from '../input/InputSystem';
 import { InteractionSystem, type InteractionMode } from '../input/InteractionSystem';
 import { LightEngine } from '../lighting/LightEngine';
 import { PlayerController } from '../physics/PlayerController';
+import { isFluidAt } from '../physics/collision';
 import { ChunkMesher } from '../render/ChunkMesher';
 import { ChunkRenderer } from '../render/ChunkRenderer';
 import { CloudLayer } from '../render/CloudLayer';
@@ -178,7 +179,8 @@ export class Engine {
     this.environment.setWeather(options.settings.weather);
     if (options.settings.timeOfDay !== undefined) this.environment.setTime(options.settings.timeOfDay);
 
-    this.chunkRenderer = new ChunkRenderer(this.atlas.texture, this.environment.dayLight, !this.lowPower);
+    this.chunkRenderer = new ChunkRenderer(this.atlas, this.environment.dayLight, !this.lowPower);
+    if (VISUAL_MODES[options.settings.visualMode].rendering.pbr && !this.lowPower) this.chunkRenderer.setPbr(true);
     this.scene.add(this.chunkRenderer.group);
 
     const start = options.player ?? options.spawn;
@@ -624,6 +626,8 @@ export class Engine {
       this.highlight.visible = false;
     }
     this.environment.setFocus(this.player.x, this.player.y, this.player.z);
+    const eye = this.camera.camera.position;
+    this.environment.setUnderwater(isFluidAt(this.world, registry, eye.x, eye.y, eye.z));
     this.clouds.setFocus(this.player.x, this.player.z);
     // Gentle water shimmer.
     const water = this.chunkRenderer.materials.water as THREE.MeshLambertMaterial;
@@ -656,7 +660,10 @@ export class Engine {
   }
 
   setVisualMode(mode: VisualModeId): void {
-    this.environment.applyVisualMode(VISUAL_MODES[mode]);
+    const def = VISUAL_MODES[mode];
+    this.environment.applyVisualMode(def);
+    this.chunkRenderer.setPbr(def.rendering.pbr && !this.lowPower);
+    this.chunks.options.viewRadius = (this.lowPower ? 4 : 7) + def.rendering.viewRadiusBonus;
   }
 
   setTimeMode(mode: TimeMode): void {

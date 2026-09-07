@@ -383,7 +383,8 @@ export const useGameStore = create<GameState>((set, get) => {
     pushVillagerLine(id, who, text) {
       const lines = [...(get().villagerLines[id] ?? []), { who, text }].slice(-12);
       set({ villagerLines: { ...get().villagerLines, [id]: lines } });
-      if (who === 'villager') get().showToast(text);
+      // The chat sheet already shows the line; a toast on top would cover it.
+      if (who === 'villager' && get().openPanel !== 'villager') get().showToast(text);
     },
     receiveCrafted(blockId, label, count) {
       const def = registry.get(blockId);

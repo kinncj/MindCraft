@@ -45,3 +45,19 @@ describe('camera zoom', () => {
     expect(seen.filter((v) => v !== 'first').length).toBeGreaterThan(2);
   });
 });
+
+describe('camera and water', () => {
+  it('the chase camera ignores water so you can see under it', async () => {
+    const { raycastBlocks } = await import('../../src/engine/physics/raycast');
+    const { Chunk } = await import('../../src/engine/world/Chunk');
+    const { VoxelWorld } = await import('../../src/engine/world/VoxelWorld');
+    const { B, blocks } = await import('../../src/engine/blocks/blocks');
+    const world = new VoxelWorld(blocks);
+    const chunk = new Chunk(0, 0);
+    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) { chunk.set(x, 0, z, B.sand); for (let y = 1; y <= 4; y++) chunk.set(x, y, z, B.water); }
+    world.addChunk(chunk);
+    const ray = { ox: 8, oy: 8, oz: 8, dx: 0, dy: -1, dz: 0 };
+    expect(raycastBlocks(world, blocks, ray, 20)?.id).toBe(B.water);
+    expect(raycastBlocks(world, blocks, ray, 20, (def) => def.collision === 'solid')?.id).toBe(B.sand);
+  });
+});

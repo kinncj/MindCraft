@@ -3,6 +3,7 @@ import type { RenderBucket } from '../blocks/BlockDefinition';
 import type { Chunk } from '../world/Chunk';
 import { chunkKey } from '../world/coords';
 import type { ChunkMeshes, MeshData } from './ChunkMesher';
+import type { TextureAtlas } from './TextureAtlas';
 import { createBucketMaterials } from './voxelMaterial';
 
 const BUCKETS: RenderBucket[] = ['opaque', 'water', 'alpha', 'glow'];
@@ -10,12 +11,36 @@ const BUCKETS: RenderBucket[] = ['opaque', 'water', 'alpha', 'glow'];
 /** Owns the Three.js meshes for every loaded chunk. */
 export class ChunkRenderer {
   readonly group = new THREE.Group();
-  readonly materials: Record<RenderBucket, THREE.Material>;
+  materials: Record<RenderBucket, THREE.Material>;
   private meshes = new Map<string, Partial<Record<RenderBucket, THREE.Mesh>>>();
+  private pbr = false;
 
-  constructor(atlas: THREE.Texture | null, dayLight: { value: number }, private shadows: boolean) {
-    this.materials = createBucketMaterials(atlas, dayLight);
+  constructor(
+    private atlas: TextureAtlas,
+    private dayLight: { value: number },
+    private shadows: boolean,
+  ) {
+    this.materials = createBucketMaterials(atlas, dayLight, { pbr: false });
     this.group.name = 'chunks';
+  }
+
+  /** Swap every chunk to flat or physically based materials. */
+  setPbr(pbr: boolean): void {
+    if (pbr === this.pbr) return;
+    this.pbr = pbr;
+    const old = this.materials;
+    this.materials = createBucketMaterials(this.atlas, this.dayLight, { pbr });
+    for (const entry of this.meshes.values()) {
+      for (const bucket of BUCKETS) {
+        const mesh = entry[bucket];
+        if (mesh) mesh.material = this.materials[bucket];
+      }
+    }
+    for (const material of Object.values(old)) material.dispose();
+  }
+
+  get isPbr(): boolean {
+    return this.pbr;
   }
 
   setMeshes(chunk: Chunk, data: ChunkMeshes): void {

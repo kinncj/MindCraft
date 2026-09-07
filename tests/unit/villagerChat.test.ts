@@ -177,3 +177,45 @@ describe('provider order with the helper', () => {
     expect(agent.providerName).toBe('helper');
   });
 });
+
+describe('helper robustness', () => {
+  it('keeps the prompt small enough for a 0.5B model and answers "what can we do"', async () => {
+    const { WebLlmProvider, pickHelperModel } = await import('../../src/engine/chat/WebLlmProvider');
+    const helper = new WebLlmProvider('t', async () => ({ chat: { completions: { create: async () => ({ choices: [] }) } }, unload: async () => undefined }));
+    const prompt = helper.systemPrompt(ctx('hi'));
+    expect(prompt.length).toBeLessThan(2200); // roughly 600 tokens, well inside the 2048 window
+    expect(prompt).toContain('build_shape');
+    expect(pickHelperModel('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', false)).toBe('Qwen2.5-0.5B-Instruct-q4f32_1-MLC');
+    expect(pickHelperModel('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', true)).toBe('Qwen2.5-0.5B-Instruct-q4f16_1-MLC');
+    const rules = new RuleChatProvider();
+    expect((await rules.reply(ctx('what can we do?'))).say).toContain('castle');
+    expect((await rules.reply(ctx("I'm bored"))).say).toContain('castle');
+  });
+
+  it('retries without JSON mode and remembers why a provider fell back', async () => {
+    const { WebLlmProvider } = await import('../../src/engine/chat/WebLlmProvider');
+    let calls = 0;
+    const helper = new WebLlmProvider('t', async () => ({
+      chat: { completions: { create: async (req: { response_format?: unknown }) => { calls += 1; if (req.response_format) throw new Error('grammar unsupported'); return { choices: [{ message: { content: 'Sure {"say":"Plain works 🌼","actions":[]}' } }] }; } } },
+      unload: async () => undefined,
+    }));
+    await helper.load();
+    helper.enabled = true;
+    const reply = await helper.reply(ctx('hello'));
+    expect(reply.say).toBe('Plain works 🌼');
+    expect(calls).toBe(2);
+
+    const world = flatWorld();
+    const player = new PlayerController(world, blocks, { x: 8, y: 2.5, z: 8 });
+    const entities = new EntitySystem(new THREE.Scene(), world, blocks, player);
+    const history = new CommandHistory(world);
+    const broken = new WebLlmProvider('t', async () => ({ chat: { completions: { create: async () => { throw new Error('ContextWindowSizeExceededError'); } } }, unload: async () => undefined }));
+    await broken.load();
+    broken.enabled = true;
+    const agent = new ChatAgent({ tools: new ToolRegistry(), entities, build: new BuildTools(world, blocks, history), registry: blocks, player: () => ({ x: 8, y: 2.5, z: 8, yaw: 0 }), surface: (x, z) => world.height(x, z), say: () => undefined, helper: broken });
+    const villager = entities.spawnVillager('baker', 5, 5, 'Mia');
+    const result = await agent.send(villager.id, 'hello');
+    expect(result?.provider).toBe('rules');
+    expect(agent.lastError).toContain('helper: ContextWindowSizeExceededError');
+  });
+});

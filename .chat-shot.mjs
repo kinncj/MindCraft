@@ -1,0 +1,24 @@
+import { chromium } from '@playwright/test';
+const out = process.argv[2];
+const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 });
+const page = await ctx.newPage();
+await page.goto('http://localhost:4199/');
+await page.waitForTimeout(1500);
+await page.getByRole('button', { name: /Let's build!/ }).click();
+await page.waitForFunction(() => window.mindcraftDebug?.isReady() === true, undefined, { timeout: 60000 }).catch(() => {});
+await page.waitForTimeout(1200);
+const spot = await page.evaluate(async () => {
+  const p = window.mindcraftDebug.playerPosition();
+  const r = await window.mindcraftTools.call('villager_spawn', { job: 'baker', name: 'Mia', x: Math.round(p.x) - 2, z: Math.round(p.z) - 2 });
+  await new Promise((f) => setTimeout(f, 400));
+  const y = window.mindcraftDebug.surfaceAt(Math.round(r.x), Math.round(r.z)) + 1.0;
+  return { r, pt: window.mindcraftDebug.projectBlock(r.x, y, r.z) };
+});
+await page.touchscreen.tap(spot.pt.x, spot.pt.y);
+await page.waitForTimeout(700);
+await page.getByLabel('Say something').fill('what can we do');
+await page.getByRole('button', { name: 'Send' }).click();
+await page.waitForTimeout(900);
+await page.screenshot({ path: `${out}/chat-phone-4.png` });
+await browser.close();

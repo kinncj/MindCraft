@@ -26,8 +26,10 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   Every block is one data definition — shape, collision, light, and behavior included.
 - **Minecraft-style voxel lighting**, recomputed only around each edit: a sealed
   shelter is pitch-dark until you place a torch; skylight leaks through doors.
-- Day/night cycle with stars, rain and snowfall, three visual modes (**Classic**,
-  **Ultra**, **Claude Dream**).
+- Day/night cycle with stars, rain and snowfall, four visual modes (**Classic**,
+  **Ultra**, **Claude Dream**, and **Cinema**: physically based materials with
+  generated normal and roughness maps, a real sky baked into reflections and
+  fill light, 4K shadows; opt-in, needs a good device).
 - Friendly animals, pets, and villagers driven by a **tiny neural network that runs
   in the browser**: about 600 weights trained in the repo from six personalities,
   deciding every move from what the creature senses (how close you are, whether you

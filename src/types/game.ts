@@ -3,7 +3,7 @@ export type BlockTypeId = string;
 
 export type TimeMode = 'cycle' | 'day' | 'night';
 export type WeatherMode = 'sunny' | 'rain' | 'snow';
-export type VisualModeId = 'classic' | 'ultraRealistic' | 'claudeDream';
+export type VisualModeId = 'classic' | 'ultraRealistic' | 'claudeDream' | 'cinema';
 
 export type BlockPosition = { x: number; y: number; z: number };
 

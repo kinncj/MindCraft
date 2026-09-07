@@ -5,6 +5,7 @@ import { useGameStore } from '../game/gameStore';
 import { KidButton } from './KidButton';
 import { Sheet } from './ui/Sheet';
 import { Icon } from './ui/icons';
+import { useVisualViewport } from './ui/useVisualViewport';
 
 type Payload = { id: string; name?: string; variant?: string };
 
@@ -30,7 +31,10 @@ export function VillagerPanel() {
   const closePanels = useGameStore((state) => state.closePanels);
   const lines = useGameStore((state) => (payload ? state.villagerLines[payload.id] : undefined));
   const pushVillagerLine = useGameStore((state) => state.pushVillagerLine);
+  const helper = useGameStore((state) => state.helper);
   const [text, setText] = useState('');
+  const [answeredBy, setAnsweredBy] = useState('');
+  useVisualViewport();
   const [thinking, setThinking] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -50,14 +54,32 @@ export function VillagerPanel() {
     pushVillagerLine(villager.id, 'kid', trimmed);
     setThinking(true);
     try {
-      await engine.chat.send(villager.id, trimmed);
+      const result = await engine.chat.send(villager.id, trimmed);
+      setAnsweredBy(result?.provider ?? '');
     } finally {
       setThinking(false);
     }
   };
 
+  const brain =
+    helper.status === 'ready' && helper.enabled
+      ? { icon: '🧠', text: 'Smart helper on' }
+      : helper.status === 'loading' || helper.status === 'downloading'
+        ? { icon: '⏳', text: `Smart helper loading… ${Math.round(helper.progress * 100)}%` }
+        : helper.status === 'error'
+          ? { icon: '⚠️', text: `Helper could not start: ${helper.text.slice(0, 80)}` }
+          : engine.chat.smart
+            ? { icon: '🧠', text: "Browser's built-in AI" }
+            : { icon: '📖', text: 'Basic chat (grown-ups can add a smarter helper in Menu → Friends)' };
+  const provider = answeredBy || engine.chat.providerName;
+  const providerLabel = provider === 'rules' ? 'the game' : provider === 'built-in' ? "your browser's built-in AI" : provider === 'helper' ? 'the helper on this device' : provider;
+
   return (
-    <Sheet title={`${villager.name} the ${job?.label ?? 'Villager'}`} emoji={job?.emoji ?? '🧑'} onClose={closePanels}>
+    <Sheet title={`${villager.name} the ${job?.label ?? 'Villager'}`} emoji={job?.emoji ?? '🧑'} onClose={closePanels} kind="chat">
+      <p className="chat-brain" title={engine.chat.lastError || undefined}>
+        <span aria-hidden="true">{brain.icon}</span> {brain.text}
+        {engine.chat.lastError && <span className="chat-brain-error"> · fell back: {engine.chat.lastError.slice(0, 90)}</span>}
+      </p>
       <div className="chat-log" ref={logRef} role="log" aria-live="polite" aria-label="Chat">
         {transcript.length === 0 && <p className="speech-bubble villager">{job?.greeting ?? '👋 Hi! What should we do?'}</p>}
         {transcript.map((line, i) => (
@@ -73,7 +95,7 @@ export function VillagerPanel() {
           </p>
         )}
       </div>
-      <div className="chip-row" role="group" aria-label="Quick things to say">
+      <div className="chip-row chat-chips" role="group" aria-label="Quick things to say">
         {CHIPS.map((chip) => (
           <button key={chip.text} type="button" className="chip" onClick={() => void send(chip.text)} disabled={thinking}>
             {chip.label}
@@ -85,6 +107,7 @@ export function VillagerPanel() {
           </button>
         ))}
       </div>
+      <div className="chat-bottom">
       <form
         className="chat-form"
         onSubmit={(event) => {
@@ -95,14 +118,13 @@ export function VillagerPanel() {
         <label htmlFor="chat-text" className="visually-hidden">
           Say something
         </label>
-        <input id="chat-text" value={text} maxLength={200} placeholder={`Say something to ${villager.name}…`} onChange={(event) => setText(event.target.value)} autoComplete="off" />
+        <input id="chat-text" value={text} maxLength={200} placeholder={`Say something to ${villager.name}…`} onChange={(event) => setText(event.target.value)} autoComplete="off" autoCapitalize="sentences" enterKeyHint="send" />
         <KidButton tone="primary" type="submit" aria-label="Send" disabled={thinking || !text.trim()}>
           <Icon name="send" size={26} />
         </KidButton>
       </form>
-      <p className="chat-provider">
-        Answered by: {engine.chat.providerName === 'rules' ? 'the game' : engine.chat.providerName === 'built-in' ? "your browser's built-in AI" : engine.chat.providerName === 'helper' ? 'the helper on this device' : engine.chat.providerName}
-      </p>
+      <p className="chat-provider">Answered by: {providerLabel}</p>
+      </div>
     </Sheet>
   );
 }

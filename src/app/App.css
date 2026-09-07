@@ -1660,6 +1660,36 @@ h3 {
   .sheet-title {
     font-size: 1.3rem;
   }
+  .sheet-backdrop-chat {
+    align-items: stretch;
+    height: var(--vvh, 100dvh);
+    top: var(--vv-top, 0);
+    bottom: auto;
+  }
+  .sheet-chat {
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+    border: 0;
+    padding-top: var(--safe-top);
+    animation: fade-in 0.2s ease-out;
+  }
+  .sheet-chat::before {
+    display: none;
+  }
+  .sheet-chat .sheet-header {
+    padding-top: 0.6rem;
+  }
+  .sheet-chat .sheet-body {
+    padding-left: 0.8rem;
+    padding-right: 0.8rem;
+  }
+  .sheet-chat .chat-log {
+    max-height: none;
+  }
+  .sheet-chat .chat-provider {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1673,13 +1703,69 @@ h3 {
 
 /* --- villager chat ---------------------------------------------------- */
 
+/* The chat sheet is a column: status, log (grows and scrolls), chips, input. */
+.sheet-chat {
+  max-width: 640px;
+}
+
+.sheet-chat .sheet-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 0.6rem;
+}
+
+.chat-brain {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-weight: 800;
+  color: var(--text-faint);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.chat-brain-error {
+  color: #fcd34d;
+  font-weight: 700;
+}
+
 .chat-log {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 0.5rem;
-  max-height: 38vh;
+  min-height: 160px;
+  max-height: 46vh;
   overflow-y: auto;
   padding: 0.3rem 0.1rem;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chip-row.chat-chips {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  flex-shrink: 0;
+  padding: 0.2rem 0.1rem 0.5rem;
+  margin: 0.4rem -0.2rem 0.2rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-chips .chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.chat-bottom {
+  flex-shrink: 0;
 }
 
 .speech-bubble.kid {
@@ -1748,8 +1834,9 @@ h3 {
 
 .chat-form input {
   flex: 1;
+  min-width: 0;
   min-height: var(--tap);
-  font-size: 1.05rem;
+  font-size: max(16px, 1.05rem); /* 16px or iOS zooms the page on focus */
   font-weight: 700;
   padding: 0.5rem 1rem;
   border: 1px solid var(--stroke-strong);

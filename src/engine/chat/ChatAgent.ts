@@ -29,6 +29,8 @@ export class ChatAgent {
   readonly helper: WebLlmProvider;
   private rules = new RuleChatProvider();
   private histories = new Map<string, ChatTurn[]>();
+  /** Why the last smarter provider fell back to the rules, for the UI. */
+  lastError = '';
 
   constructor(
     private deps: {
@@ -98,14 +100,17 @@ export class ChatAgent {
     if (this.smart) candidates.push(this.builtIn);
     candidates.push(this.rules);
     reply = { say: '', actions: [] };
+    this.lastError = '';
     for (const p of candidates) {
       try {
         if (!(await p.available())) continue;
         reply = await p.reply(ctx);
         provider = p.name;
         break;
-      } catch {
-        // Try the next, plainer provider.
+      } catch (error) {
+        // Try the next, plainer provider, but say why in the console.
+        this.lastError = `${p.name}: ${error instanceof Error ? error.message : String(error)}`;
+        console.warn('[MindCraft chat]', this.lastError);
       }
     }
     const performed = await this.perform(villagerId, reply.actions, ctx);

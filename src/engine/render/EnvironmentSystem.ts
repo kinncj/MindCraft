@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import type { System } from '../core/System';
 import type { VisualModeDefinition } from '../../shaders/visualModes';
 import type { TimeMode, WeatherMode } from '../../types/game';
@@ -30,6 +31,12 @@ export class EnvironmentSystem implements System {
   private rainVelocity: number[] = [];
   private skyColor = new THREE.Color();
   private focus = { x: 0, y: 0, z: 0 };
+  private sky: Sky | null = null;
+  private pmrem: THREE.PMREMGenerator | null = null;
+  private envTarget: THREE.WebGLRenderTarget | null = null;
+  private envBakedAt = -10;
+  private envBakedTime = -1;
+  private underwater = false;
 
   constructor(
     private scene: THREE.Scene,
@@ -147,6 +154,17 @@ export class EnvironmentSystem implements System {
     this.rain.visible = weather !== 'sunny';
   }
 
+  /** Cozy blue haze while the camera is under water. */
+  setUnderwater(on: boolean): void {
+    if (on === this.underwater) return;
+    this.underwater = on;
+    if (this.sky) {
+      // The sky dome stays out of the water: swap to a flat blue background.
+      if (on) this.scene.background = new THREE.Color(this.skyColor);
+      else this.envBakedAt = -10;
+    }
+  }
+
   applyVisualMode(mode: VisualModeDefinition): void {
     this.mode = mode;
     this.renderer.toneMapping = mode.toneMapping === 'aces' ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
@@ -156,6 +174,66 @@ export class EnvironmentSystem implements System {
     if (this.scene.fog instanceof THREE.Fog) {
       this.scene.fog.near = mode.fog.near;
       this.scene.fog.far = mode.fog.far;
+    }
+    const size = this.shadowsAllowed ? mode.rendering.shadowMap : 1024;
+    if (this.sun.shadow.mapSize.x !== size) {
+      this.sun.shadow.mapSize.set(size, size);
+      this.sun.shadow.map?.dispose();
+      this.sun.shadow.map = null;
+    }
+    if (mode.rendering.envMap && this.shadowsAllowed) this.enableSky();
+    else this.disableSky();
+  }
+
+  /** A physically based sky dome, baked into an environment map for IBL. */
+  private enableSky(): void {
+    if (this.sky) return;
+    this.sky = new Sky();
+    this.sky.scale.setScalar(4000);
+    const u = this.sky.material.uniforms;
+    u.turbidity.value = 6;
+    u.rayleigh.value = 1.6;
+    u.mieCoefficient.value = 0.006;
+    u.mieDirectionalG.value = 0.8;
+    this.scene.add(this.sky);
+    this.pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.envBakedAt = -10;
+  }
+
+  private disableSky(): void {
+    if (!this.sky) return;
+    this.scene.remove(this.sky);
+    this.sky.material.dispose();
+    this.sky.geometry.dispose();
+    this.sky = null;
+    this.scene.environment = null;
+    this.scene.background = new THREE.Color(this.skyColor);
+    this.envTarget?.dispose();
+    this.envTarget = null;
+    this.pmrem?.dispose();
+    this.pmrem = null;
+  }
+
+  private updateSky(elapsed: number, sunUp: number, angle: number): void {
+    if (!this.sky || !this.pmrem) return;
+    const u = this.sky.material.uniforms;
+    const dir = new THREE.Vector3(Math.cos(angle), Math.sin(angle), -0.3).normalize();
+    u.sunPosition.value.copy(dir);
+    const cloudy = this.weather !== 'sunny';
+    u.turbidity.value = cloudy ? 14 : 4 + (1 - sunUp) * 6;
+    u.rayleigh.value = cloudy ? 0.8 : 1.2 + (1 - sunUp) * 2.2;
+    u.mieCoefficient.value = cloudy ? 0.02 : 0.005 + (1 - sunUp) * 0.02;
+    this.sky.position.set(this.focus.x, this.focus.y, this.focus.z);
+    // Re-bake the environment every couple of seconds or when time jumps.
+    if (elapsed - this.envBakedAt > 2 || Math.abs(this.timeOfDay - this.envBakedTime) > 0.05) {
+      this.envBakedAt = elapsed;
+      this.envBakedTime = this.timeOfDay;
+      const target = this.pmrem.fromScene(this.sky as unknown as THREE.Scene, 0.04);
+      this.envTarget?.dispose();
+      this.envTarget = target;
+      this.scene.environment = target.texture;
+      this.scene.background = target.texture;
+      this.scene.backgroundBlurriness = 0;
     }
   }
 
@@ -185,8 +263,14 @@ export class EnvironmentSystem implements System {
       .lerp(new THREE.Color(sky.day), sunUp)
       .lerp(new THREE.Color(sky.dawn), dawnBand * (1 - sunUp));
     if (this.weather !== 'sunny') this.skyColor.lerp(new THREE.Color('#8b9bab'), 0.45);
-    (this.scene.background as THREE.Color).copy(this.skyColor);
-    if (this.scene.fog instanceof THREE.Fog) this.scene.fog.color.copy(this.skyColor);
+    if (this.underwater) this.skyColor.set('#1f6ea8').multiplyScalar(0.35 + 0.65 * sunUp);
+    if (this.scene.background instanceof THREE.Color) this.scene.background.copy(this.skyColor);
+    if (this.scene.fog instanceof THREE.Fog) {
+      this.scene.fog.color.copy(this.skyColor);
+      this.scene.fog.near = this.underwater ? 1 : this.mode.fog.near;
+      this.scene.fog.far = this.underwater ? 26 : this.mode.fog.far;
+    }
+    this.updateSky(elapsed, sunUp, angle);
 
     this.stars.position.set(f.x, 0, f.z);
     (this.stars.material as THREE.PointsMaterial).opacity = THREE.MathUtils.clamp(0.9 - sunUp * 2, 0, 0.9);
@@ -211,6 +295,7 @@ export class EnvironmentSystem implements System {
   }
 
   dispose(): void {
+    this.disableSky();
     for (const points of [this.stars, this.sparkles, this.rain]) {
       this.scene.remove(points);
       points.geometry.dispose();

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { RenderBucket } from '../blocks/BlockDefinition';
+import type { TextureAtlas } from './TextureAtlas';
 
 /**
  * Teaches a material about the baked voxel light attributes. The shared
@@ -33,21 +34,30 @@ export function patchVoxelLighting(material: THREE.Material, dayLight: { value: 
   material.customProgramCacheKey = () => 'voxel-light';
 }
 
-export function createBucketMaterials(
-  atlas: THREE.Texture | null,
-  dayLight: { value: number },
-): Record<RenderBucket, THREE.Material> {
-  const map = atlas ?? undefined;
+export type MaterialOptions = { pbr: boolean };
+
+/** Flat (Lambert) or physically based (Standard) materials per bucket. */
+export function createBucketMaterials(atlas: TextureAtlas, dayLight: { value: number }, options: MaterialOptions = { pbr: false }): Record<RenderBucket, THREE.Material> {
+  const pbr = options.pbr && atlas.buildHiRes();
+  const map = (pbr ? atlas.hiResTexture : atlas.texture) ?? undefined;
+  const normalMap = pbr ? (atlas.normalTexture ?? undefined) : undefined;
+  const roughnessMap = pbr ? (atlas.roughnessTexture ?? undefined) : undefined;
+  const normalScale = new THREE.Vector2(0.9, 0.9);
+
+  const standard = (extra: THREE.MeshStandardMaterialParameters): THREE.Material =>
+    new THREE.MeshStandardMaterial({ map, normalMap, normalScale, roughnessMap, roughness: 1, metalness: 0, envMapIntensity: 0.55, ...extra });
+  const lambert = (extra: THREE.MeshLambertMaterialParameters): THREE.Material => new THREE.MeshLambertMaterial({ map, ...extra });
+  const make = pbr ? standard : lambert;
+
   const materials: Record<RenderBucket, THREE.Material> = {
-    opaque: new THREE.MeshLambertMaterial({ map, vertexColors: false }),
-    water: new THREE.MeshLambertMaterial({ map, transparent: true, opacity: 0.8, depthWrite: false }),
-    alpha: new THREE.MeshLambertMaterial({ map, transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }),
-    glow: new THREE.MeshLambertMaterial({
-      map,
-      emissive: new THREE.Color('#fff3c0'),
-      emissiveIntensity: 0.4,
-      emissiveMap: map,
-    }),
+    opaque: make({}),
+    water: pbr
+      ? standard({ transparent: true, opacity: 0.82, depthWrite: false, roughness: 0.08, envMapIntensity: 1.2, metalness: 0.1 })
+      : lambert({ transparent: true, opacity: 0.8, depthWrite: false }),
+    alpha: make({ transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }),
+    glow: pbr
+      ? standard({ emissive: new THREE.Color('#fff3c0'), emissiveIntensity: 1.6, emissiveMap: map, roughness: 0.5 })
+      : lambert({ emissive: new THREE.Color('#fff3c0'), emissiveIntensity: 0.4, emissiveMap: map }),
   };
   for (const [bucket, material] of Object.entries(materials)) {
     if (bucket !== 'glow') patchVoxelLighting(material, dayLight);
