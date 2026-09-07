@@ -87,7 +87,7 @@ describe('pets and villagers', () => {
     entities.talk(v, 'play');
     expect(v.brain.kind).toBe('follow');
     entities.update(1 / 60, 100); // well past the play timer
-    expect(v.brain.kind).toBe('home');
+    expect(v.brain.kind).toBe('neural');
     expect(TALK_CHOICES).toHaveLength(4);
     for (const job of JOBS) expect(blocks.get(job.gift())).toBeDefined();
   });

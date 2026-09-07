@@ -4,7 +4,8 @@ import type { System } from '../core/System';
 import type { PlayerController } from '../physics/PlayerController';
 import type { Ray } from '../physics/raycast';
 import type { VoxelWorld } from '../world/VoxelWorld';
-import { FollowBrain, HomeBrain, WanderBrain, createBrain, type Brain, type BrainSense } from './Brain';
+import { FollowBrain, WanderBrain, createBrain, type Brain, type BrainSense } from './Brain';
+import { NeuralBrain } from '../ai/NeuralBrain';
 import { buildBunny, buildButterfly, buildCat, buildChick, buildDog, buildRobot, buildVillager, disposeGroup } from './bodies';
 import { RobotRunner, validateProgram, type RobotProgram } from './robot';
 import type { Entity, EntityKind, StoredEntity } from './Entity';
@@ -27,6 +28,8 @@ export class EntitySystem implements System {
   private raycaster = new THREE.Raycaster();
   private spawnedAround: string | null = null;
   private elapsed = 0;
+  /** Supplied by the engine so brains know about day and night. */
+  timeOfDay: () => number = () => 0.3;
 
   constructor(
     private scene: THREE.Scene,
@@ -75,7 +78,8 @@ export class EntitySystem implements System {
     };
   }
 
-  spawn(kind: EntityKind, x: number, z: number, brain: Brain = new WanderBrain(), name?: string): Entity {
+  spawn(kind: EntityKind, x: number, z: number, brain?: Brain, name?: string): Entity {
+    brain ??= kind === 'bunny' || kind === 'chick' || kind === 'butterfly' ? new NeuralBrain(kind) : new WanderBrain();
     let group: THREE.Group;
     let wings: [THREE.Mesh, THREE.Mesh] | undefined;
     if (kind === 'butterfly') {
@@ -94,9 +98,9 @@ export class EntitySystem implements System {
     return this.add(entity);
   }
 
-  spawnPet(variant: 'dog' | 'cat', x: number, z: number, name = randomName(PET_NAMES), brainName = 'follow'): Entity {
+  spawnPet(variant: 'dog' | 'cat', x: number, z: number, name = randomName(PET_NAMES), brainName = 'neural'): Entity {
     const group = variant === 'dog' ? buildDog() : buildCat();
-    const entity = this.base('pet', group, x, z, createBrain(brainName), variant === 'dog' ? 3.2 : 2.8);
+    const entity = this.base('pet', group, x, z, createBrain(brainName, undefined, variant), variant === 'dog' ? 3.2 : 2.8);
     entity.name = name;
     entity.variant = variant;
     entity.persistent = true;
@@ -106,7 +110,7 @@ export class EntitySystem implements System {
 
   spawnVillager(jobId: string | 'random', x: number, z: number, name = randomName(VILLAGER_NAMES), home?: { x: number; z: number }): Entity {
     const job = jobId === 'random' ? randomJob() : (jobById(jobId) ?? randomJob());
-    const entity = this.base('villager', buildVillager(job.look), x, z, new HomeBrain(home ?? { x, z }), 1.3);
+    const entity = this.base('villager', buildVillager(job.look), x, z, new NeuralBrain('villager', home ?? { x, z }), 1.3);
     entity.name = name;
     entity.variant = job.id;
     entity.home = home ?? { x, z };
@@ -214,8 +218,8 @@ export class EntitySystem implements System {
     }
   }
 
-  setPetBrain(entity: Entity, brainName: 'follow' | 'stay' | 'wander'): void {
-    entity.brain = createBrain(brainName);
+  setPetBrain(entity: Entity, brainName: 'follow' | 'stay' | 'wander' | 'neural'): void {
+    entity.brain = createBrain(brainName, undefined, entity.variant);
     entity.data = { ...entity.data, brain: brainName };
     entity.targetX = entity.x;
     entity.targetZ = entity.z;
@@ -245,7 +249,7 @@ export class EntitySystem implements System {
     for (const s of list) {
       let entity: Entity | null = null;
       if (s.kind === 'pet' && (s.variant === 'dog' || s.variant === 'cat')) {
-        entity = this.spawnPet(s.variant, s.x, s.z, s.name, typeof s.data?.brain === 'string' ? (s.data.brain as string) : s.brain);
+        entity = this.spawnPet(s.variant, s.x, s.z, s.name, typeof s.data?.brain === 'string' ? (s.data.brain as string) : 'neural');
       } else if (s.kind === 'villager') {
         entity = this.spawnVillager(s.variant ?? 'random', s.x, s.z, s.name, s.home);
       } else if (s.kind === 'vehicle' && (s.variant === 'car' || s.variant === 'boat')) {
@@ -285,7 +289,7 @@ export class EntitySystem implements System {
 
   pet(entity: Entity): void {
     entity.happyTimer = 0.9;
-    const intent = entity.brain.onPet?.(this.sense(entity, 0, 0));
+    const intent = entity.brain.onPet?.(this.sense(entity, 0, this.elapsed));
     if (intent) {
       entity.restTimer = intent.restFor;
       entity.mood = intent.mood ?? entity.mood;
@@ -293,6 +297,11 @@ export class EntitySystem implements System {
   }
 
   private sense(entity: Entity, dt: number, elapsed: number): BrainSense {
+    let friends = 0;
+    for (const other of this.entities) {
+      if (other !== entity && !other.vehicle && Math.hypot(other.x - entity.x, other.z - entity.z) < 5) friends++;
+    }
+    const speed = Math.hypot(this.player.vx, this.player.vz);
     return {
       x: entity.x,
       y: entity.y,
@@ -301,6 +310,10 @@ export class EntitySystem implements System {
       playerZ: this.player.z,
       dt,
       elapsed,
+      timeOfDay: this.timeOfDay(),
+      playerMoving: speed > 0.5,
+      playerFast: speed > 5,
+      friendsNearby: friends,
       standable: (x, z) => this.standable(x, z),
       random: Math.random,
     };
@@ -364,6 +377,7 @@ export class EntitySystem implements System {
           }
           entity.restTimer = intent.restFor;
           entity.mood = intent.mood ?? entity.mood;
+          if (intent.celebrate) entity.happyTimer = 0.7;
         }
       } else {
         const step = Math.min(distance, entity.speed * dt);

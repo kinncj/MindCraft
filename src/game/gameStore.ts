@@ -332,6 +332,7 @@ export const useGameStore = create<GameState>((set, get) => {
         copy: 'Copy tool: tap one corner, then the other! 📋',
         paste: getEngine()?.build.clipboard ? 'Tap where to put it. Press R to turn it! 🔄' : 'Copy something or pick a blueprint first! 📋',
         paint: 'Paint tool: tap a block to change it! 🎨',
+        interact: 'Interact: tap friends, doors, switches, and boxes. Nothing gets built or broken! 🤝',
       };
       const hint = hints[mode];
       if (hint) get().showToast(hint);
@@ -342,7 +343,7 @@ export const useGameStore = create<GameState>((set, get) => {
       get().showToast(enabled ? 'Mirror on! Everything you build is doubled. 🪞' : 'Mirror off.');
     },
     nextTool() {
-      const order: InteractionMode[] = ['place', 'remove', 'room', 'fill', 'paint', 'copy', 'paste'];
+      const order: InteractionMode[] = ['place', 'interact', 'remove', 'room', 'fill', 'paint', 'copy', 'paste'];
       const index = order.indexOf(get().mode);
       get().setMode(order[(index + 1) % order.length]);
     },

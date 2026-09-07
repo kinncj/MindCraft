@@ -12,7 +12,7 @@ import type { CameraSystem } from './CameraSystem';
 import type { InputFrame } from './InputSystem';
 import type { BuildTools } from '../build/BuildTools';
 
-export type InteractionMode = 'place' | 'remove' | 'room' | 'fill' | 'paint' | 'copy' | 'paste';
+export type InteractionMode = 'place' | 'interact' | 'remove' | 'room' | 'fill' | 'paint' | 'copy' | 'paste';
 
 /** What the interaction system needs from the app layer. */
 export type InteractionBridge = {
@@ -85,6 +85,7 @@ export class InteractionSystem implements System {
       const removing = tap.button === 2 || mode === 'remove';
       if (removing) this.state.lastTap = { hit, action: this.removeAt(hit) ? 'removed' : 'remove-failed' };
       else if (mode === 'place') this.state.lastTap = { hit, action: this.placeOrInteract(hit) };
+      else if (mode === 'interact') this.state.lastTap = { hit, action: this.interact(hit.x, hit.y, hit.z, hit.face) ? 'interacted' : 'nothing-to-interact' };
       else this.state.lastTap = { hit, action: this.build.handleTap(mode, hit, this.bridge.getSelectedBlockId()) };
     }
     if (this.input.pressed.has('r')) this.build.rotateClipboard();

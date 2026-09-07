@@ -28,7 +28,10 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   shelter is pitch-dark until you place a torch; skylight leaks through doors.
 - Day/night cycle with stars, rain and snowfall, three visual modes (**Classic**,
   **Ultra**, **Claude Dream**).
-- Friendly animals with pluggable brains, pettable.
+- Friendly animals, pets, and villagers driven by a **tiny neural network that runs
+  in the browser**: about 600 weights trained in the repo from six personalities,
+  deciding every move from what the creature senses (how close you are, whether you
+  are running, night, affection, energy, friends nearby). No download, no text.
 - **Undo and redo** for everything, a nine-slot hotbar, and a picture palette of all
   blocks. A green ghost shows where a block will land. Beds skip the night. The Magic
   Delivery Box keeps its treasures inside the block itself.
@@ -77,7 +80,8 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 | Place / use | click | tap | RT |
 | Remove | right-click or Remove mode | Remove mode + tap | LT (or X to switch mode) |
 | Pick a block | `1`–`9`, hotbar, `E` for all blocks | hotbar, ➕ More | LB / RB, D-pad up |
-| Build tools | tools bar, `R` turns a paste | tools bar | D-pad down cycles, D-pad left turns |
+| Build tools | Tools button, `R` turns a paste | Tools button | D-pad down cycles, D-pad left turns |
+| Interact only | Tools → Interact | Tools → Interact | D-pad down to it |
 | Ride / hop off | tap the car or boat, `Space` to hop off | tap | RT, A to hop off |
 | Crafting | `C`, a crafting table, or Menu → Crafting | Menu → Crafting | Start → Crafting |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Shift+Z` or buttons | buttons | B |
@@ -142,8 +146,8 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 - No external requests at runtime; all assets are generated in code
 - Creative mode only, forever: no health, hunger, damage, death, monsters, weapons,
   combat, or failure states. Night is a cozy navy, never scary.
-- Creature "brains" are rule-based code, not a language model: nothing unmoderated
-  ever talks to a child.
+- Creature "brains" are a tiny neural policy (ADR-0010), not a language model:
+  they decide movement, never text, so nothing unmoderated ever talks to a child.
 
 ## Trademarks and legal
 

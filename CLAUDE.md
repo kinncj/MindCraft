@@ -12,7 +12,7 @@ ads, no tracking, no external requests at runtime. Original art generated in cod
   - `render/` chunk mesher, atlas, Three.js chunk renderer, environment
   - `physics/` swept-AABB player, voxel raycast
   - `input/` keyboard, mouse, touch, gamepad → `InputFrame`; camera; interaction
-  - `entities/` creatures with `Brain`s (rule-based; no in-browser LLM)
+  - `entities/` creatures with `Brain`s; `ai/` the tiny trained neural policy (no LLM)
   - `commands/` undoable edits; `tools/` the tool registry + WebMCP adapter
   - `build/` room/fill/paint/copy/paste/mirror + blueprints; `crafting/` recipes
   - `logic/` the 10 Hz power system and pistons; `audio/` Tone.js music and effects

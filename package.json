@@ -17,7 +17,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:all": "npm run test && npm run test:e2e"
+    "test:all": "npm run test && npm run test:e2e",
+    "train:brain": "node scripts/train-brain.mjs"
   },
   "dependencies": {
     "dexie": "^4.0.11",

@@ -6,6 +6,7 @@ import { Sheet } from './ui/Sheet';
 
 const TOOLS: Array<{ id: InteractionMode; emoji: string; label: string; aria: string; hint: string }> = [
   { id: 'place', emoji: '✨', label: 'Place', aria: 'Place blocks mode', hint: 'Tap to build' },
+  { id: 'interact', emoji: '🤝', label: 'Interact', aria: 'Interact mode', hint: 'Doors, friends, switches' },
   { id: 'remove', emoji: '🧽', label: 'Remove', aria: 'Remove blocks mode', hint: 'Tap to take away' },
   { id: 'room', emoji: '🏠', label: 'Room', aria: 'Room tool', hint: 'Two taps: floor and walls' },
   { id: 'fill', emoji: '🧱', label: 'Fill', aria: 'Fill tool', hint: 'Two taps: a solid box' },

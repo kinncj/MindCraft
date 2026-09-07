@@ -229,7 +229,11 @@ export function registerCoreTools(engine: Engine): void {
     description: 'Every creature currently in the world with its position and mood.',
     inputSchema: { type: 'object', properties: {} },
     execute: () =>
-      engine.entities.entities.map((e) => ({ id: e.id, kind: e.kind, name: e.name ?? null, x: e.x, y: e.y, z: e.z, mood: e.mood })),
+      engine.entities.entities.map((e) => ({
+        id: e.id, kind: e.kind, name: e.name ?? null, x: e.x, y: e.y, z: e.z, mood: e.mood,
+        brain: e.brain.kind,
+        thinking: 'lastAction' in e.brain ? (e.brain as { lastAction: string }).lastAction : null,
+      })),
   });
   tools.register({
     name: 'entity_spawn',

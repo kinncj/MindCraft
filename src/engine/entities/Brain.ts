@@ -1,3 +1,5 @@
+import { NeuralBrain } from '../ai/NeuralBrain';
+import { SPECIES, type Species } from '../ai/features';
 /**
  * How a creature decides what to do. Rule-based brains ship with the
  * game; a model-backed brain could implement the same contract later
@@ -14,6 +16,12 @@ export type BrainSense = {
   /** Seconds since the last decision. */
   dt: number;
   elapsed: number;
+  /** 0..1 time of day (0.3 morning, 0.8 night). */
+  timeOfDay?: number;
+  playerMoving?: boolean;
+  playerFast?: boolean;
+  /** Other creatures within a few blocks. */
+  friendsNearby?: number;
   /** Is this column walkable ground (grass/flowers)? */
   standable(x: number, z: number): boolean;
   random(): number;
@@ -26,6 +34,8 @@ export type BrainIntent = {
   restFor: number;
   /** A short mood word the UI can show (happy, sleepy, curious). */
   mood?: string;
+  /** Do a little happy hop. */
+  celebrate?: boolean;
 };
 
 export interface Brain {
@@ -110,9 +120,11 @@ export class StayBrain implements Brain {
   }
 }
 
-export function createBrain(name: string, home?: { x: number; z: number }): Brain {
+export function createBrain(name: string, home?: { x: number; z: number }, species?: string): Brain {
   if (name === 'follow') return new FollowBrain();
   if (name === 'stay') return new StayBrain();
   if (name === 'home' && home) return new HomeBrain(home);
+  if (name === 'wander') return new WanderBrain();
+  if (species && (SPECIES as readonly string[]).includes(species)) return new NeuralBrain(species as Species, home);
   return new WanderBrain();
 }

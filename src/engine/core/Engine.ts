@@ -188,6 +188,7 @@ export class Engine {
     this.scene.add(this.camera.camera);
     this.avatar = new PlayerAvatar(this.scene, this.player, this.camera.camera, { ...DEFAULT_LOOK_IMPORT, ...(options.settings.look ?? {}) });
     this.entities = new EntitySystem(this.scene, this.world, registry, this.player);
+    this.entities.timeOfDay = () => this.environment.time;
     this.particles = new ParticleSystem(this.scene);
     this.logic.pressers = () => {
       const boxes = [this.player.box()];
