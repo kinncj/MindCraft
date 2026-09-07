@@ -51,6 +51,11 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   shopkeeper, musician) who chat in pictures, hand out gifts, and play along.
 - **Dress up** with a live spinning 3D preview: boy or girl style, shirt, pants or
   skirt, skin, hair, and a hat (cap, crown, cowboy, party).
+- **Buildings proven by walking.** Every generated building passes livability rules
+  (doors on the ground and clear, stairs with real clearance, lit rooms with doorways)
+  and tests drive the actual character up the stairs, through the doors, down into
+  bunkers, and along tunnels. Villagers dig too: pools, lakes, ponds, bunkers, tunnels,
+  wells, moats.
 - **Chat with villagers.** Say what you want in your own words: "a beautiful and
   colourful brick mansion, like a massive house" becomes a three-floor brick house
   with rainbow pillars, glass windows, a door, a stepped roof, and a chimney. Houses
