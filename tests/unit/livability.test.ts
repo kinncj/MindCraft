@@ -87,3 +87,29 @@ describe('villagers dig', () => {
     expect(bunker.filter((e) => e.id === 0 && e.y < 12).length).toBeGreaterThan(30); // the room is dug out below ground
   });
 });
+
+describe('the bunker entrance fits the character', () => {
+  it('two wide, three high over every step, a doorway into the room, and a hatch on the surface', () => {
+    const world = flat();
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    const edits = build.planEarthwork('bunker', 8, 13, 8, earthworkOptions(blocks, { kind: 'bunker', width: 7, depth: 4 }));
+    const cells = new Map(edits.map((e) => [`${e.x},${e.y},${e.z}`, e.id]));
+    const at = (x: number, y: number, z: number) => cells.get(`${x},${y},${z}`);
+    const stairs = edits.filter((e) => e.id === blocks.numericOf('stone_stairs'));
+    expect(stairs.length).toBeGreaterThanOrEqual(8); // four steps, two wide
+    for (const step of stairs) {
+      for (let h = 1; h <= 3; h++) expect(at(step.x, step.y + h, step.z), `headroom over step ${step.x},${step.y},${step.z}`).toBe(0);
+    }
+    // Both stair columns exist side by side.
+    const rows = new Set(stairs.map((s) => s.z));
+    expect(rows.size).toBe(2);
+    // The doorway into the room is open two wide and three high.
+    const groundY = 12;
+    const floorY = groundY - 4 - 1;
+    const x0 = 8 - 3;
+    for (const pz of [8, 9]) for (let h = 1; h <= 3; h++) expect(at(x0 - 1, floorY + h, pz)).toBe(0);
+    // The hatch at the surface is open two wide and three high.
+    const startX = x0 - (groundY - floorY - 1) - 1;
+    for (const dx of [-1, 0]) for (const pz of [8, 9]) for (let h = 1; h <= 3; h++) expect(at(startX + dx, groundY + h, pz)).toBe(0);
+  });
+});

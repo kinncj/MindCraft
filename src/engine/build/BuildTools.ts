@@ -905,7 +905,7 @@ export class BuildTools {
         break;
       }
       case 'bunker': {
-        // An underground room with a lit staircase down from a hatch on the surface.
+        // An underground room with a lit, two-wide staircase down from a hatch on the surface.
         const floorY = groundY - depth - 1;
         for (let px = x0 - 1; px <= x1 + 1; px++) for (let pz = z0 - 1; pz <= z1 + 1; pz++) {
           const wall = px < x0 || px > x1 || pz < z0 || pz > z1;
@@ -918,20 +918,43 @@ export class BuildTools {
           put(px, floorY + 3, z0, k.lamp ?? k.glow);
           put(px, floorY + 3, z1, k.lamp ?? k.glow);
         }
-        // Stairs from the surface down into the room, along +x from the hatch.
-        const hatchX = x0 - 2;
-        const stairZ = z;
-        const steps = groundY - floorY;
-        for (let i = 0; i <= steps; i++) {
-          const px = hatchX + i;
-          const py = groundY - i;
-          if (py > floorY + 1) put(px, py, stairZ, k.stairs, opts.stairRotationDown);
-          for (let h = 1; h <= 2; h++) put(px, py + h, stairZ, 0);
-          for (let dz = -1; dz <= 1; dz += 2) for (let h = 0; h <= 2; h++) if (py + h <= groundY) put(px, py + h, stairZ + dz, k.stone);
-          put(px, py - 1, stairZ, k.stone);
+        // Stairs: two wide (z, z+1), three blocks of headroom, descending toward +x into the room's
+        // west wall. The last step lands on the room floor just inside the doorway.
+        const stepCount = groundY - floorY - 1;
+        const sz0 = z;
+        const startX = x0 - stepCount - 1; // the last step stops just outside the doorway
+        for (let i = 0; i < stepCount; i++) {
+          const px = startX + i;
+          const py = groundY - 1 - i;
+          for (const pz of [sz0, sz0 + 1]) {
+            put(px, py, pz, k.stairs, opts.stairRotationDown);
+            put(px, py - 1, pz, k.stone);
+            for (let h = 1; h <= 3; h++) put(px, py + h, pz, 0);
+          }
+          // Lined side walls so the earth never crumbles in.
+          for (let h = 0; h <= 3; h++) {
+            put(px, py + h, sz0 - 1, k.stone);
+            put(px, py + h, sz0 + 2, k.stone);
+          }
+          if (i % 2 === 1) put(px, py + 2, sz0 - 1, k.lamp ?? k.glow);
         }
-        for (let h = 1; h <= 3; h++) put(hatchX, groundY + h, stairZ, 0);
-        if (k.lantern) put(hatchX - 1, groundY + 1, stairZ - 1, k.lantern);
+        // The doorway into the room and the landing inside it.
+        for (const pz of [sz0, sz0 + 1]) {
+          for (let h = 1; h <= 3; h++) put(x0 - 1, floorY + h, pz, 0);
+          put(x0 - 1, floorY, pz, k.stone);
+        }
+        // The hatch: a 2×2 opening at the surface with headroom, a stone lip, and lanterns.
+        for (let dx = -1; dx <= 0; dx++) for (const pz of [sz0, sz0 + 1]) {
+          for (let h = 1; h <= 3; h++) put(startX + dx, groundY + h, pz, 0);
+        }
+        for (let dx = -2; dx <= 1; dx++) {
+          put(startX + dx, groundY, sz0 - 1, k.stone);
+          put(startX + dx, groundY, sz0 + 2, k.stone);
+        }
+        if (k.lantern) {
+          put(startX - 2, groundY + 1, sz0 - 1, k.lantern);
+          put(startX - 2, groundY + 1, sz0 + 2, k.lantern);
+        }
         // A bed, a table and a chest to make it a den.
         put(x0 + 1, floorY + 1, z1 - 1, k.bed);
         put(x1 - 1, floorY + 1, z1 - 1, k.table);
