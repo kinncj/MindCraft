@@ -32,6 +32,20 @@ export class GhostPreview implements System {
     scene.add(this.selectionBox);
   }
 
+  private wasVisible: [boolean, boolean] | null = null;
+
+  /** Hidden while a photo is taken, so the picture is only the world. */
+  setVisible(visible: boolean): void {
+    if (!visible) {
+      this.wasVisible ??= [this.group.visible, this.selectionBox.visible];
+      this.group.visible = false;
+      this.selectionBox.visible = false;
+    } else if (this.wasVisible) {
+      [this.group.visible, this.selectionBox.visible] = this.wasVisible;
+      this.wasVisible = null;
+    }
+  }
+
   private updateSelection(): void {
     const sel = this.state.selection;
     if (!sel) {

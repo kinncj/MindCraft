@@ -42,7 +42,8 @@ export type IconName =
   | 'chat'
   | 'send'
   | 'sparkle'
-  | 'fly';
+  | 'fly'
+  | 'camera';
 
 type Props = SVGProps<SVGSVGElement> & { name: IconName; size?: number };
 
@@ -232,6 +233,12 @@ const paths: Record<IconName, JSX.Element> = {
     <>
       <path d="M12 4c-1.2 0-2 .9-2 2v3.2L3.5 13v2l6.5-2v3.2l-2 1.3V19l4-1 4 1v-1.5l-2-1.3V13l6.5 2v-2L14 9.2V6c0-1.1-.8-2-2-2z" />
       <path d="M11 6h2v3h-2z" fill="var(--icon-2)" />
+    </>
+  ),
+  camera: (
+    <>
+      <path d="M9 4h6l1.2 2H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.8z" />
+      <circle cx="12" cy="12.5" r="3.6" fill="var(--icon-2)" />
     </>
   ),
   sparkle: (

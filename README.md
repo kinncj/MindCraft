@@ -137,6 +137,12 @@ are parsed too: a building request is always built from the words (type, size, f
 material, colours, furniture, people, flag), so a small model that copies its example
 still produces the right building.
 
+## Photos
+
+The camera button on the right (or **P**, or the controller's Back button) saves a PNG of
+the world exactly as it looks — no buttons, no ghost block, no highlight. The picture is
+read out of the same frame it is drawn, so nothing slows down when the camera is not used.
+
 ## Performance on older laptops
 
 The engine reads the graphics chip's name and starts on a budget that fits it: a 2022

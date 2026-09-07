@@ -11,6 +11,7 @@ import { WorldStore } from '../storage/worldStore';
 import { getEngine } from './engineRef';
 import { createWorldRecord } from './store/worldRecords';
 import { blueprintById } from '../engine/build/blueprints';
+import { downloadPhoto } from './photo';
 import type { InteractionMode } from '../types/game';
 import type { AudioState, PlayerLookState } from './store/types';
 import type { GameState, ViewMode } from './store/types';
@@ -473,6 +474,18 @@ export const useGameStore = create<GameState>((set, get) => {
     dance() {
       getEngine()?.dance();
       get().showToast('💃 Dance party!');
+    },
+    async takePhoto() {
+      const engine = getEngine();
+      if (!engine) return;
+      get().showToast('📸 Say cheese!');
+      try {
+        const blob = await engine.takePhoto();
+        downloadPhoto(blob, get().currentWorld()?.name ?? 'world');
+        get().showToast('📸 Photo saved!');
+      } catch {
+        get().showToast('The camera did not work that time. Try again! 📷');
+      }
     },
     flying: false,
     toggleFly() {

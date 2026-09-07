@@ -504,6 +504,7 @@ export class Engine {
       this.options.bridge.onGamepadActive?.(active);
     }
     if (this.input.frame.pressed.has('x')) this.dance();
+    if (this.input.frame.pressed.has('p')) this.options.bridge.onCommand?.('photo');
     for (const command of this.input.frame.commands) {
       if (command === 'fly_toggle') this.setFlying(!this.player.flying);
       else if (command === 'toggle_view') this.camera.toggleViewMode();
@@ -814,7 +815,8 @@ export class Engine {
     } else {
       this.framesSinceBlocked = 0;
     }
-    const h = this.interaction.state.highlight ?? this.interaction.state.flash;
+    const photo = this.photoRequest;
+    const h = photo ? null : (this.interaction.state.highlight ?? this.interaction.state.flash);
     if (h) {
       this.highlight.position.set(h.x, h.y, h.z);
       this.highlight.visible = true;
@@ -837,12 +839,44 @@ export class Engine {
     cut.cutFrom.value.copy(this.camera.camera.position);
     cut.cutTo.value.set(this.player.x, this.player.y + 1.0, this.player.z);
     cut.cutRadius.value = this.camera.viewMode === 'third' ? 1.4 : 0;
+    if (photo) this.ghost.setVisible(false);
     try {
       if (this.postFx.enabled) this.postFx.render();
       else this.renderer.render(this.scene, this.camera.camera);
     } catch (error) {
       this.fallbackFromCinema(`Drawing failed (${error instanceof Error ? error.message : String(error)})`);
     }
+    if (photo) {
+      this.ghost.setVisible(true);
+      this.photoRequest = null;
+      // Same frame as the draw: the buffer still holds the picture.
+      this.renderer.domElement.toBlob((blob) => {
+        if (blob) photo.resolve(blob);
+        else photo.reject(new Error('the camera did not get a picture'));
+      }, 'image/png');
+    }
+  }
+
+  /** A photo asked for by the child: taken on the next frame, before the HUD is drawn. */
+  private photoRequest: { resolve: (blob: Blob) => void; reject: (error: Error) => void } | null = null;
+
+  /**
+   * Takes a picture of the world exactly as it looks, without the block
+   * highlight or the ghost preview. The pixels are read in the same frame
+   * they are drawn, so the renderer needs no extra buffer.
+   */
+  takePhoto(): Promise<Blob> {
+    if (this.photoRequest) return Promise.reject(new Error('a photo is already being taken'));
+    return new Promise<Blob>((resolve, reject) => {
+      this.photoRequest = { resolve, reject };
+      this.framesSinceBlocked = 0; // draw at least one more frame, even behind a sheet
+      window.setTimeout(() => {
+        if (!this.photoRequest) return;
+        const pending = this.photoRequest;
+        this.photoRequest = null;
+        pending.reject(new Error('the camera did not get a picture'));
+      }, 4000);
+    });
   }
 
   private elapsedClock = new THREE.Clock();

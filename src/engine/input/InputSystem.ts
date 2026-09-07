@@ -48,7 +48,7 @@ const PAD = {
 } as const;
 
 /** Things a controller asks the app layer to do (not world input). */
-export type PadCommand = 'menu' | 'hotbar_next' | 'hotbar_prev' | 'toggle_view' | 'toggle_mode' | 'undo' | 'palette' | 'rotate' | 'tool_next' | 'zoom_cycle' | 'fly_toggle';
+export type PadCommand = 'menu' | 'hotbar_next' | 'hotbar_prev' | 'toggle_view' | 'toggle_mode' | 'undo' | 'palette' | 'rotate' | 'tool_next' | 'zoom_cycle' | 'fly_toggle' | 'photo';
 
 /** How a mouse works: `game` locks the pointer like a desktop block game (left breaks, right places), `tap` is the kid-simple click-to-place. */
 export type MouseMode = 'game' | 'tap';
@@ -222,6 +222,7 @@ export class InputSystem implements System {
     if (pressedNow(PAD.X)) this.padCommands.push('toggle_mode');
     if (pressedNow(PAD.B)) this.padCommands.push('undo');
     if (pressedNow(PAD.START)) this.padCommands.push('menu');
+    if (pressedNow(PAD.BACK)) this.padCommands.push('photo');
     if (pressedNow(PAD.UP)) this.padCommands.push('toggle_view');
     if (pressedNow(PAD.DOWN)) this.padCommands.push('tool_next');
     if (pressedNow(PAD.LEFT)) this.padCommands.push('rotate');

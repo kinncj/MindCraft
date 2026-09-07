@@ -39,6 +39,21 @@ describe('desktop mouse like a real block game', () => {
   });
 });
 
+describe('a photo can be taken from any input', () => {
+  it('the keyboard P key and the controller Back button both ask for a photo', () => {
+    const canvas = document.createElement('canvas');
+    const input = new InputSystem(canvas);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'p' }));
+    const pad = { id: 'test pad', connected: true, mapping: 'standard', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, (_, i) => ({ pressed: i === 8, touched: false, value: i === 8 ? 1 : 0 })) };
+    const getGamepads = (): unknown[] => [pad];
+    (navigator as unknown as { getGamepads: () => unknown[] }).getGamepads = getGamepads;
+    input.update(1 / 60);
+    expect(input.frame.pressed.has('p')).toBe(true);
+    expect(input.frame.commands).toContain('photo');
+    input.dispose();
+  });
+});
+
 describe('chunks in front of the camera come first', () => {
   it('ranks a chunk ahead before one behind at the same distance', () => {
     const world = new VoxelWorld(blocks);

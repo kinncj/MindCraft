@@ -55,6 +55,8 @@ export type UiSlice = {
   toggleViewMode: () => void;
   zoom: (delta: number) => void;
   dance: () => void;
+  /** Takes a picture of the world (no HUD) and saves it as a PNG. */
+  takePhoto: () => Promise<void>;
   /** Creative flight (double-tap jump, or the wing button). */
   flying: boolean;
   toggleFly: () => void;

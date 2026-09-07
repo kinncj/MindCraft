@@ -84,6 +84,7 @@ export function GameCanvas() {
           else if (command === 'undo') s.undo();
           else if (command === 'palette') s.setOpenPanel('palette');
           else if (command === 'tool_next') s.nextTool();
+          else if (command === 'photo') void s.takePhoto();
         },
       },
     });
