@@ -5,7 +5,8 @@ import type { PlayerController } from '../physics/PlayerController';
 import type { Ray } from '../physics/raycast';
 import type { VoxelWorld } from '../world/VoxelWorld';
 import { FollowBrain, HomeBrain, WanderBrain, createBrain, type Brain, type BrainSense } from './Brain';
-import { buildBunny, buildButterfly, buildCat, buildChick, buildDog, buildVillager, disposeGroup } from './bodies';
+import { buildBunny, buildButterfly, buildCat, buildChick, buildDog, buildRobot, buildVillager, disposeGroup } from './bodies';
+import { RobotRunner, validateProgram, type RobotProgram } from './robot';
 import type { Entity, EntityKind, StoredEntity } from './Entity';
 import { Vehicle, type DriveInput, type VehicleKind } from './vehicles';
 import { PET_NAMES, VILLAGER_NAMES, jobById, randomJob, randomName, type TalkChoice } from './villagers';
@@ -125,6 +126,19 @@ export class EntitySystem implements System {
     return this.add(entity);
   }
 
+  spawnRobot(x: number, y: number, z: number, name = 'Beep', program: RobotProgram = [], blockId = 0): Entity {
+    const entity = this.base('robot', buildRobot(), Math.round(x), Math.round(z), new WanderBrain(0), 0);
+    entity.y = Math.round(y);
+    entity.name = name;
+    entity.variant = 'robot';
+    entity.persistent = true;
+    entity.robot = new RobotRunner(this.world, this.registry, Math.round(x), Math.round(y), Math.round(z));
+    entity.robot.program = program;
+    entity.robot.blockId = blockId;
+    entity.data = { program, blockId };
+    return this.add(entity);
+  }
+
   remove(id: string): boolean {
     const index = this.entities.findIndex((e) => e.id === id);
     if (index < 0) return false;
@@ -236,6 +250,10 @@ export class EntitySystem implements System {
         entity = this.spawnVillager(s.variant ?? 'random', s.x, s.z, s.name, s.home);
       } else if (s.kind === 'vehicle' && (s.variant === 'car' || s.variant === 'boat')) {
         entity = this.spawnVehicle(s.variant, s.x, s.y, s.z, typeof s.data?.color === 'string' ? (s.data.color as string) : undefined);
+      } else if (s.kind === 'robot') {
+        const program = validateProgram(s.data?.program) ?? [];
+        const blockId = typeof s.data?.blockId === 'number' ? (s.data.blockId as number) : 0;
+        entity = this.spawnRobot(s.x, s.y, s.z, s.name, program, blockId);
       }
       if (entity) entity.id = s.id;
     }
@@ -293,6 +311,17 @@ export class EntitySystem implements System {
     for (const entity of this.entities) {
       if (!this.world.isLoaded(Math.round(entity.x), Math.round(entity.z))) continue;
 
+      if (entity.robot) {
+        const r = entity.robot;
+        r.update(dt);
+        entity.data = { program: r.program, blockId: r.blockId };
+        entity.x += (r.x - entity.x) * Math.min(1, dt * 8);
+        entity.y += (r.y - entity.y) * Math.min(1, dt * 8);
+        entity.z += (r.z - entity.z) * Math.min(1, dt * 8);
+        entity.group.position.set(entity.x, entity.y - 0.5 + (r.running ? Math.sin(elapsed * 10) * 0.05 : 0), entity.z);
+        entity.group.rotation.y = r.yaw;
+        continue;
+      }
       if (entity.vehicle) {
         const riding = this.mounted === entity;
         entity.vehicle.update(dt, riding ? this.driveInput : null, elapsed);

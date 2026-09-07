@@ -1132,3 +1132,123 @@ input {
     transition: none;
   }
 }
+
+/* --- crafting and robots ------------------------------------------------ */
+
+.craft-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.craft-tabs .kid-button {
+  flex: 1;
+}
+
+.craft-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.craft-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 64px);
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.craft-cell {
+  width: 64px;
+  height: 64px;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-sm);
+  background: var(--paper-2);
+  background-size: cover;
+  image-rendering: pixelated;
+  cursor: pointer;
+  font-size: 1.6rem;
+  box-shadow: var(--shadow-soft);
+  position: relative;
+}
+
+.craft-cell-selected {
+  outline: 4px solid var(--accent);
+}
+
+.craft-cell-mini {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+  box-shadow: none;
+}
+
+.craft-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.craft-arrow {
+  font-size: 2rem;
+}
+
+.craft-cell-result {
+  width: 80px;
+  height: 80px;
+  opacity: 0.5;
+}
+
+.craft-cell-ready {
+  opacity: 1;
+  animation: splash-glow 1.4s ease-in-out infinite;
+}
+
+.craft-count {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.craft-hint {
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.ingredient-grid .craft-cell {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.robot-program {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-height: 3.2rem;
+  padding: 0.6rem;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  border: 3px solid var(--accent);
+  font-size: 1.4rem;
+}
+
+.robot-card {
+  padding: 0.15rem 0.45rem;
+  border-radius: 10px;
+  background: var(--paper-2);
+}
+
+.robot-card-building {
+  background: #fff8cf;
+  font-size: 1rem;
+}

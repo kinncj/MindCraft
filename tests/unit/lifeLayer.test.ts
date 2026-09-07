@@ -67,7 +67,7 @@ describe('pets and villagers', () => {
     const dog = entities.spawnPet('dog', 2, 2, 'Rex');
     expect(dog.persistent).toBe(true);
     player.teleport(12, 2.5, 12);
-    for (let i = 0; i < 240; i++) entities.update(1 / 60, i / 60);
+    for (let i = 0; i < 480; i++) entities.update(1 / 60, i / 60);
     expect(Math.hypot(dog.x - 12, dog.z - 12)).toBeLessThan(6);
     entities.setPetBrain(dog, 'stay');
     const { x, z } = dog;

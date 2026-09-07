@@ -42,6 +42,12 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   and **villagers with jobs** (baker, farmer, builder, doctor, teacher, firefighter,
   shopkeeper, musician) who chat in pictures, hand out gifts, and play along.
 - **Dress up**: shirt, pants, skin, hair, and a hat (cap, crown, cowboy, party).
+- **Crafting**: a picture recipe book with a tap-to-fill 3×3 grid and a crafting
+  table. Recipes teach "this is made of that"; the result lands in the hotbar.
+- **Logic and automation**: levers, buttons, pressure plates, wire that fades over
+  fifteen blocks, logic lamps, pistons and sticky pistons that push and pull, powered
+  doors, and note blocks. A **robot** you program with picture cards (forward, turn,
+  up, place, remove, repeat ×N) that builds while you watch.
 - **Multiple named worlds** with two presets: a meadow or **Toy Land**.
 - Autosave of edited chunks to IndexedDB, honest save indicator, versioned JSON
   export/import with strict validation. **MindCraft 1.0 saves and export files are
@@ -67,6 +73,7 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 | Pick a block | `1`–`9`, hotbar, `E` for all blocks | hotbar, ➕ More | LB / RB, D-pad up |
 | Build tools | tools bar, `R` turns a paste | tools bar | D-pad down cycles, D-pad left turns |
 | Ride / hop off | tap the car or boat, `Space` to hop off | tap | RT, A to hop off |
+| Crafting | `C`, a crafting table, or Menu → Crafting | Menu → Crafting | Start → Crafting |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Shift+Z` or buttons | buttons | B |
 | Menu | `Escape` or the Menu button | Menu button | Start |
 
@@ -155,8 +162,7 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 2. ~~Build mode~~ — done: room, fill, paint, copy/paste, mirror, blueprints
 3. ~~Life layer~~ — done: furniture, car and boat, pets, villagers with jobs, dress-up
 4. ~~UI refresh~~ — done: bottom sheets, a menu with submenus, a tools drawer, safe areas
-5. **Crafting and logic** — a picture recipe book, buttons/levers/wire/lamps/pistons,
-   a programmable robot with Scratch-style cards
+5. ~~Crafting and logic~~ — done: recipe book, levers/buttons/plates/wire/lamps/pistons/doors/note blocks, robots
 6. **Sound** — Tone.js music by biome and time of day, effects, a big mute button
 
 Nothing before the basics stay boring and reliable.

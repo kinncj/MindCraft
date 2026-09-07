@@ -64,6 +64,12 @@ const doorBehavior: BlockBehavior = {
     const otherY = BlockState.isTopHalf(ctx.state) ? y - 1 : y + 1;
     if (ctx.world.getBlock(x, otherY, z) === B.door) ctx.world.setBlock(x, otherY, z, 0, 0);
   },
+  onPowerChanged: (ctx) => {
+    const { x, y, z } = ctx.position;
+    const otherY = BlockState.isTopHalf(ctx.state) ? y - 1 : y + 1;
+    ctx.world.setBlock(x, y, z, ctx.blockId, BlockState.withOpen(ctx.state, ctx.powered));
+    if (ctx.world.getBlock(x, otherY, z) === ctx.blockId) ctx.world.setBlock(x, otherY, z, ctx.blockId, BlockState.withOpen(ctx.world.getState(x, otherY, z), ctx.powered));
+  },
 };
 
 const containerBehavior: BlockBehavior = {
@@ -113,6 +119,49 @@ const stoveBehavior: BlockBehavior = {
   },
 };
 
+const leverBehavior: BlockBehavior = {
+  onPlace: (ctx) => BlockState.withRotation(0, ctx.playerRotation),
+  onInteract: (ctx) => {
+    const { x, y, z } = ctx.position;
+    ctx.world.setBlock(x, y, z, ctx.blockId, BlockState.withOpen(ctx.state, !BlockState.isOpen(ctx.state)));
+    ctx.perform('click', { position: ctx.position });
+    return true;
+  },
+};
+
+const buttonBehavior: BlockBehavior = {
+  onPlace: (ctx) => BlockState.withRotation(0, ctx.playerRotation),
+  onInteract: (ctx) => {
+    ctx.perform('press_button', { position: ctx.position });
+    return true;
+  },
+};
+
+const logicLampBehavior: BlockBehavior = {
+  onPowerChanged: (ctx) => {
+    const { x, y, z } = ctx.position;
+    ctx.world.setBlock(x, y, z, ctx.powered ? B.logic_lamp_on : B.logic_lamp, ctx.state);
+  },
+};
+
+const noteBehavior: BlockBehavior = {
+  onInteract: (ctx) => {
+    const { x, y, z } = ctx.position;
+    const pitch = (BlockState.variant(ctx.state) + 1) % 12;
+    ctx.world.setBlock(x, y, z, ctx.blockId, BlockState.withVariant(ctx.state, pitch));
+    ctx.perform('note', { position: ctx.position, pitch });
+    return true;
+  },
+};
+
+const craftingBehavior: BlockBehavior = {
+  onPlace: (ctx) => BlockState.withRotation(0, ctx.playerRotation),
+  onInteract: (ctx) => {
+    ctx.openPanel('crafting', { position: ctx.position });
+    return true;
+  },
+};
+
 const bedBehavior: BlockBehavior = {
   onPlace: (ctx) => BlockState.withRotation(0, ctx.playerRotation),
   onInteract: (ctx) => {
@@ -135,7 +184,7 @@ const DEFINITIONS: BlockDefinitionInput[] = [
   { id: 'ice', numericId: 8, label: 'Ice', category: 'ground', emoji: '🧊', color: '#bfe0f5', accentColor: '#e0f2fd', transparent: true, opacity: 0.85, bucket: 'alpha' },
   { id: 'clay', numericId: 9, label: 'Clay', category: 'ground', emoji: '🩶', color: '#a9a5b8' },
   { id: 'moss', numericId: 10, label: 'Moss', category: 'ground', emoji: '🟩', color: '#4f8f3a' },
-  { id: 'deep_stone', numericId: 11, label: 'Deep Stone', category: 'ground', emoji: '⬛', color: '#6f7680', inPalette: false },
+  { id: 'deep_stone', numericId: 11, label: 'Deep Stone', category: 'ground', emoji: '⬛', color: '#6f7680', inPalette: false, immovable: true },
   { id: 'sandstone', numericId: 12, label: 'Sandstone', category: 'building', emoji: '🟨', color: '#e2cf96', textures: { top: 'sandstone_top', side: 'sandstone', bottom: 'sandstone_top' } },
   { id: 'hay', numericId: 13, label: 'Hay', category: 'nature', emoji: '🌾', color: '#d9b53c', textures: { top: 'hay_top', side: 'hay', bottom: 'hay_top' } },
 
@@ -149,7 +198,7 @@ const DEFINITIONS: BlockDefinitionInput[] = [
   { id: 'glass', numericId: 26, label: 'Glass', category: 'building', emoji: '🔷', color: '#bfe6f5', accentColor: '#e2f5fc', transparent: true, opacity: 0.45, bucket: 'alpha' },
   { id: 'glass_pane', numericId: 27, label: 'Window', category: 'building', emoji: '🪟', color: '#bfe6f5', shape: 'pane', bucket: 'alpha', seeThrough: true, facesPlayer: true, textures: { top: 'glass', side: 'glass', bottom: 'glass' }, behavior: facingBehavior },
   { id: 'fence', numericId: 28, label: 'Fence', category: 'building', emoji: '🪵', color: '#d3a35e', shape: 'fence', textures: { top: 'planks', side: 'planks', bottom: 'planks' } },
-  { id: 'door', numericId: 29, label: 'Door', category: 'building', emoji: '🚪', color: '#c98d4b', shape: 'door', facesPlayer: true, textures: { top: 'planks', side: 'planks', bottom: 'planks' }, behavior: doorBehavior },
+  { id: 'door', numericId: 29, label: 'Door', category: 'building', emoji: '🚪', color: '#c98d4b', shape: 'door', facesPlayer: true, textures: { top: 'planks', side: 'planks', bottom: 'planks' }, behavior: doorBehavior, logic: { role: 'consumer', kind: 'door' } },
   { id: 'planks_stairs', numericId: 30, label: 'Wood Stairs', category: 'building', emoji: '🪜', color: '#d3a35e', shape: 'stairs', facesPlayer: true, textures: { top: 'planks', side: 'planks', bottom: 'planks' }, behavior: stairsBehavior },
   { id: 'planks_slab', numericId: 31, label: 'Wood Slab', category: 'building', emoji: '▬', color: '#d3a35e', shape: 'slab', textures: { top: 'planks', side: 'planks', bottom: 'planks' }, behavior: slabBehavior },
   { id: 'stone_stairs', numericId: 32, label: 'Stone Stairs', category: 'building', emoji: '🪜', color: '#8e969f', shape: 'stairs', facesPlayer: true, textures: { top: 'stone_bricks', side: 'stone_bricks', bottom: 'stone_bricks' }, behavior: stairsBehavior },
@@ -201,6 +250,19 @@ const DEFINITIONS: BlockDefinitionInput[] = [
   { id: 'boat', numericId: 111, label: 'Boat', category: 'friends', emoji: '⛵', color: '#c98d4b', spawns: { kind: 'vehicle', variant: 'boat' }, textures: { top: 'boat', side: 'boat', bottom: 'boat' } },
   { id: 'dog', numericId: 112, label: 'Puppy', category: 'friends', emoji: '🐶', color: '#c98d4b', spawns: { kind: 'pet', variant: 'dog' }, textures: { top: 'dog', side: 'dog', bottom: 'dog' } },
   { id: 'cat', numericId: 113, label: 'Kitty', category: 'friends', emoji: '🐱', color: '#f2903c', spawns: { kind: 'pet', variant: 'cat' }, textures: { top: 'cat', side: 'cat', bottom: 'cat' } },
+  { id: 'robot', numericId: 115, label: 'Robot', category: 'friends', emoji: '🤖', color: '#9aa2ab', spawns: { kind: 'robot', variant: 'robot' }, textures: { top: 'robot', side: 'robot', bottom: 'robot' } },
+  // Logic 120..139
+  { id: 'crafting_table', numericId: 120, label: 'Crafting Table', category: 'special', emoji: '🔨', color: '#c98d4b', facesPlayer: true, textures: { top: 'crafting_top', side: 'crafting_side', bottom: 'planks' }, behavior: craftingBehavior },
+  { id: 'lever', numericId: 121, label: 'Lever', category: 'special', emoji: '🎚️', color: '#848b93', shape: 'torch', collision: 'none', facesPlayer: true, textures: { top: 'lever', side: 'lever', bottom: 'lever' }, behavior: leverBehavior, logic: { role: 'source', kind: 'lever' }, immovable: true },
+  { id: 'button', numericId: 122, label: 'Button', category: 'special', emoji: '🔘', color: '#9aa2ab', shape: 'torch', collision: 'none', facesPlayer: true, textures: { top: 'button', side: 'button', bottom: 'button' }, behavior: buttonBehavior, logic: { role: 'source', kind: 'button' }, immovable: true },
+  { id: 'pressure_plate', numericId: 123, label: 'Pressure Plate', category: 'special', emoji: '⬜', color: '#b4bcc4', shape: 'carpet', collision: 'none', textures: { top: 'plate', side: 'plate', bottom: 'plate' }, logic: { role: 'source', kind: 'plate' }, immovable: true },
+  { id: 'wire', numericId: 124, label: 'Wire', category: 'special', emoji: '🔴', color: '#8a1f18', shape: 'flat', collision: 'none', bucket: 'alpha', textures: { top: 'wire', side: 'wire', bottom: 'wire' }, variants: { 1: { top: 'wire_on', side: 'wire_on', bottom: 'wire_on' } }, logic: { role: 'wire', kind: 'wire' } },
+  { id: 'logic_lamp', numericId: 125, label: 'Logic Lamp', category: 'special', emoji: '💡', color: '#7a6f4a', textures: { top: 'logic_lamp', side: 'logic_lamp', bottom: 'logic_lamp' }, behavior: logicLampBehavior, logic: { role: 'consumer', kind: 'lamp' } },
+  { id: 'logic_lamp_on', numericId: 126, label: 'Logic Lamp (on)', category: 'special', emoji: '💡', color: '#fff2a8', lightLevel: 14, inPalette: false, textures: { top: 'logic_lamp_on', side: 'logic_lamp_on', bottom: 'logic_lamp_on' }, behavior: logicLampBehavior, logic: { role: 'consumer', kind: 'lamp' } },
+  { id: 'piston', numericId: 127, label: 'Piston', category: 'special', emoji: '🔩', color: '#9aa2ab', facesPlayer: true, textures: { top: 'piston_side', side: 'piston_side', bottom: 'piston_back' }, behavior: facingBehavior, logic: { role: 'consumer', kind: 'piston' }, immovable: true },
+  { id: 'sticky_piston', numericId: 128, label: 'Sticky Piston', category: 'special', emoji: '🔩', color: '#4f8f3a', facesPlayer: true, textures: { top: 'piston_sticky', side: 'piston_side', bottom: 'piston_back' }, behavior: facingBehavior, logic: { role: 'consumer', kind: 'sticky_piston' }, immovable: true },
+  { id: 'piston_head', numericId: 129, label: 'Piston Head', category: 'special', emoji: '🔩', color: '#d3a35e', inPalette: false, shape: 'slab', textures: { top: 'piston_face', side: 'piston_face', bottom: 'piston_face' }, logic: { role: 'consumer', kind: 'head' }, immovable: true },
+  { id: 'note_block', numericId: 130, label: 'Note Block', category: 'special', emoji: '🎵', color: '#8a6238', textures: { top: 'note_block', side: 'note_block', bottom: 'note_block' }, behavior: noteBehavior, logic: { role: 'consumer', kind: 'note' } },
   { id: 'villager', numericId: 114, label: 'Friend', category: 'friends', emoji: '🧑', color: '#4a7fd6', spawns: { kind: 'villager', variant: 'random' }, textures: { top: 'villager', side: 'villager', bottom: 'villager' } },
   { id: 'flower_pot', numericId: 97, label: 'Flower Pot', category: 'furniture', emoji: '🪴', color: '#c96f25', shape: 'cross', collision: 'none', bucket: 'alpha', textures: { top: 'flower_pot', side: 'flower_pot', bottom: 'flower_pot' } },
 

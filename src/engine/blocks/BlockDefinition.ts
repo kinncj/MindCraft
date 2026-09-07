@@ -116,8 +116,12 @@ export type BlockDefinition = {
   textures: FaceTextures;
   /** Alternate textures by state variant (a TV that is on). */
   variants?: Record<number, FaceTextures>;
-  /** Placing this "block" spawns a creature or vehicle instead. */
-  spawns?: { kind: 'vehicle' | 'pet' | 'villager'; variant: string };
+  /** Placing this "block" spawns a creature, vehicle, or robot instead. */
+  spawns?: { kind: 'vehicle' | 'pet' | 'villager' | 'robot'; variant: string };
+  /** Part of the logic layer: emits, carries, or reacts to power. */
+  logic?: { role: 'source' | 'wire' | 'consumer'; kind?: 'lever' | 'button' | 'plate' | 'wire' | 'lamp' | 'piston' | 'sticky_piston' | 'note' | 'door' | 'head' };
+  /** Pistons cannot move it. */
+  immovable: boolean;
   /** Shown in the block palette? */
   inPalette: boolean;
   /** Rotate to face the player on placement. */
@@ -149,6 +153,7 @@ const DEFAULTS: Omit<BlockDefinition, 'id' | 'numericId' | 'label' | 'color' | '
   facesPlayer: false,
   replaceable: false,
   climbable: false,
+  immovable: false,
 };
 
 /** Fills in defaults so definitions stay short. Textures default to the id. */

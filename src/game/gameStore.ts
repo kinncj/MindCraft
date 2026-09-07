@@ -325,6 +325,11 @@ export const useGameStore = create<GameState>((set, get) => {
       if (def) get().selectBlockType(def.id);
       get().showToast(`🎁 You got ${label}! It's in your hotbar.`);
     },
+    receiveCrafted(blockId, label, count) {
+      const def = registry.get(blockId);
+      if (def) get().selectBlockType(def.id);
+      get().showToast(`✨ You made ${count > 1 ? `${count} ${label}s` : `a ${label}`}! It's in your hotbar.`);
+    },
     selectBlueprint(id) {
       const bp = blueprintById(id);
       const engine = getEngine();

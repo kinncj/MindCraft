@@ -44,12 +44,14 @@ export function GameCanvas() {
           const s = useGameStore.getState();
           if (kind === 'container') s.setOpenPanel('container', payload);
           else if (kind === 'sleep') s.setOpenPanel('sleep', payload);
+          else if (kind === 'crafting') s.setOpenPanel('crafting', payload);
         },
         toast: (message) => useGameStore.getState().showToast(message),
         onViewModeChange: (mode) => useGameStore.getState().setViewMode(mode),
         onPet: (kind, name) => useGameStore.getState().petAnimal(kind, name),
         onTemplateApplied: () => useGameStore.getState().markDirty(),
-        onEntityTapped: (entity) => useGameStore.getState().setOpenPanel(entity.kind === 'pet' ? 'pet' : 'villager', entity),
+        onEntityTapped: (entity) => useGameStore.getState().setOpenPanel(entity.kind === 'pet' ? 'pet' : entity.kind === 'robot' ? 'robot' : 'villager', entity),
+        onCrafted: (blockId, label, count) => useGameStore.getState().receiveCrafted(blockId, label, count),
         onGift: (blockId, label) => useGameStore.getState().receiveGift(blockId, label),
         onGamepadActive: (active) => useGameStore.getState().setControllerActive(active),
         onCommand: (command) => {

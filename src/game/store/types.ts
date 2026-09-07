@@ -1,7 +1,7 @@
 import type { StoredWorld } from '../../storage/db';
 import type { InteractionMode, SaveState, TimeMode, VisualModeId, WeatherMode } from '../../types/game';
 
-export type PanelId = 'none' | 'menu' | 'container' | 'sleep' | 'palette' | 'worlds' | 'blueprints' | 'pet' | 'villager' | 'dressup';
+export type PanelId = 'none' | 'menu' | 'container' | 'sleep' | 'palette' | 'worlds' | 'blueprints' | 'pet' | 'villager' | 'dressup' | 'crafting' | 'robot';
 export type ViewMode = 'third' | 'first';
 export type WorldPreset = 'meadow' | 'toyland';
 
@@ -55,6 +55,8 @@ export type UiSlice = {
   selectBlueprint: (id: string) => void;
   /** A villager handed over a block. */
   receiveGift: (blockId: number, label: string) => void;
+  /** Something was crafted. */
+  receiveCrafted: (blockId: number, label: string, count: number) => void;
   undo: () => void;
   redo: () => void;
   petAnimal: (kind: string, name?: string) => void;

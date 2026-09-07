@@ -132,6 +132,26 @@ export function buildVillager(look: VillagerLook): THREE.Group {
   return group;
 }
 
+export function buildRobot(): THREE.Group {
+  const group = new THREE.Group();
+  const body = box(0.6, 0.6, 0.6, '#9aa2ab');
+  body.position.y = 0.5;
+  const eyeL = box(0.12, 0.12, 0.04, '#b8f0ff');
+  eyeL.position.set(-0.14, 0.6, 0.31);
+  const eyeR = eyeL.clone();
+  eyeR.position.x = 0.14;
+  const antenna = box(0.06, 0.3, 0.06, '#3a3a3a');
+  antenna.position.y = 0.95;
+  const bulb = box(0.14, 0.14, 0.14, '#e8574f');
+  bulb.position.y = 1.12;
+  const legL = box(0.14, 0.24, 0.14, '#3a3a3a');
+  legL.position.set(-0.16, 0.12, 0);
+  const legR = legL.clone();
+  legR.position.x = 0.16;
+  group.add(body, eyeL, eyeR, antenna, bulb, legL, legR);
+  return group;
+}
+
 export function disposeGroup(group: THREE.Group): void {
   group.traverse((child) => {
     if (child instanceof THREE.Mesh) {

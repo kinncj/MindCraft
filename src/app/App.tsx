@@ -3,6 +3,8 @@ import { GameCanvas } from '../game/GameCanvas';
 import { useGameStore } from '../game/gameStore';
 import { BlockPalette } from '../components/BlockPalette';
 import { BlueprintsPanel } from '../components/BlueprintsPanel';
+import { CraftingPanel } from '../components/CraftingPanel';
+import { RobotPanel } from '../components/RobotPanel';
 import { DressUpPanel } from '../components/DressUpPanel';
 import { Hotbar } from '../components/Hotbar';
 import { MagicDeliveryBoxPanel } from '../components/MagicDeliveryBoxPanel';
@@ -107,6 +109,8 @@ export function App() {
       <BlockPalette />
       <BlueprintsPanel />
       <PetPanel />
+      <CraftingPanel />
+      <RobotPanel />
       <VillagerPanel />
       <DressUpPanel />
       <MagicDeliveryBoxPanel />

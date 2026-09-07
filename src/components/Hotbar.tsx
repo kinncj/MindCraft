@@ -19,10 +19,9 @@ export function Hotbar() {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
       const index = Number.parseInt(event.key, 10);
       if (index >= 1 && index <= 9) selectSlot(index - 1);
-      if (event.key.toLowerCase() === 'e' || event.key.toLowerCase() === 'b') {
-        const state = useGameStore.getState();
-        if (state.openPanel === 'none') state.setOpenPanel('palette');
-      }
+      const state = useGameStore.getState();
+      if ((event.key.toLowerCase() === 'e' || event.key.toLowerCase() === 'b') && state.openPanel === 'none') state.setOpenPanel('palette');
+      if (event.key.toLowerCase() === 'c' && state.openPanel === 'none') state.setOpenPanel('crafting');
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);

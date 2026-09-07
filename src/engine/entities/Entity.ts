@@ -1,8 +1,9 @@
 import type * as THREE from 'three';
 import type { Brain } from './Brain';
 import type { Vehicle } from './vehicles';
+import type { RobotRunner } from './robot';
 
-export type EntityKind = 'bunny' | 'chick' | 'butterfly' | 'pet' | 'villager' | 'vehicle';
+export type EntityKind = 'bunny' | 'chick' | 'butterfly' | 'pet' | 'villager' | 'vehicle' | 'robot';
 
 /** A living thing in the world: a body (Three.js group) plus a brain. */
 export type Entity = {
@@ -36,6 +37,8 @@ export type Entity = {
   data?: Record<string, unknown>;
   /** Vehicles carry their own controller. */
   vehicle?: Vehicle;
+  /** Robots carry their program runner. */
+  robot?: RobotRunner;
   /** Temporary brain swap (a villager playing along) ends at this time. */
   brainUntil?: number;
   savedBrain?: Brain;

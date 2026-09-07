@@ -51,6 +51,7 @@ export function MenuPanel() {
             ▶️ Back to building
           </KidButton>
           <MenuRow emoji="❓" label="How to play" hint="Controls for keyboard, touch, and gamepad" onClick={() => setPage('help')} />
+          <MenuRow emoji="🔨" label="Crafting" hint="Picture recipes to make things" onClick={() => setOpenPanel('crafting')} ariaLabel="Open crafting" />
           <MenuRow emoji="👕" label="Dress up" hint="Shirt, pants, hair, and a hat" onClick={() => setOpenPanel('dressup')} ariaLabel="Dress up your character" />
           <MenuRow emoji="🌈" label="World looks" hint="Visual mode, sky, and weather" onClick={() => setPage('looks')} />
           <MenuRow emoji="🌍" label="My worlds" hint={`Playing: ${worldName}`} onClick={() => setPage('worlds')} ariaLabel="See all your worlds" />
@@ -69,7 +70,9 @@ export function MenuPanel() {
           <li>🧽 Use the Remove tool (or right-click) to take blocks away</li>
           <li>🖱️ Drag to look around, scroll to zoom, arrows or WASD to move</li>
           <li>👀 Press V (or zoom all the way in) to look through your own eyes</li>
-          <li>🧱 Press E for all the blocks, and Undo if you make a mistake</li>
+          <li>🧱 Press E for all the blocks, C for crafting, and Undo if you make a mistake</li>
+          <li>🎚️ Levers, buttons, and plates power wires, lamps, pistons, doors, and note blocks</li>
+          <li>🤖 Tap a robot to give it a card program: forward, place, repeat…</li>
           <li>🛠️ The Tools button has Room, Fill, Paint, Copy, Paste, Mirror, and Blueprints</li>
           <li>🚪 Tap doors to open them, beds to sleep, chairs to sit, boxes to store treasures</li>
           <li>🐶 Find Friends & Rides in the block list: puppies, kitties, neighbors, a car and a boat</li>

@@ -30,6 +30,11 @@
   sizzles, ladders; a drivable car and boat; puppies and kitties that follow or stay;
   villagers with eight pretend jobs, picture dialogue, gifts, and "let's play"
 - Dress-up: shirt, pants, skin, hair, hats
+- Crafting: a picture recipe book (36 recipes) with a tap-to-fill grid; crafting table
+- Logic: lever, button, pressure plate, wire (fades over 15 blocks), logic lamp, piston
+  and sticky piston (push/pull up to 8 blocks), powered doors, note blocks; a 10 Hz tick
+- Robots: card programs (forward, back, left, right, turn, up, down, place, remove,
+  wait, repeat ×N), one step every half second, persisted with the world
 - Works with keyboard and mouse, touch (joystick, jump button, pinch zoom), and
   standard gamepads
 
@@ -44,6 +49,4 @@ Survival mechanics are excluded on purpose, permanently — not "later":
 
 ## Planned next (see README "Roadmap")
 
-A modern menu that fits a phone, a picture recipe crafting book, a logic layer
-(buttons, levers, wire, lamps, pistons, a programmable robot), and generated music
-with Tone.js.
+Generated music and sound effects with Tone.js.

@@ -6,6 +6,9 @@ import { EntitySystem } from '../entities/EntitySystem';
 import { DEFAULT_LOOK as DEFAULT_LOOK_IMPORT, PlayerAvatar, type PlayerLook } from '../entities/PlayerAvatar';
 import type { StoredEntity } from '../entities/Entity';
 import { registerLifeTools } from '../tools/lifeTools';
+import { registerAutomationTools } from '../tools/automationTools';
+import { LogicSystem, type LogicEvent } from '../logic/LogicSystem';
+import { recipeById } from '../crafting/recipes';
 import { CameraSystem, type ViewMode } from '../input/CameraSystem';
 import { InputSystem, type PadCommand } from '../input/InputSystem';
 import { InteractionSystem, type InteractionMode } from '../input/InteractionSystem';
@@ -59,6 +62,10 @@ export type EngineBridge = {
   onEntityTapped?(entity: { id: string; kind: string; name?: string; variant?: string }): void;
   /** A villager handed over a block: put it in the hotbar. */
   onGift?(blockId: number, label: string): void;
+  /** Something crafted: put it in the hotbar. */
+  onCrafted?(blockId: number, label: string, count: number): void;
+  /** Logic events the app may react to (a note block playing). */
+  onLogicEvent?(event: LogicEvent): void;
 };
 
 export type EngineOptions = {
@@ -101,6 +108,7 @@ export class Engine {
   readonly world: VoxelWorld;
   readonly history: CommandHistory;
   readonly build: BuildTools;
+  readonly logic: LogicSystem;
   readonly tools = new ToolRegistry();
   readonly generator: WorldGenerator;
   readonly player: PlayerController;
@@ -147,6 +155,7 @@ export class Engine {
     this.history = new CommandHistory(this.world);
     this.build = new BuildTools(this.world, registry, this.history);
     this.build.onHint = (message) => bridge.toast(message);
+    this.logic = new LogicSystem(this.world, registry);
     const lighting = new LightEngine(this.world, registry);
     this.atlas = new TextureAtlas();
     const mesher = new ChunkMesher(this.world, registry, this.atlas);
@@ -173,6 +182,18 @@ export class Engine {
     this.avatar = new PlayerAvatar(this.scene, this.player, this.camera.camera, { ...DEFAULT_LOOK_IMPORT, ...(options.settings.look ?? {}) });
     this.entities = new EntitySystem(this.scene, this.world, registry, this.player);
     this.particles = new ParticleSystem(this.scene);
+    this.logic.pressers = () => {
+      const boxes = [this.player.box()];
+      for (const e of this.entities.entities) {
+        if (e.vehicle || e.kind === 'pet' || e.kind === 'villager') boxes.push({ minX: e.x - 0.4, minY: e.y - 0.1, minZ: e.z - 0.4, maxX: e.x + 0.4, maxY: e.y + 0.5, maxZ: e.z + 0.4 });
+      }
+      return boxes;
+    };
+    this.logic.onEvent((event) => {
+      if (event.kind === 'note') this.particles.burst(event.x, event.y + 1, event.z, '#ffd94a', 6, 0.4);
+      if (event.kind === 'piston') this.particles.burst(event.x, event.y, event.z, '#9aa2ab', 6, 0.5);
+      bridge.onLogicEvent?.(event);
+    });
     this.clouds = new CloudLayer(this.scene, options.generator.seed);
 
     this.chunks = new ChunkManager(this.world, this.generator, lighting, mesher, options.storage, {
@@ -214,7 +235,7 @@ export class Engine {
         }
         this.entities.pet(entity);
         this.particles.burst(entity.x, entity.y + 0.6, entity.z, '#ffd94a', 10, 0.6);
-        if (entity.kind === 'pet' || entity.kind === 'villager') bridge.onEntityTapped?.({ id: entity.id, kind: entity.kind, name: entity.name, variant: entity.variant });
+        if (entity.kind === 'pet' || entity.kind === 'villager' || entity.kind === 'robot') bridge.onEntityTapped?.({ id: entity.id, kind: entity.kind, name: entity.name, variant: entity.variant });
         else bridge.onPet(entity.kind, entity.name);
         return true;
       },
@@ -239,6 +260,7 @@ export class Engine {
       .add(this.chunks)
       .add({ name: 'settle', update: () => this.settleWhenReady() })
       .add(this.interaction)
+      .add(this.logic)
       .add(this.ghost)
       .add(this.entities)
       .add(this.avatar)
@@ -251,6 +273,7 @@ export class Engine {
     registerCoreTools(this);
     registerBuildTools(this);
     registerLifeTools(this);
+    registerAutomationTools(this);
     this.installDebugHooks();
     this.handleResize();
     window.addEventListener('resize', this.handleResize);
@@ -380,14 +403,25 @@ export class Engine {
       case 'switch':
       case 'switch_on':
       case 'switch_off':
+      case 'click':
         this.particles.burst(x, y, z, '#fff3b0', 8, 0.5);
         break;
+      case 'press_button':
+        this.logic.pressButton(x, y, z);
+        this.particles.burst(x, y, z, '#fff3b0', 6, 0.4);
+        break;
+      case 'note': {
+        const pitch = (payload as { pitch?: number }).pitch ?? 0;
+        this.particles.burst(x, y + 1, z, '#ffd94a', 6, 0.4);
+        this.options.bridge.onLogicEvent?.({ kind: 'note', x, y, z, pitch });
+        break;
+      }
       default:
         break;
     }
   }
 
-  private spawnFromCard(spec: { kind: 'vehicle' | 'pet' | 'villager'; variant: string }, x: number, y: number, z: number): boolean {
+  private spawnFromCard(spec: { kind: 'vehicle' | 'pet' | 'villager' | 'robot'; variant: string }, x: number, y: number, z: number): boolean {
     if (spec.kind === 'vehicle' && (spec.variant === 'car' || spec.variant === 'boat')) {
       const e = this.entities.spawnVehicle(spec.variant, x, y - 0.5, z);
       this.options.bridge.toast(spec.variant === 'car' ? '🚗 A car! Tap it to drive.' : '⛵ A boat! Put it on water and tap it.');
@@ -398,6 +432,12 @@ export class Engine {
       const e = this.entities.spawnPet(spec.variant, x, z);
       this.options.bridge.toast(`${spec.variant === 'dog' ? '🐶' : '🐱'} Meet ${e.name}! Tap to say hi.`);
       this.particles.burst(e.x, e.y + 0.5, e.z, '#f291bb', 14, 0.8);
+      return true;
+    }
+    if (spec.kind === 'robot') {
+      const e = this.entities.spawnRobot(x, y, z, undefined, [], this.options.bridge.getSelectedBlockId());
+      this.options.bridge.toast('🤖 Beep boop! Tap the robot to program it.');
+      this.particles.burst(e.x, e.y + 0.5, e.z, '#b8f0ff', 14, 0.8);
       return true;
     }
     if (spec.kind === 'villager') {
@@ -419,6 +459,16 @@ export class Engine {
       this.particles.burst(entity.x, entity.y + 1.2, entity.z, '#ffd94a', 20, 0.6);
     }
     return reply;
+  }
+
+  /** Craft a recipe: sparkles, and the result goes to the hotbar. */
+  craft(recipeId: string): boolean {
+    const recipe = recipeById(recipeId);
+    const def = recipe ? resolveBlockId(recipe.result) : undefined;
+    if (!recipe || !def) return false;
+    this.particles.burst(this.player.x, this.player.y + 1.4, this.player.z, def.color, 24, 1);
+    this.options.bridge.onCrafted?.(def.numericId, def.label, recipe.count);
+    return true;
   }
 
   setLook(look: Partial<PlayerLook>): void {

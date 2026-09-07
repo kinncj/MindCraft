@@ -22,7 +22,7 @@ export type InteractionBridge = {
   /** Physical actions a block asks for: sit, cook, switch, splash. */
   perform?(action: string, payload: unknown): void;
   /** Placing a spawner card: put a creature or vehicle here instead of a block. */
-  spawn?(spec: { kind: 'vehicle' | 'pet' | 'villager'; variant: string }, x: number, y: number, z: number): boolean;
+  spawn?(spec: { kind: 'vehicle' | 'pet' | 'villager' | 'robot'; variant: string }, x: number, y: number, z: number): boolean;
   /** Return true when something (an animal) consumed the tap. */
   tapEntity?(ray: Ray): boolean;
   onBlockPlaced?(def: BlockDefinition, x: number, y: number, z: number): void;

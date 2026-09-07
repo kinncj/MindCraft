@@ -693,6 +693,111 @@ const villagerCard = cardPainter('#4a7fd6', (ctx) => {
   ctx.fillRect(9, 5, 1, 1);
 });
 
+const robotCard = cardPainter('#9aa2ab', (ctx) => {
+  ctx.fillStyle = '#9aa2ab';
+  ctx.fillRect(4, 4, 8, 8);
+  ctx.fillStyle = '#b8f0ff';
+  ctx.fillRect(5, 6, 2, 2);
+  ctx.fillRect(9, 6, 2, 2);
+  ctx.fillStyle = '#e8574f';
+  ctx.fillRect(7, 1, 2, 3);
+  ctx.fillStyle = '#3a3a3a';
+  ctx.fillRect(5, 12, 2, 3);
+  ctx.fillRect(9, 12, 2, 3);
+});
+const craftingTop: Painter = (ctx, rand) => {
+  planks(ctx, rand);
+  ctx.fillStyle = '#6b4a26';
+  for (const [x, y] of [[2, 2], [9, 2], [2, 9], [9, 9]]) ctx.strokeRect(x + 0.5, y + 0.5, 4, 4);
+  ctx.fillStyle = '#8a8a8a';
+  ctx.fillRect(3, 3, 3, 3);
+  ctx.fillStyle = '#e8574f';
+  ctx.fillRect(10, 10, 3, 3);
+};
+const craftingSide: Painter = (ctx, rand) => {
+  planks(ctx, rand);
+  ctx.fillStyle = '#8a8a8a';
+  ctx.fillRect(3, 4, 2, 6);
+  ctx.fillStyle = '#6b4a26';
+  ctx.fillRect(9, 5, 4, 2);
+};
+const lever: Painter = (ctx) => {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#848b93';
+  ctx.fillRect(4, 10, 8, 5);
+  ctx.fillStyle = '#8a6238';
+  ctx.fillRect(7, 2, 2, 9);
+  ctx.fillStyle = '#e8574f';
+  ctx.fillRect(6, 1, 4, 3);
+};
+const button: Painter = (ctx) => {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#9aa2ab';
+  ctx.fillRect(4, 9, 8, 6);
+  ctx.fillStyle = '#b4bcc4';
+  ctx.fillRect(5, 10, 6, 2);
+};
+const plate: Painter = (ctx, rand) => {
+  noiseFill(ctx, rand, ['#b4bcc4', '#a8b0b8']);
+  ctx.strokeStyle = '#7c848d';
+  ctx.strokeRect(1.5, 1.5, 13, 13);
+};
+const wire: Painter = (ctx) => {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#7a1c15';
+  ctx.fillRect(6, 0, 4, SIZE);
+  ctx.fillRect(0, 6, SIZE, 4);
+};
+const wireOn: Painter = (ctx) => {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#ff3b2f';
+  ctx.fillRect(6, 0, 4, SIZE);
+  ctx.fillRect(0, 6, SIZE, 4);
+  ctx.fillStyle = '#ffb3ad';
+  ctx.fillRect(7, 7, 2, 2);
+};
+const logicLamp: Painter = (ctx, rand) => {
+  noiseFill(ctx, rand, ['#7a6f4a', '#6f6442']);
+  ctx.fillStyle = '#9c8f5f';
+  ctx.fillRect(3, 3, 10, 10);
+};
+const logicLampOn: Painter = (ctx, rand) => {
+  noiseFill(ctx, rand, ['#fff2a8', '#ffefa0']);
+  ctx.fillStyle = '#fffbe0';
+  ctx.fillRect(3, 3, 10, 10);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(6, 6, 4, 4);
+};
+const pistonSide: Painter = (ctx, rand) => {
+  noiseFill(ctx, rand, ['#9aa2ab', '#8f979f']);
+  ctx.fillStyle = '#d3a35e';
+  ctx.fillRect(0, 0, SIZE, 4);
+  ctx.fillStyle = '#5c636b';
+  ctx.fillRect(2, 6, 12, 8);
+};
+const pistonBack: Painter = (ctx, rand) => {
+  noiseFill(ctx, rand, ['#8f979f', '#848b93']);
+  ctx.fillStyle = '#5c636b';
+  ctx.fillRect(4, 4, 8, 8);
+};
+const pistonFace: Painter = (ctx, rand) => {
+  planksPainter(['#d3a35e', '#cc9c57', '#dbaa64'], '#a87c42', '#8a6238')(ctx, rand);
+  ctx.fillStyle = '#5c636b';
+  ctx.fillRect(6, 6, 4, 4);
+};
+const pistonSticky: Painter = (ctx, rand) => {
+  pistonFace(ctx, rand);
+  ctx.fillStyle = '#4f8f3a';
+  ctx.fillRect(3, 3, 10, 10);
+};
+const noteBlock: Painter = (ctx, rand) => {
+  planks(ctx, rand);
+  ctx.fillStyle = '#3a3226';
+  ctx.fillRect(5, 4, 6, 8);
+  ctx.fillStyle = '#ffd94a';
+  ctx.fillRect(7, 6, 2, 2);
+};
+
 // --- Magic Delivery Box ---------------------------------------------------
 
 const cardboardBase: Painter = (ctx, rand) => {
@@ -816,6 +921,21 @@ export const PAINTERS: Record<string, { paint: Painter; seed: number }> = {
   dog: { paint: dogCard, seed: 172 },
   cat: { paint: catCard, seed: 173 },
   villager: { paint: villagerCard, seed: 174 },
+  robot: { paint: robotCard, seed: 175 },
+  crafting_top: { paint: craftingTop, seed: 180 },
+  crafting_side: { paint: craftingSide, seed: 181 },
+  lever: { paint: lever, seed: 182 },
+  button: { paint: button, seed: 183 },
+  plate: { paint: plate, seed: 184 },
+  wire: { paint: wire, seed: 185 },
+  wire_on: { paint: wireOn, seed: 186 },
+  logic_lamp: { paint: logicLamp, seed: 187 },
+  logic_lamp_on: { paint: logicLampOn, seed: 188 },
+  piston_side: { paint: pistonSide, seed: 189 },
+  piston_back: { paint: pistonBack, seed: 190 },
+  piston_face: { paint: pistonFace, seed: 191 },
+  piston_sticky: { paint: pistonSticky, seed: 192 },
+  note_block: { paint: noteBlock, seed: 193 },
   box_top: { paint: boxTop, seed: 144 },
   box_side: { paint: boxSide, seed: 145 },
   box_bottom: { paint: boxBottom, seed: 146 },
