@@ -156,3 +156,80 @@ describe('the character really climbs', () => {
     expect(player.y, `ladder: at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThanOrEqual(ladder.top - 0.2);
   });
 });
+
+describe('the character really walks through', () => {
+  function tallFlat(): VoxelWorld {
+    const world = new VoxelWorld(blocks);
+    for (let cx = -3; cx <= 3; cx++) for (let cz = -3; cz <= 3; cz++) {
+      const chunk = new Chunk(cx, cz);
+      for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) for (let y = 0; y <= 8; y++) chunk.set(x, y, z, y < 6 ? B.dirt : B.grass);
+      world.addChunk(chunk);
+    }
+    return world;
+  }
+  const FORWARD = { forward: true, back: false, left: false, right: false, jump: false, sprint: false, sneak: false } as Parameters<PlayerController['update']>[1];
+  const walk = (player: PlayerController, yaw: number, seconds: number): void => {
+    for (let i = 0; i < 60 * seconds; i++) player.update(1 / 60, FORWARD, yaw);
+  };
+  // forward = (-sin(yaw), -cos(yaw)): yaw 0 walks toward -z, π toward +z, -π/2 toward +x.
+  const TOWARD_PLUS_Z = Math.PI;
+  const TOWARD_PLUS_X = -Math.PI / 2;
+
+  it('walks in the front door of a hospital, down the lobby, into the corridor', async () => {
+    const world = tallFlat();
+    const { LogicSystem } = await import('../../src/engine/logic/LogicSystem');
+    const logic = new LogicSystem(world, blocks); // listening before the building goes up
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    const out: BuildingLayoutOut = {};
+    build.run('hospital', build.planHouse(8, 9, 8, houseOptions(blocks, { type: 'hospital', width: 15, depth: 13, floors: 2, wall: 'color_white', trim: 'color_red', furnish: true, doorWidth: 2, automaticDoor: true }), out));
+    const layout = out.layout!;
+    const doorX = layout.doorCells[0] + 0.5;
+    // Start three blocks outside the front wall, facing it. The plate opens the door on the power system.
+    const player = new PlayerController(world, blocks, { x: doorX, y: layout.groundY + 1, z: layout.doorZ - 3 });
+    logic.pressers = () => [player.box()];
+    for (let i = 0; i < 60 * 6; i++) {
+      player.update(1 / 60, FORWARD, TOWARD_PLUS_Z);
+      logic.update(1 / 60);
+    }
+    expect(player.z, `stopped at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThan(8 - 1); // reached the corridor (z-1..z+1)
+    expect(player.y).toBeCloseTo(layout.groundY + 1, 0);
+  });
+
+  it('walks down the bunker stairs into the room and out again', () => {
+    const world = tallFlat();
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    build.run('bunker', build.planEarthwork('bunker', 8, 9, 8, earthworkOptions(blocks, { kind: 'bunker', width: 7, depth: 4 })));
+    const groundY = 8;
+    const floorY = groundY - 4 - 1;
+    const x0 = 8 - 3;
+    const startX = x0 - (groundY - floorY - 1) - 1;
+    const player = new PlayerController(world, blocks, { x: startX - 2.5, y: groundY + 1, z: 8.5 });
+    walk(player, TOWARD_PLUS_X, 6);
+    expect(player.x, `stopped at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThan(x0 + 1);
+    expect(player.y).toBeLessThan(floorY + 2);
+    walk(player, Math.PI / 2, 8); // back toward -x and up
+    expect(player.x, `stuck coming back at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeLessThan(startX - 1);
+    expect(player.y).toBeGreaterThan(groundY);
+  });
+
+  it('walks the length of a tunnel', () => {
+    const world = tallFlat();
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    build.run('tunnel', build.planEarthwork('tunnel', 8, 9, 8, earthworkOptions(blocks, { kind: 'tunnel', length: 12 })));
+    const x0 = 8 - 1;
+    const player = new PlayerController(world, blocks, { x: x0 + 0.5, y: 9, z: 8.5 });
+    walk(player, TOWARD_PLUS_X, 5);
+    expect(player.x, `stopped at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThan(x0 + 10);
+  });
+
+  it('walks through an open piston door', () => {
+    const world = tallFlat();
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    const out: BuildingLayoutOut = {};
+    build.run('piston house', build.planHouse(8, 9, 8, houseOptions(blocks, { type: 'house', width: 11, depth: 9, floors: 1, wall: 'stone_bricks', pistonDoor: true }), out));
+    const layout = out.layout!;
+    const player = new PlayerController(world, blocks, { x: layout.doorCells[0] + 1, y: layout.groundY + 1, z: layout.doorZ - 3 });
+    walk(player, TOWARD_PLUS_Z, 4);
+    expect(player.z, `stopped at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThan(layout.doorZ + 1);
+  });
+});

@@ -412,10 +412,12 @@ export class BuildTools {
       put(dl - 3, groundY + 2, z0 - 1, opts.lever);
       if (opts.lantern) put(dr + 3, groundY + 3, z0 - 1, opts.lantern);
     } else {
-      for (const dx of doorCells) {
-        put(dx, groundY + 1, z0, opts.door, opts.doorState);
+      doorCells.forEach((dx, i) => {
+        // Double doors hinge on opposite sides so both leaves swing to the edges, not the middle.
+        const mirrored = doorCells.length > 1 && i === doorCells.length - 1;
+        put(dx, groundY + 1, z0, opts.door, mirrored ? BlockState.withRotation(opts.doorState, (BlockState.rotation(opts.doorState) + 2) % 4) : opts.doorState);
         for (let h = 2; h <= doorH; h++) put(dx, groundY + h, z0, air);
-      }
+      });
       if (opts.lantern) {
         put(doorCells[0] - 1, groundY + 3, z0 - 1, opts.lantern);
         put(doorCells[doorCells.length - 1] + 1, groundY + 3, z0 - 1, opts.lantern);
@@ -478,7 +480,8 @@ export class BuildTools {
           for (const [rz0, rz1, wallZ] of [[z0 + 1, corridorZ0 - 2, corridorZ0 - 1], [corridorZ1 + 2, z1 - 1, corridorZ1 + 1]] as const) {
             if (rz1 - rz0 < 1) continue;
             for (let px = rx0; px <= rx1; px++) {
-              for (let h = 1; h < storey; h++) put(px, base + h, wallZ, px === doorAt && h <= 2 ? air : opts.wall);
+              const lobby = f === 0 && (px === doorX || px === doorX + 1) && wallZ < z; // the way in stays open
+              for (let h = 1; h < storey; h++) put(px, base + h, wallZ, (px === doorAt && h <= 2) || lobby ? air : opts.wall);
             }
             // Keep the staircase corner free of a room on the back side.
             const stairsHere = floors > 1 && rz1 >= z1 - 3 && rx0 <= x0 + storey + 6;
