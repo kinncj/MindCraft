@@ -78,3 +78,13 @@ in the world round off when they next appear.
 Still to come: ambient occlusion, bloom, and vignette (`postFx`), an
 animated water surface with Fresnel and foam, wind on grass and leaves,
 and a terrain generator v2 for new worlds.
+
+## Addendum (2026-09-07): detail falls off with distance
+
+Plants (flowers, tall grass, mushrooms, flower pots) moved out of the `alpha`
+bucket into a `plants` bucket of their own, so they can be dropped in the
+distance without blanking glass and ladders. `detailRadii` in `deviceProfile.ts`
+gives each profile a foliage radius and a shadow radius in chunks; the chunk
+renderer applies them when the camera crosses into another chunk, and chunk
+meshes stop recomputing their (identity) matrices every frame. Strong GPUs keep
+plants to the horizon; integrated chips and phones pull both radii in.

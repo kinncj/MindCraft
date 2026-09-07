@@ -29,7 +29,7 @@ type Buffers = {
   indices: number[];
 };
 
-const BUCKETS: RenderBucket[] = ['opaque', 'water', 'alpha', 'glow'];
+const BUCKETS: RenderBucket[] = ['opaque', 'water', 'alpha', 'plants', 'glow'];
 
 /**
  * Turns one chunk into per-bucket geometry. Shapes decide which quads a
@@ -55,6 +55,7 @@ export class ChunkMesher {
       opaque: empty(),
       water: empty(),
       alpha: empty(),
+      plants: empty(),
       glow: empty(),
     };
     const baseX = chunk.cx * CHUNK_SIZE;

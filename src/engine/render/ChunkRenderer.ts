@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { RenderBucket } from '../blocks/BlockDefinition';
 import type { Chunk } from '../world/Chunk';
-import { chunkKey } from '../world/coords';
+import { CHUNK_SIZE, chunkKey } from '../world/coords';
 import type { ChunkMeshes, MeshData } from './ChunkMesher';
 import { SMOOTH_KINDS, type SmoothMeshData } from './SmoothMesher';
 import { createSmoothMaterials } from './smoothMaterial';
@@ -10,7 +10,7 @@ import type { TextureAtlas } from './TextureAtlas';
 import { createBucketMaterials } from './voxelMaterial';
 import type { SmoothKind } from '../blocks/BlockDefinition';
 
-const BUCKETS: RenderBucket[] = ['opaque', 'water', 'alpha', 'glow'];
+const BUCKETS: RenderBucket[] = ['opaque', 'water', 'alpha', 'plants', 'glow'];
 
 /** Owns the Three.js meshes for every loaded chunk. */
 export class ChunkRenderer {
@@ -21,7 +21,9 @@ export class ChunkRenderer {
   readonly time = { value: 0 };
   /** The see-through tube between camera and character. */
   readonly cutaway = createCutaway();
-  private meshes = new Map<string, Partial<Record<RenderBucket, THREE.Mesh>> & { smooth?: Partial<Record<SmoothKind, THREE.Mesh>> }>();
+  private meshes = new Map<string, Partial<Record<RenderBucket, THREE.Mesh>> & { smooth?: Partial<Record<SmoothKind, THREE.Mesh>>; cx: number; cz: number }>();
+  /** Detail falls off with distance, in chunks: plants, then shadow casting. */
+  private detail = { foliage: 99, shadow: 99, cx: NaN, cz: NaN };
   private pbr = false;
 
   constructor(
@@ -76,7 +78,7 @@ export class ChunkRenderer {
     const key = chunkKey(chunk.cx, chunk.cz);
     let entry = this.meshes.get(key);
     if (!entry) {
-      entry = {};
+      entry = { cx: chunk.cx, cz: chunk.cz };
       this.meshes.set(key, entry);
     }
     for (const bucket of BUCKETS) {
@@ -99,6 +101,7 @@ export class ChunkRenderer {
         mesh.castShadow = this.shadows && (bucket === 'opaque' || bucket === 'glow');
         mesh.receiveShadow = this.shadows;
         mesh.frustumCulled = true;
+        mesh.matrixAutoUpdate = false; // chunk vertices are already in world space
         mesh.name = `${key}:${bucket}`;
         this.group.add(mesh);
         entry[bucket] = mesh;
@@ -125,6 +128,7 @@ export class ChunkRenderer {
         const mesh = new THREE.Mesh(geometry, this.smoothMaterials[kind]);
         mesh.castShadow = this.shadows && kind !== 'water';
         mesh.receiveShadow = this.shadows;
+        mesh.matrixAutoUpdate = false;
         mesh.name = `${key}:smooth-${kind}`;
         this.group.add(mesh);
         entry.smooth[kind] = mesh;
@@ -132,10 +136,54 @@ export class ChunkRenderer {
     }
   }
 
+  /** Sets how far plants and shadow casting reach, in chunks. */
+  setDetailRadius(foliage: number, shadow: number): void {
+    if (foliage === this.detail.foliage && shadow === this.detail.shadow) return;
+    this.detail.foliage = foliage;
+    this.detail.shadow = shadow;
+    this.detail.cx = NaN; // re-apply on the next frame
+  }
+
+  /**
+   * Applies the falloff around the chunk the camera is in. Cheap: it runs
+   * only when the camera crosses into another chunk.
+   */
+  updateDetail(x: number, z: number): void {
+    const cx = Math.floor(x / CHUNK_SIZE);
+    const cz = Math.floor(z / CHUNK_SIZE);
+    if (cx === this.detail.cx && cz === this.detail.cz) return;
+    this.detail.cx = cx;
+    this.detail.cz = cz;
+    for (const entry of this.meshes.values()) {
+      const d = Math.max(Math.abs(entry.cx - cx), Math.abs(entry.cz - cz));
+      const plants = entry.plants;
+      if (plants) plants.visible = d <= this.detail.foliage;
+      const castShadow = this.shadows && d <= this.detail.shadow;
+      for (const bucket of BUCKETS) {
+        const mesh = entry[bucket];
+        if (mesh) mesh.castShadow = castShadow && (bucket === 'opaque' || bucket === 'glow');
+      }
+      for (const kind of SMOOTH_KINDS) {
+        const mesh = entry.smooth?.[kind];
+        if (mesh) mesh.castShadow = castShadow && kind !== 'water';
+      }
+    }
+  }
+
+  /** How many chunk meshes are drawn right now (plants beyond the detail radius are hidden). */
+  get visibleMeshCount(): number {
+    let n = 0;
+    for (const entry of this.meshes.values()) {
+      const { smooth, cx: _cx, cz: _cz, ...buckets } = entry;
+      for (const mesh of [...Object.values(buckets), ...Object.values(smooth ?? {})]) if (mesh?.visible) n++;
+    }
+    return n;
+  }
+
   removeChunk(key: string): void {
     const entry = this.meshes.get(key);
     if (!entry) return;
-    const { smooth, ...buckets } = entry;
+    const { smooth, cx: _cx, cz: _cz, ...buckets } = entry;
     for (const mesh of [...Object.values(buckets), ...Object.values(smooth ?? {})]) {
       if (!mesh) continue;
       this.group.remove(mesh);
@@ -147,7 +195,7 @@ export class ChunkRenderer {
   get meshCount(): number {
     let n = 0;
     for (const entry of this.meshes.values()) {
-      const { smooth, ...buckets } = entry;
+      const { smooth, cx: _cx, cz: _cz, ...buckets } = entry;
       n += Object.keys(buckets).length + Object.keys(smooth ?? {}).length;
     }
     return n;

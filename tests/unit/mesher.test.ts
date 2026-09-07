@@ -60,12 +60,16 @@ describe('chunk mesher', () => {
     expect(quadsOf(meshes2.alpha) + quadsOf(meshes2.opaque)).toBe(10);
   });
 
-  it('flowers emit double-sided crosses in the alpha bucket', () => {
+  it('flowers emit double-sided crosses in their own plants bucket, apart from glass', () => {
     const { world, mesher, chunk, light } = setup();
     world.setBlock(5, 5, 5, B.flower_pink);
+    world.setBlock(9, 5, 5, B.glass);
     light.initChunk(chunk);
     const meshes = mesher.build(chunk);
-    expect(quadsOf(meshes.alpha)).toBe(4);
+    // Plants are drawn separately so a weak GPU can drop them in the distance
+    // without leaving holes where the windows are.
+    expect(quadsOf(meshes.plants)).toBe(4);
+    expect(quadsOf(meshes.alpha)).toBe(6);
     expect(meshes.opaque).toBeNull();
   });
 

@@ -142,7 +142,10 @@ still produces the right building.
 The engine reads the graphics chip's name and starts on a budget that fits it: a 2022
 Ryzen or Intel laptop with integrated graphics gets a canvas at most 1.25× display
 scaling, a 2K shadow map refreshed every other frame, six chunks of draw distance,
-and no post-processing; graphics cards and Apple chips get everything. Chunk meshing
+and no post-processing; graphics cards and Apple chips get everything. Detail also
+falls off with distance: flowers, grass and mushrooms have their own draw pass and
+stop two chunks before the draw distance ends, and only nearby chunks cast sun
+shadows, so a weak GPU spends its fill rate on what is close. Chunk meshing
 runs in worker threads. If the frame rate still stays under 34 fps, every mode eases
 off one notch at a time (post-processing, canvas size, shadows, draw distance, and for
 Cinema finally Ultra) with a toast each time. `?debug=true` shows the chip, its class,

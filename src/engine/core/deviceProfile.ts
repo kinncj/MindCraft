@@ -41,6 +41,20 @@ export type DeviceProfile = {
   bakeSeconds: number;
 };
 
+/**
+ * How far the fine detail reaches, in chunks. Plants and lamps are the
+ * most expensive thing an integrated GPU draws (many small transparent
+ * quads), and shadow casting costs a second pass over the same geometry,
+ * so both stop well before the draw distance ends on weak hardware.
+ */
+export function detailRadii(profile: DeviceProfile, viewRadius: number): { foliage: number; shadow: number } {
+  const strong = profile.pixelRatioCap >= 2 && profile.shadowEvery === 1;
+  return {
+    foliage: strong ? viewRadius : Math.max(2, viewRadius - 2),
+    shadow: strong ? Math.max(3, viewRadius - 1) : Math.max(2, Math.min(3, viewRadius)),
+  };
+}
+
 export function pickProfile(gpu: GpuClass, mobile: boolean): DeviceProfile {
   if (mobile) return { name: 'phone or tablet', pixelRatioCap: 1.5, shadowMap: 2048, shadowEvery: 3, viewRadius: 5, cinemaBonus: 0, postFx: false, hiResScale: 4, anisotropy: 1, bakeSeconds: 6 };
   switch (gpu) {

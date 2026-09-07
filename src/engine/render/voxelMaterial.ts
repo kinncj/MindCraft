@@ -58,6 +58,7 @@ export function createBucketMaterials(atlas: TextureAtlas, dayLight: { value: nu
       ? standard({ transparent: true, opacity: 0.82, depthWrite: false, roughness: 0.08, envMapIntensity: 1.2, metalness: 0.1 })
       : lambert({ transparent: true, opacity: 0.8, depthWrite: false }),
     alpha: make({ transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }),
+    plants: make({ transparent: true, alphaTest: 0.04, side: THREE.DoubleSide }),
     glow: pbr
       ? standard({ emissive: new THREE.Color('#fff3c0'), emissiveIntensity: 1.6, emissiveMap: map, roughness: 0.5 })
       : lambert({ emissive: new THREE.Color('#fff3c0'), emissiveIntensity: 0.4, emissiveMap: map }),

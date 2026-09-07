@@ -40,7 +40,7 @@ import type { GeneratorConfig, WorldGenerator } from '../world/generation/Genera
 import { VoxelWorld } from '../world/VoxelWorld';
 import { VISUAL_MODES, type VisualModeDefinition } from '../../shaders/visualModes';
 import { setBodyStyle } from '../entities/bodies';
-import { classifyGpu, pickProfile, probeGraphics, type DeviceProfile, type GpuClass } from './deviceProfile';
+import { classifyGpu, detailRadii, pickProfile, probeGraphics, type DeviceProfile, type GpuClass } from './deviceProfile';
 import { VEHICLE_KINDS, VEHICLE_LABELS, type VehicleKind } from '../entities/vehicles';
 import type { TimeMode, VisualModeId, WeatherMode } from '../../types/game';
 import { GameLoop } from './GameLoop';
@@ -824,6 +824,7 @@ export class Engine {
     }
     this.environment.setFocus(this.player.x, this.player.y, this.player.z);
     this.chunks.setViewDirection(-Math.sin(this.camera.yaw), -Math.cos(this.camera.yaw));
+    this.chunkRenderer.updateDetail(this.player.x, this.player.z);
     const eye = this.camera.camera.position;
     this.environment.setUnderwater(isFluidAt(this.world, registry, eye.x, eye.y, eye.z));
     this.clouds.setFocus(this.player.x, this.player.z);
@@ -943,6 +944,8 @@ export class Engine {
     this.clouds.setVisible(!pbr);
     this.postFx.setEnabled(pbr && def.rendering.postFx && this.profile.postFx);
     this.chunks.options.viewRadius = this.profile.viewRadius + Math.min(this.profile.cinemaBonus, def.rendering.viewRadiusBonus) - this.quality.radiusCut;
+    const detail = detailRadii(this.profile, this.chunks.options.viewRadius);
+    this.chunkRenderer.setDetailRadius(detail.foliage, detail.shadow);
     const smooth = pbr && def.rendering.smooth;
     setBodyStyle({ rounded: smooth });
     if (this.mesher.smooth !== smooth) {
@@ -1014,6 +1017,8 @@ export class Engine {
         fps: Math.round(this.perf.fps),
         frameMs: Math.round(this.perf.frameMs * 10) / 10,
         drawCalls: this.renderer.info.render.calls,
+        chunkMeshes: this.chunkRenderer.meshCount,
+        chunkMeshesDrawn: this.chunkRenderer.visibleMeshCount,
         triangles: this.renderer.info.render.triangles,
         meshJobs: this.chunks.meshJobsInFlight,
         meshedInWorker: this.chunks.meshedInWorker,

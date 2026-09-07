@@ -30,7 +30,8 @@ export type BlockCategory =
   | 'furniture'
   | 'special';
 
-export type RenderBucket = 'opaque' | 'water' | 'alpha' | 'glow';
+/** 'plants' is alpha too, drawn separately so weak GPUs can drop it in the distance. */
+export type RenderBucket = 'opaque' | 'water' | 'alpha' | 'plants' | 'glow';
 
 export type Collision = 'solid' | 'none' | 'fluid';
 
@@ -175,7 +176,7 @@ export function defineBlock(input: BlockDefinitionInput): BlockDefinition {
   };
   if (def.lightLevel > 0 && input.bucket === undefined) def.bucket = 'glow';
   if (def.shape !== 'cube' && input.transparent === undefined) def.transparent = true;
-  if (input.seeThrough === undefined && (def.bucket === 'alpha' || def.bucket === 'water') && (def.shape === 'cube' || def.shape === 'fluid')) {
+  if (input.seeThrough === undefined && (def.bucket === 'alpha' || def.bucket === 'plants' || def.bucket === 'water') && (def.shape === 'cube' || def.shape === 'fluid')) {
     def.seeThrough = true;
   }
   return def;

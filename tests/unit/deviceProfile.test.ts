@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyGpu, pickProfile } from '../../src/engine/core/deviceProfile';
+import { classifyGpu, detailRadii, pickProfile } from '../../src/engine/core/deviceProfile';
 
 describe('device profiles', () => {
   it('tells integrated chips from graphics cards by their names', () => {
@@ -22,5 +22,19 @@ describe('device profiles', () => {
     expect(card.pixelRatioCap).toBe(2);
     expect(card.postFx).toBe(true);
     expect(pickProfile('discrete', true).name).toBe('phone or tablet');
+  });
+});
+
+describe('detail falls off with distance', () => {
+  it('keeps plants and shadows all the way out on a graphics card, and pulls both in on an integrated GPU', () => {
+    const card = pickProfile('discrete', false);
+    const igpu = pickProfile('integrated', false);
+    const phone = pickProfile('unknown', true);
+    expect(detailRadii(card, 7)).toEqual({ foliage: 7, shadow: 6 });
+    expect(detailRadii(igpu, 6).foliage).toBe(4);
+    expect(detailRadii(igpu, 6).shadow).toBe(3);
+    expect(detailRadii(phone, 5).foliage).toBe(3);
+    // Never smaller than the chunk the player stands in plus one.
+    expect(detailRadii(igpu, 2)).toEqual({ foliage: 2, shadow: 2 });
   });
 });

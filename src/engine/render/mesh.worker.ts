@@ -33,6 +33,7 @@ function transferables(meshes: ChunkMeshes): ArrayBuffer[] {
   push(meshes.opaque);
   push(meshes.water);
   push(meshes.alpha);
+  push(meshes.plants);
   push(meshes.glow);
   for (const data of Object.values(meshes.smooth ?? {})) push(data);
   return out;
