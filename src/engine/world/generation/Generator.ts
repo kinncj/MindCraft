@@ -4,7 +4,7 @@ export type GeneratorKind = 'infinite' | 'flat';
 
 export type GeneratorConfig =
   | { kind: 'infinite'; seed: number }
-  | { kind: 'flat'; seed: number; surfaceY: number };
+  | { kind: 'flat'; seed: number; surfaceY: number; preset?: 'toyland' | 'town' };
 
 /**
  * Fills chunks with terrain. Deterministic for a config: the same chunk

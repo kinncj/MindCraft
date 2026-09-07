@@ -46,7 +46,7 @@ const PAD = {
 } as const;
 
 /** Things a controller asks the app layer to do (not world input). */
-export type PadCommand = 'menu' | 'hotbar_next' | 'hotbar_prev' | 'toggle_view' | 'toggle_mode' | 'undo' | 'palette' | 'rotate' | 'tool_next';
+export type PadCommand = 'menu' | 'hotbar_next' | 'hotbar_prev' | 'toggle_view' | 'toggle_mode' | 'undo' | 'palette' | 'rotate' | 'tool_next' | 'zoom_cycle';
 
 /**
  * Keyboard, mouse, touch, and the virtual joystick, folded into one
@@ -187,8 +187,9 @@ export class InputSystem implements System {
     if (pressedNow(PAD.UP)) this.padCommands.push('palette');
     if (pressedNow(PAD.DOWN)) this.padCommands.push('tool_next');
     if (pressedNow(PAD.LEFT)) this.padCommands.push('rotate');
+    if (pressedNow(PAD.RIGHT)) this.padCommands.push('zoom_cycle');
     // Track the other buttons too so a held button never re-fires.
-    for (const i of [PAD.A, PAD.BACK, PAD.LS, PAD.RS, PAD.RIGHT]) pressedNow(i);
+    for (const i of [PAD.A, PAD.BACK, PAD.LS, PAD.RS]) pressedNow(i);
 
     const anyInput = p.moveX !== 0 || p.moveY !== 0 || p.lookX !== 0 || p.lookY !== 0 || pad.buttons.some((b) => b.pressed);
     if (anyInput) this.padActiveUntil = performance.now() + 5000;

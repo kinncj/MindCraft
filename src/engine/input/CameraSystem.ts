@@ -125,6 +125,31 @@ export class CameraSystem implements System {
     this.camera.lookAt(this.eye);
   }
 
+  /** Zoom by a signed amount (positive = farther). Wheel, pinch, buttons. */
+  zoom(delta: number): void {
+    this.zoomBy(delta);
+  }
+
+  /** Steps through first person and a few third-person distances. */
+  cycleZoom(): void {
+    const steps = [5, 9, 15, 24];
+    if (this.mode === 'first') {
+      this.setViewMode('third');
+      this.targetDistance = steps[0];
+      return;
+    }
+    const next = steps.find((d) => d > this.targetDistance + 0.5);
+    if (next === undefined) {
+      this.targetDistance = 7;
+      this.distance = 7;
+      this.setViewMode('first');
+    } else this.targetDistance = next;
+  }
+
+  get distanceTarget(): number {
+    return this.targetDistance;
+  }
+
   private zoomBy(delta: number): void {
     if (this.mode === 'first') {
       if (delta > 0) this.setViewMode('third');

@@ -3,7 +3,7 @@ import type { InteractionMode, SaveState, TimeMode, VisualModeId, WeatherMode } 
 
 export type PanelId = 'none' | 'menu' | 'container' | 'sleep' | 'palette' | 'worlds' | 'blueprints' | 'pet' | 'villager' | 'dressup' | 'crafting' | 'robot';
 export type ViewMode = 'third' | 'first';
-export type WorldPreset = 'meadow' | 'toyland';
+export type WorldPreset = 'meadow' | 'toyland' | 'town';
 
 export type WorldSlice = {
   ready: boolean;
@@ -47,6 +47,7 @@ export type UiSlice = {
   setMode: (mode: InteractionMode) => void;
   setViewMode: (mode: ViewMode) => void;
   toggleViewMode: () => void;
+  zoom: (delta: number) => void;
   setHistoryState: (canUndo: boolean, canRedo: boolean) => void;
   setControllerActive: (active: boolean) => void;
   setMirror: (enabled: boolean) => void;

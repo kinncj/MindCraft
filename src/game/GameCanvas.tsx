@@ -30,7 +30,7 @@ export function GameCanvas() {
 
     const engine = new Engine({
       container,
-      generator: world.generator.kind === 'flat' ? { kind: 'flat', seed: world.seed, surfaceY: world.generator.surfaceY ?? 4 } : { kind: 'infinite', seed: world.seed },
+      generator: world.generator.kind === 'flat' ? { kind: 'flat', seed: world.seed, surfaceY: world.generator.surfaceY ?? 4, preset: world.generator.preset } : { kind: 'infinite', seed: world.seed },
       spawn: world.spawn,
       player: world.player ?? null,
       template: world.template ?? null,

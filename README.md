@@ -51,7 +51,14 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   fifteen blocks, logic lamps, pistons and sticky pistons that push and pull, powered
   doors, and note blocks. A **robot** you program with picture cards (forward, turn,
   up, place, remove, repeat ×N) that builds while you watch.
-- **Multiple named worlds** with two presets: a meadow or **Toy Land**.
+- **Multiple named worlds** with three presets: a fresh meadow, **Toy Land** (a giant
+  bedroom seen from toy size: a huge bed, a bookshelf mountain to climb, giant
+  crayons, a toy train on its track, a race track with a real car, a block tower, toy
+  soldiers, a friendly dinosaur, a rocket, a piggy bank, balloons, a slide, and the toy
+  chest), and **Sunny Town** (a roleplay town: streets with sidewalks and lamps, eight
+  painted houses, a school with a playground, a bakery, a fire station with its truck,
+  a clinic, a shop, a farm, a construction site, a park with a pool and a stage, a pond
+  with a boat, and a neighbor with a job in every building).
 - Autosave of edited chunks to IndexedDB, honest save indicator, versioned JSON
   export/import with strict validation. **MindCraft 1.0 saves and export files are
   converted automatically.**
@@ -75,7 +82,7 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 | Walk / run / sneak | `W A S D` or arrows / `Ctrl` / `Shift` | joystick | left stick / L3 / R3 |
 | Jump / swim up | `Space` | Jump button | A |
 | Look around | drag | drag the world | right stick |
-| Zoom | wheel (all the way in = first person) | pinch | — |
+| Zoom | wheel or the ➕ ➖ buttons (all the way in = first person) | pinch or ➕ ➖ | D-pad right cycles |
 | Switch camera | `V` or the view button | view button | Y |
 | Place / use | click | tap | RT |
 | Remove | right-click or Remove mode | Remove mode + tap | LT (or X to switch mode) |

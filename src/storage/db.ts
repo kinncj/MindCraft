@@ -12,7 +12,7 @@ export type StoredWorld = {
   id: string;
   name: string;
   seed: number;
-  generator: { kind: 'infinite' | 'flat'; surfaceY?: number };
+  generator: { kind: 'infinite' | 'flat'; surfaceY?: number; preset?: 'toyland' | 'town' };
   createdAt: string;
   updatedAt: string;
   /** Spawn point, and where the player last stood. */

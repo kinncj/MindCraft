@@ -19,8 +19,15 @@ const COPY: Record<WorldPreset, { button: string; ariaLabel: string; title: stri
     button: '🧸 Start as Toy Land',
     ariaLabel: 'Start a Toy Land world',
     title: 'Start Toy Land?',
-    blurb: 'This will replace your world with Toy Land: a toy chest, block towers, a cowboy doll, and an astronaut toy.',
+    blurb: 'This will replace your world with Toy Land: a giant bedroom with a toy train, a race track, a dinosaur, a rocket, a slide, and the toy chest.',
     confirm: 'Start Toy Land',
+  },
+  town: {
+    button: '🏘️ Start as Sunny Town',
+    ariaLabel: 'Start a Sunny Town world',
+    title: 'Start Sunny Town?',
+    blurb: 'This will replace your world with Sunny Town: streets, houses, a school, a bakery, a fire station, a park, a farm, and neighbors with jobs.',
+    confirm: 'Start Sunny Town',
   },
 };
 
@@ -36,7 +43,7 @@ export function ResetWorldDialog({ preset = 'meadow' }: ResetWorldDialogProps) {
         {copy.button}
       </KidButton>
       {open && (
-        <Sheet title={copy.title} emoji={preset === 'toyland' ? '🧸' : '🌱'} onClose={() => setOpen(false)} kind="dialog">
+        <Sheet title={copy.title} emoji={preset === 'toyland' ? '🧸' : preset === 'town' ? '🏘️' : '🌱'} onClose={() => setOpen(false)} kind="dialog">
             <p>{copy.blurb}</p>
             <p>You can export your world first if you want to keep it.</p>
             <div className="dialog-buttons">

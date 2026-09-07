@@ -390,6 +390,7 @@ export class Engine {
     for (const command of this.input.frame.commands) {
       if (command === 'toggle_view') this.camera.toggleViewMode();
       else if (command === 'rotate') this.build.rotateClipboard();
+      else if (command === 'zoom_cycle') this.camera.cycleZoom();
       else this.options.bridge.onCommand?.(command);
     }
     // In first person a controller "tap" aims at the crosshair; in third
@@ -576,6 +577,11 @@ export class Engine {
   setViewMode(mode: ViewMode): void {
     this.camera.setViewMode(mode, false);
     this.avatar.showBody = mode === 'third';
+  }
+
+  /** Zoom in (negative) or out (positive) by a few blocks. */
+  zoom(delta: number): void {
+    this.camera.zoom(delta);
   }
 
   setVisualMode(mode: VisualModeId): void {

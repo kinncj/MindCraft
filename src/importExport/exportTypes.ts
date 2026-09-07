@@ -24,7 +24,7 @@ export type MindCraftWorldExportV2 = {
     id: string;
     name: string;
     seed: number;
-    generator: { kind: 'infinite' | 'flat'; surfaceY?: number };
+    generator: { kind: 'infinite' | 'flat'; surfaceY?: number; preset?: 'toyland' | 'town' };
     spawn: { x: number; y: number; z: number };
     player?: { x: number; y: number; z: number; yaw?: number; pitch?: number };
   };

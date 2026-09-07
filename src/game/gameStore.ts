@@ -185,7 +185,7 @@ export const useGameStore = create<GameState>((set, get) => {
       if (get().storageAvailable) await worldStore.putWorld(world).catch(() => set({ storageAvailable: false }));
       set({ worlds: [world, ...get().worlds] });
       await openRecord(world);
-      get().showToast(preset === 'toyland' ? 'Welcome to Toy Land! The toys are waiting! 🧸' : 'Fresh new world! Build something awesome!');
+      get().showToast(preset === 'toyland' ? 'Welcome to Toy Land! The toys are waiting! 🧸' : preset === 'town' ? 'Welcome to Sunny Town! Say hi to the neighbors! 🏘️' : 'Fresh new world! Build something awesome!');
     },
 
     async openWorld(id) {
@@ -221,7 +221,7 @@ export const useGameStore = create<GameState>((set, get) => {
 
     async resetWorld(preset = 'meadow') {
       const oldId = get().currentWorldId;
-      await get().createWorld(preset === 'toyland' ? 'Toy Land' : 'My World', preset);
+      await get().createWorld(preset === 'toyland' ? 'Toy Land' : preset === 'town' ? 'Sunny Town' : 'My World', preset);
       if (oldId) {
         if (get().storageAvailable) await worldStore.deleteWorld(oldId).catch(() => undefined);
         set({ worlds: get().worlds.filter((w) => w.id !== oldId) });
@@ -373,6 +373,9 @@ export const useGameStore = create<GameState>((set, get) => {
       set({ viewMode: next });
       getEngine()?.setViewMode(next);
       get().showToast(next === 'first' ? 'Looking through your own eyes! 👀' : 'Back behind you! 🧍');
+    },
+    zoom(delta) {
+      getEngine()?.zoom(delta);
     },
     setHistoryState(canUndo, canRedo) {
       set({ canUndo, canRedo });

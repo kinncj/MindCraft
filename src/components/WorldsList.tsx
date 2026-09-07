@@ -20,7 +20,7 @@ export function WorldsList() {
           return (
             <li key={world.id} className={`world-row ${current ? 'world-row-current' : ''}`}>
               <span className="world-name">
-                <span aria-hidden="true">{world.generator.kind === 'flat' ? '🧸' : '🌄'}</span> {world.name}
+                <span aria-hidden="true">{world.generator.preset === 'town' ? '🏘️' : world.generator.kind === 'flat' ? '🧸' : '🌄'}</span> {world.name}
                 {current && <span className="world-badge"> · playing now</span>}
               </span>
               <span className="world-actions">
@@ -67,6 +67,14 @@ export function WorldsList() {
             }}
           >
             🧸 New Toy Land
+          </KidButton>
+          <KidButton
+            onClick={() => {
+              void createWorld(newName || 'Sunny Town', 'town');
+              setNewName('');
+            }}
+          >
+            🏘️ New Sunny Town
           </KidButton>
         </div>
       </form>

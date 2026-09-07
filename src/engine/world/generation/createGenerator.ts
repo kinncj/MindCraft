@@ -3,6 +3,6 @@ import type { GeneratorConfig, WorldGenerator } from './Generator';
 import { InfiniteGenerator } from './InfiniteGenerator';
 
 export function createGenerator(config: GeneratorConfig): WorldGenerator {
-  if (config.kind === 'flat') return new FlatGenerator(config.seed, config.surfaceY);
+  if (config.kind === 'flat') return new FlatGenerator(config.seed, config.surfaceY, config.preset);
   return new InfiniteGenerator(config.seed);
 }

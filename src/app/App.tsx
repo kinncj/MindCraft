@@ -25,6 +25,7 @@ export function App() {
   const storageAvailable = useGameStore((state) => state.storageAvailable);
   const viewMode = useGameStore((state) => state.viewMode);
   const toggleViewMode = useGameStore((state) => state.toggleViewMode);
+  const zoom = useGameStore((state) => state.zoom);
   const canUndo = useGameStore((state) => state.canUndo);
   const canRedo = useGameStore((state) => state.canRedo);
   const undo = useGameStore((state) => state.undo);
@@ -96,6 +97,8 @@ export function App() {
       )}
 
       <div className="side-actions">
+        <IconButton emoji="➕" label="Zoom in" onClick={() => zoom(-3)} />
+        <IconButton emoji="➖" label="Zoom out" onClick={() => zoom(3)} />
         <IconButton emoji={viewMode === 'third' ? '👀' : '🧍'} label="Change camera view" onClick={toggleViewMode} />
         <IconButton emoji={audio.muted ? '🔇' : '🔊'} label={audio.muted ? 'Unmute sound' : 'Mute sound'} onClick={() => setAudio({ muted: !audio.muted })} />
       </div>

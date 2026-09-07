@@ -1,6 +1,7 @@
 import { blocks as registry } from '../../engine/blocks/blocks';
 import { InfiniteGenerator } from '../../engine/world/generation/InfiniteGenerator';
-import { starterPlazaTemplate, toyLandTemplate, type TemplateBlock } from '../../engine/world/generation/structures';
+import { starterPlazaTemplate, type TemplateBlock } from '../../engine/world/generation/structures';
+import { presetMap } from '../../engine/world/generation/maps';
 import { LEGACY_SURFACE_Y } from '../../storage/worldStore';
 import { JOBS, VILLAGER_NAMES } from '../../engine/entities/villagers';
 import type { StoredWorld } from '../../storage/db';
@@ -33,14 +34,14 @@ export function createWorldRecord(name: string, preset: WorldPreset): StoredWorl
     settings: { ...DEFAULT_SETTINGS },
     palette: registry.toPalette(),
   };
-  if (preset === 'toyland') {
-    const spawn = { x: 32, y: LEGACY_SURFACE_Y + 1, z: 32 };
+  if (preset === 'toyland' || preset === 'town') {
+    const map = presetMap(preset, LEGACY_SURFACE_Y);
     return {
       ...base,
       seed: 7,
-      generator: { kind: 'flat', surfaceY: LEGACY_SURFACE_Y },
-      spawn,
-      template: toStoredTemplate(toyLandTemplate(spawn)),
+      generator: { kind: 'flat', surfaceY: LEGACY_SURFACE_Y, preset },
+      spawn: map.spawn,
+      entities: map.entities.map((e) => ({ ...e })),
     };
   }
   const seed = Math.floor(Math.random() * 2 ** 31);

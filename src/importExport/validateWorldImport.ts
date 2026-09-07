@@ -6,6 +6,7 @@ import { LEGACY_SURFACE_Y } from '../storage/worldStore';
 import { isTimeMode, isWeatherMode, normalizeSettings } from '../storage/settingsRepository';
 import { isVisualModeId } from '../shaders/visualModes';
 import { EXPORT_SCHEMA_VERSION } from './exportTypes';
+import { isPresetName } from '../engine/world/generation/maps';
 
 // 50 MB is far beyond any real MindCraft world (an edited chunk is a few KB).
 export const MAX_IMPORT_FILE_BYTES = 50 * 1024 * 1024;
@@ -94,7 +95,11 @@ function validateV2(raw: Record<string, unknown>): ImportValidationResult {
   const gen = isRecord(w.generator) ? w.generator : {};
   const generator: StoredWorld['generator'] =
     gen.kind === 'flat'
-      ? { kind: 'flat', surfaceY: Number.isInteger(gen.surfaceY) ? Math.max(1, Math.min(WORLD_HEIGHT - 2, gen.surfaceY as number)) : LEGACY_SURFACE_Y }
+      ? {
+          kind: 'flat',
+          surfaceY: Number.isInteger(gen.surfaceY) ? Math.max(1, Math.min(WORLD_HEIGHT - 2, gen.surfaceY as number)) : LEGACY_SURFACE_Y,
+          ...(isPresetName(gen.preset) ? { preset: gen.preset } : {}),
+        }
       : { kind: 'infinite' };
   const spawn = parsePosition(w.spawn) ?? { x: 8, y: 50, z: 8 };
   const playerPos = isRecord(w.player) ? w.player : null;

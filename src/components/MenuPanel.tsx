@@ -60,7 +60,7 @@ export function MenuPanel() {
           <MenuRow tone="teal" emoji="🔊" label="Sound" hint={audio.muted ? 'Muted' : audio.music ? 'Music and effects on' : 'Effects only'} onClick={() => setPage('sound')} />
           <MenuRow tone="primary" emoji="🌍" label="My worlds" hint={`Playing: ${worldName}`} onClick={() => setPage('worlds')} ariaLabel="See all your worlds" />
           <MenuRow tone="default" emoji="💾" label="Save & share" hint="Export and import world files" onClick={() => setPage('share')} />
-          <MenuRow tone="danger" emoji="🔄" label="Start over" hint="Fresh meadow or Toy Land" onClick={() => setPage('reset')} />
+          <MenuRow tone="danger" emoji="🔄" label="Start over" hint="Fresh meadow, Toy Land, or Sunny Town" onClick={() => setPage('reset')} />
           <MenuRow tone="slate" emoji="ℹ️" label="About" hint="Privacy and credits" onClick={() => setPage('about')} />
           <p className="menu-footer">
             {storageAvailable ? 'Your world is saved on this computer. Want to keep it forever? Export it!' : 'This browser cannot save — export your world to keep it!'}
@@ -72,7 +72,7 @@ export function MenuPanel() {
           <li>🚶 Walk with WASD or the arrow keys, jump with space, hold Ctrl to run</li>
           <li>👆 Tap the ground or a block to build; the green ghost shows where</li>
           <li>🧽 Use the Remove tool (or right-click) to take blocks away</li>
-          <li>🖱️ Drag to look around, scroll to zoom, arrows or WASD to move</li>
+          <li>🖱️ Drag to look around, scroll (or the ➕ ➖ buttons, or pinch) to zoom, arrows or WASD to move</li>
           <li>👀 Press V (or zoom all the way in) to look through your own eyes</li>
           <li>🧱 Press E for all the blocks, C for crafting, and Undo if you make a mistake</li>
           <li>🎚️ Levers, buttons, and plates power wires, lamps, pistons, doors, and note blocks</li>
@@ -82,7 +82,7 @@ export function MenuPanel() {
           <li>🐶 Find Friends & Rides in the block list: puppies, kitties, neighbors, a car and a boat</li>
           <li>🚗 Tap a car or boat to ride it, then tap it again (or press space) to hop off</li>
           <li>📱 On a phone: joystick to walk, Jump button, pinch to zoom</li>
-          <li>🎮 Gamepad: sticks move and look, A jumps, RT builds, LT removes, Start opens this menu</li>
+          <li>🎮 Gamepad: sticks move and look, A jumps, RT builds, LT removes, D-pad right zooms, Start opens this menu</li>
           <li>🐰 The animals are just friends — they like watching you build</li>
         </ul>
       )}
@@ -132,6 +132,7 @@ export function MenuPanel() {
           <p className="sheet-hint">Both of these replace the world you are playing now. You can export it first.</p>
           <ResetWorldDialog />
           <ResetWorldDialog preset="toyland" />
+          <ResetWorldDialog preset="town" />
         </div>
       )}
       {page === 'about' && (
