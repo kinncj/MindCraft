@@ -26,7 +26,15 @@ export function MagicDeliveryBoxPanel() {
 
   const position = openPanel === 'container' ? (payload?.position ?? null) : null;
   const box = useContainer(position);
-  if (!position || !box) return null;
+  if (openPanel !== 'container') return null;
+  if (!position || !box) {
+    return (
+      <Sheet title="Nothing to open here" emoji="📦" onClose={closePanels} kind="dialog">
+        <p className="sheet-hint">This block has no storage yet. Tap it again and it will.</p>
+        <KidButton tone="primary" onClick={closePanels}>OK</KidButton>
+      </Sheet>
+    );
+  }
 
   const selectedDef = blocks.byId(selectedBlockType);
 

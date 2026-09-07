@@ -44,7 +44,13 @@ export function GameCanvas() {
         getMode: () => useGameStore.getState().mode,
         openPanel: (kind, payload) => {
           const s = useGameStore.getState();
-          if (kind === 'container') s.setOpenPanel('container', payload);
+          if (kind === 'container') {
+            const p = payload as { position?: { x: number; y: number; z: number }; name?: string } | null;
+            if (p?.position && !engine.world.getEntity(p.position.x, p.position.y, p.position.z)) {
+              engine.world.setEntity(p.position.x, p.position.y, p.position.z, { kind: 'container', data: { name: p.name ?? 'Magic Delivery Box', items: [] } });
+            }
+            s.setOpenPanel('container', payload);
+          }
           else if (kind === 'sleep') s.setOpenPanel('sleep', payload);
           else if (kind === 'crafting') s.setOpenPanel('crafting', payload);
         },

@@ -70,3 +70,19 @@ describe('MagicDeliveryBoxPanel', () => {
     expect(useGameStore.getState().openPanel).toBe('none');
   });
 });
+
+describe('a block without storage', () => {
+  beforeEach(() => {
+    resetGameStore();
+  });
+
+  it('never leaves the screen blocked: it shows a sheet the kid can close', async () => {
+    const { world } = installFakeEngine();
+    world.setBlock(POS.x, POS.y, POS.z, B.fridge); // a fridge placed before it had storage
+    useGameStore.setState({ openPanel: 'container', panelPayload: { position: POS, name: 'Fridge' } });
+    render(<MagicDeliveryBoxPanel />);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(useGameStore.getState().openPanel).toBe('none');
+  });
+});
