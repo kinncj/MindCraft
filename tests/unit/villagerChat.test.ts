@@ -91,6 +91,7 @@ describe('built-in model reply parsing', () => {
     expect(() => parseModelReply('   ')).toThrow();
     expect(() => parseModelReply('{"say":"I will shoot the monster"}')).toThrow();
     expect(parseModelReply('{"say":"Visit https://example.com now!"}').say).toBe('Visit  now!');
+    expect(parseModelReply('{"say":"Hello!","actions":["player_dance","world_save"],"voice":"x"}').actions).toEqual([{ tool: 'player_dance', args: {} }]);
   });
 });
 

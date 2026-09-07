@@ -100,6 +100,11 @@ export function parseModelReply(raw: string): ChatReply {
   const actions: ChatAction[] = [];
   if (Array.isArray(parsed.actions)) {
     for (const a of parsed.actions.slice(0, 3)) {
+      // Small models sometimes list a bare tool name; treat it as that tool with no arguments.
+      if (typeof a === 'string') {
+        if ((CHAT_TOOL_ALLOWLIST as readonly string[]).includes(a)) actions.push({ tool: a, args: {} });
+        continue;
+      }
       if (!a || typeof a !== 'object') continue;
       const tool = (a as { tool?: unknown }).tool;
       const args = (a as { args?: unknown }).args;
