@@ -41,9 +41,7 @@ export function WelcomePanel() {
         })}
       </div>
       <div className="splash-content">
-        <h1 className="splash-title">
-          <span aria-hidden="true">🧱</span> Welcome to MindCraft!
-        </h1>
+        <h1 className="splash-title">Welcome to MindCraft!</h1>
         <p className="splash-subtitle">Your own world of blocks. Build something awesome!</p>
         <ul className="welcome-tips">
           <li>

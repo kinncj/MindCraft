@@ -11,7 +11,7 @@ export function SaveIndicator() {
   const saveState = useGameStore((state) => state.saveState);
   return (
     <div className={`save-indicator save-indicator-${saveState}`} role="status" aria-live="polite">
-      <span aria-hidden="true">{saveState === 'saved' ? '✅' : saveState === 'saving' ? '💾' : saveState === 'error' ? '⚠️' : '🧱'}</span>{' '}
+      <span aria-hidden="true">{saveState === 'saved' ? '●' : saveState === 'saving' ? '◐' : saveState === 'error' ? '▲' : '○'}</span>{' '}
       <span className="save-indicator-text">{MESSAGES[saveState]}</span>
     </div>
   );

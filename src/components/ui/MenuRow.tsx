@@ -6,7 +6,7 @@ type MenuRowProps = {
   hint?: string;
   onClick: () => void;
   chevron?: boolean;
-  tone?: 'default' | 'primary' | 'danger';
+  tone?: 'default' | 'primary' | 'danger' | 'accent' | 'violet' | 'pink' | 'teal' | 'slate';
   ariaLabel?: string;
   trailing?: ReactNode;
 };
@@ -14,7 +14,7 @@ type MenuRowProps = {
 /** A tall list row: emoji, label, optional hint, chevron for submenus. */
 export function MenuRow({ emoji, label, hint, onClick, chevron = true, tone = 'default', ariaLabel, trailing }: MenuRowProps) {
   return (
-    <button type="button" className={`menu-row menu-row-${tone}`} onClick={onClick} aria-label={ariaLabel ?? label} onPointerUp={(event) => event.currentTarget.blur()}>
+    <button type="button" className={`menu-row menu-row-tone-${tone}`} onClick={onClick} aria-label={ariaLabel ?? label} onPointerUp={(event) => event.currentTarget.blur()}>
       <span className="menu-row-emoji" aria-hidden="true">
         {emoji}
       </span>

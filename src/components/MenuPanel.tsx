@@ -53,15 +53,15 @@ export function MenuPanel() {
           <KidButton tone="primary" className="menu-primary" onClick={closePanels} autoFocus>
             ▶️ Back to building
           </KidButton>
-          <MenuRow emoji="❓" label="How to play" hint="Controls for keyboard, touch, and gamepad" onClick={() => setPage('help')} />
-          <MenuRow emoji="🔨" label="Crafting" hint="Picture recipes to make things" onClick={() => setOpenPanel('crafting')} ariaLabel="Open crafting" />
-          <MenuRow emoji="👕" label="Dress up" hint="Shirt, pants, hair, and a hat" onClick={() => setOpenPanel('dressup')} ariaLabel="Dress up your character" />
-          <MenuRow emoji="🌈" label="World looks" hint="Visual mode, sky, and weather" onClick={() => setPage('looks')} />
-          <MenuRow emoji="🔊" label="Sound" hint={audio.muted ? 'Muted' : audio.music ? 'Music and effects on' : 'Effects only'} onClick={() => setPage('sound')} />
-          <MenuRow emoji="🌍" label="My worlds" hint={`Playing: ${worldName}`} onClick={() => setPage('worlds')} ariaLabel="See all your worlds" />
-          <MenuRow emoji="💾" label="Save & share" hint="Export and import world files" onClick={() => setPage('share')} />
-          <MenuRow emoji="🔄" label="Start over" hint="Fresh meadow or Toy Land" onClick={() => setPage('reset')} />
-          <MenuRow emoji="ℹ️" label="About" hint="Privacy and credits" onClick={() => setPage('about')} />
+          <MenuRow tone="slate" emoji="❓" label="How to play" hint="Controls for keyboard, touch, and gamepad" onClick={() => setPage('help')} />
+          <MenuRow tone="accent" emoji="🔨" label="Crafting" hint="Picture recipes to make things" onClick={() => setOpenPanel('crafting')} ariaLabel="Open crafting" />
+          <MenuRow tone="pink" emoji="👕" label="Dress up" hint="Shirt, pants, hair, and a hat" onClick={() => setOpenPanel('dressup')} ariaLabel="Dress up your character" />
+          <MenuRow tone="violet" emoji="🌈" label="World looks" hint="Visual mode, sky, and weather" onClick={() => setPage('looks')} />
+          <MenuRow tone="teal" emoji="🔊" label="Sound" hint={audio.muted ? 'Muted' : audio.music ? 'Music and effects on' : 'Effects only'} onClick={() => setPage('sound')} />
+          <MenuRow tone="primary" emoji="🌍" label="My worlds" hint={`Playing: ${worldName}`} onClick={() => setPage('worlds')} ariaLabel="See all your worlds" />
+          <MenuRow tone="default" emoji="💾" label="Save & share" hint="Export and import world files" onClick={() => setPage('share')} />
+          <MenuRow tone="danger" emoji="🔄" label="Start over" hint="Fresh meadow or Toy Land" onClick={() => setPage('reset')} />
+          <MenuRow tone="slate" emoji="ℹ️" label="About" hint="Privacy and credits" onClick={() => setPage('about')} />
           <p className="menu-footer">
             {storageAvailable ? 'Your world is saved on this computer. Want to keep it forever? Export it!' : 'This browser cannot save — export your world to keep it!'}
           </p>

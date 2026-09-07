@@ -60,8 +60,10 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   `build_stamp_blueprint`, `villager_talk`, `pet_adopt`, `vehicle_mount`, … — exposed through WebMCP
   (`navigator.modelContext`) and `window.mindcraftTools`, so agents can play too.
 - Works on desktop, tablet, and phone with **keyboard and mouse, touch, or a gamepad**.
-  Every panel is a bottom sheet on phones and a card on bigger screens; the menu has
-  submenus with a back button; buttons are thumb-sized and respect notches.
+  A dark-glass game UI: gradient accents, squircle icon badges, layered shadows,
+  springy motion. Every panel is a bottom sheet on phones and a card on bigger
+  screens; the menu has submenus with a back button; buttons are thumb-sized and
+  respect notches.
 
 ## Controls
 
