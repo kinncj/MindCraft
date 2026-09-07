@@ -35,6 +35,8 @@ export function App() {
   const undo = useGameStore((state) => state.undo);
   const redo = useGameStore((state) => state.redo);
   const controllerActive = useGameStore((state) => state.controllerActive);
+  const pointerLocked = useGameStore((state) => state.pointerLocked);
+  const openPanel = useGameStore((state) => state.openPanel);
   const audio = useGameStore((state) => state.audio);
   const setAudio = useGameStore((state) => state.setAudio);
   const init = useGameStore((state) => state.init);
@@ -107,11 +109,11 @@ export function App() {
         <IconButton icon={audio.muted ? 'mute' : 'sound'} label={audio.muted ? 'Unmute sound' : 'Mute sound'} onClick={() => setAudio({ muted: !audio.muted })} />
       </div>
 
-      {(viewMode === 'first' || controllerActive) && <div className="crosshair" aria-hidden="true" />}
+      {(viewMode === 'first' || controllerActive || pointerLocked) && <div className="crosshair" aria-hidden="true" />}
 
       <ToolsDrawer />
       <Hotbar />
-      <VirtualControls />
+      {openPanel === 'none' && <VirtualControls />}
       <BlockPalette />
       <BlueprintsPanel />
       <PetPanel />

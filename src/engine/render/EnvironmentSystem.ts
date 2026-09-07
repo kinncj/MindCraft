@@ -37,6 +37,8 @@ export class EnvironmentSystem implements System {
   private envBakedAt = -10;
   private envBakedTime = -1;
   private underwater = false;
+  /** Phones cap the sun shadow map (set by the engine). */
+  maxShadowMap = 4096;
   /** The baked sky, for PBR materials only (flat materials would just darken). */
   envMap: THREE.Texture | null = null;
   private envListeners = new Set<(map: THREE.Texture | null) => void>();
@@ -184,7 +186,7 @@ export class EnvironmentSystem implements System {
       this.scene.fog.near = mode.fog.near;
       this.scene.fog.far = mode.fog.far;
     }
-    const size = this.shadowsAllowed ? mode.rendering.shadowMap : 1024;
+    const size = this.shadowsAllowed ? Math.min(mode.rendering.shadowMap, this.maxShadowMap) : 1024;
     if (this.sun.shadow.mapSize.x !== size) {
       this.sun.shadow.mapSize.set(size, size);
       this.sun.shadow.map?.dispose();

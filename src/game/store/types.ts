@@ -37,6 +37,9 @@ export type UiSlice = {
   canRedo: boolean;
   /** A game controller is in use: show a reticle in third person too. */
   controllerActive: boolean;
+  /** The mouse is grabbed by the game (desktop controls). */
+  pointerLocked: boolean;
+  setPointerLocked: (locked: boolean) => void;
   /** Build-mode mirror across the player's x. */
   mirror: boolean;
   /** Bumped whenever a container's contents change, so panels re-render. */

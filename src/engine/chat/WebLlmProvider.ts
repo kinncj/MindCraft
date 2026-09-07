@@ -12,6 +12,10 @@ import { CHAT_TOOL_ALLOWLIST, type ChatContext, type ChatProvider, type ChatRepl
  */
 
 export const DEFAULT_HELPER_MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+/** Phones and tablets get a smaller model that fits their GPU memory limits. */
+export const SMALL_HELPER_MODEL = 'SmolLM2-360M-Instruct-q4f16_1-MLC';
+/** Below this storage-buffer limit the 0.5B model cannot load. */
+const BIG_MODEL_MIN_BUFFER = 1024 * 1024 * 1024;
 export const HELPER_DOWNLOAD_MB = 400;
 
 export type HelperProgress = { progress: number; text: string };
@@ -38,36 +42,64 @@ export const HELPER_CONTEXT_TOKENS = 2048;
  * The f16 build is smaller and faster, but some GPUs (Linux Chrome, older
  * Android) have no shader-f16. Those get the f32 build of the same model.
  */
-export function pickHelperModel(modelId: string, hasF16: boolean): string {
-  if (hasF16) return modelId;
-  return modelId.replace('q4f16_1', 'q4f32_1');
+export function pickHelperModel(modelId: string, hasF16: boolean, maxBufferBytes = Infinity): string {
+  let id = modelId;
+  if (id === DEFAULT_HELPER_MODEL && maxBufferBytes < BIG_MODEL_MIN_BUFFER) id = SMALL_HELPER_MODEL;
+  return hasF16 ? id : id.replace('q4f16_1', 'q4f32_1');
 }
 
-async function gpuHasF16(): Promise<boolean> {
+type GpuProbe = { hasF16: boolean; maxBuffer: number; workerOk: boolean };
+
+async function probeGpu(): Promise<GpuProbe> {
+  const out: GpuProbe = { hasF16: false, maxBuffer: Infinity, workerOk: true };
   try {
-    const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<{ features: Set<string> } | null> } }).gpu;
+    type Adapter = { features: Set<string>; limits: { maxStorageBufferBindingSize?: number; maxBufferSize?: number } };
+    const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<Adapter | null> } }).gpu;
     const adapter = await gpu?.requestAdapter();
-    return adapter?.features.has('shader-f16') ?? false;
+    out.hasF16 = adapter?.features.has('shader-f16') ?? false;
+    out.maxBuffer = Math.min(adapter?.limits.maxStorageBufferBindingSize ?? Infinity, adapter?.limits.maxBufferSize ?? Infinity);
   } catch {
-    return false;
+    // No adapter: WebLLM will say so with a clearer message.
   }
+  // Safari (iPhone, iPad, Mac) has no WebGPU inside workers: run the model on the main thread there.
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  if (/safari/i.test(ua) && !/chrome|chromium|crios|fxios|android/i.test(ua)) out.workerOk = false;
+  return out;
+}
+
+/** The model a device will actually get, for the UI. */
+export async function helperModelForDevice(modelId = DEFAULT_HELPER_MODEL): Promise<string> {
+  const probe = await probeGpu();
+  return pickHelperModel(modelId, probe.hasF16, probe.maxBuffer);
 }
 
 /** Loads WebLLM lazily (it is a big chunk) and builds a worker-backed engine. */
 export const createWebLlmEngine: HelperEngineFactory = async (modelId, onProgress) => {
   const webllm = await import('@mlc-ai/web-llm');
-  const worker = new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' });
-  const model = pickHelperModel(modelId, await gpuHasF16());
-  const engine = await webllm.CreateWebWorkerMLCEngine(worker, model, {
-    initProgressCallback: (report) => onProgress({ progress: report.progress, text: report.text }),
-  }, { context_window_size: HELPER_CONTEXT_TOKENS });
+  const probe = await probeGpu();
+  const model = pickHelperModel(modelId, probe.hasF16, probe.maxBuffer);
+  const progress = { initProgressCallback: (report: { progress: number; text: string }) => onProgress({ progress: report.progress, text: report.text }) };
+  const config = { context_window_size: HELPER_CONTEXT_TOKENS };
+  if (probe.workerOk) {
+    try {
+      const worker = new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' });
+      const engine = await webllm.CreateWebWorkerMLCEngine(worker, model, progress, config);
+      return engine as unknown as HelperEngine;
+    } catch (error) {
+      onProgress({ progress: 0, text: `Worker could not run the model (${error instanceof Error ? error.message : String(error)}); trying on the main thread…` });
+    }
+  }
+  const engine = await webllm.CreateMLCEngine(model, progress, config);
   return engine as unknown as HelperEngine;
 };
 
 export async function helperModelIsCached(modelId = DEFAULT_HELPER_MODEL): Promise<boolean> {
   try {
     const webllm = await import('@mlc-ai/web-llm');
-    return (await webllm.hasModelInCache(modelId)) || (await webllm.hasModelInCache(pickHelperModel(modelId, false)));
+    for (const id of new Set([modelId, pickHelperModel(modelId, false), SMALL_HELPER_MODEL, pickHelperModel(SMALL_HELPER_MODEL, false)])) {
+      if (await webllm.hasModelInCache(id)) return true;
+    }
+    return false;
   } catch {
     return false;
   }
@@ -75,7 +107,7 @@ export async function helperModelIsCached(modelId = DEFAULT_HELPER_MODEL): Promi
 
 export async function deleteHelperModel(modelId = DEFAULT_HELPER_MODEL): Promise<void> {
   const webllm = await import('@mlc-ai/web-llm');
-  for (const id of new Set([modelId, pickHelperModel(modelId, false)])) {
+  for (const id of new Set([modelId, pickHelperModel(modelId, false), SMALL_HELPER_MODEL, pickHelperModel(SMALL_HELPER_MODEL, false)])) {
     await webllm.deleteModelAllInfoInCache(id).catch(() => undefined);
   }
 }

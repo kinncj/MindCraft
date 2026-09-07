@@ -5,7 +5,9 @@ import { defineConfig } from '@playwright/test';
 // core, and on this hardware a sustained all-core burst has hard-powered the
 // machine off. These flags route WebGL through ANGLE -> Vulkan on the real GPU
 // (RADV locally, the T4 on a GPU runner). No xvfb is required: the headless
-// shell picks up the Vulkan device directly.
+// shell picks up the Vulkan device directly. PLAYWRIGHT_GPU=0 drops the flags
+// for a deliberate SwiftShader comparison (the same variable bypasses the
+// machine-wide wrapper from halomarchy's `playwright` module).
 export const GPU_ARGS = [
   '--ignore-gpu-blocklist',
   '--use-angle=vulkan',
@@ -29,7 +31,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4173',
     trace: 'retain-on-failure',
-    launchOptions: { args: GPU_ARGS },
+    launchOptions: { args: process.env.PLAYWRIGHT_GPU === '0' ? [] : GPU_ARGS },
   },
   webServer: {
     command: 'npm run preview -- --port 4173 --strictPort',

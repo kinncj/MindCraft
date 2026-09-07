@@ -97,6 +97,24 @@ export class ChunkManager implements System {
     this.focus = { cx: toChunkCoord(Math.round(x)), cz: toChunkCoord(Math.round(z)) };
   }
 
+  private view = { x: 0, z: -1 };
+
+  /** Where the camera looks: chunks in front load and mesh before chunks behind. */
+  setViewDirection(x: number, z: number): void {
+    const len = Math.hypot(x, z) || 1;
+    this.view = { x: x / len, z: z / len };
+  }
+
+  /** Chebyshev distance plus a penalty for being behind the camera. */
+  private priority(cx: number, cz: number): number {
+    const dx = cx - this.focus.cx;
+    const dz = cz - this.focus.cz;
+    const d = Math.max(Math.abs(dx), Math.abs(dz));
+    if (d === 0) return 0;
+    const dot = (dx * this.view.x + dz * this.view.z) / (Math.hypot(dx, dz) || 1);
+    return d + (1 - dot) * 1.5; // straight ahead: +0, straight behind: +3
+  }
+
   get config(): GeneratorConfig {
     return this.generator.config;
   }
@@ -122,10 +140,15 @@ export class ChunkManager implements System {
     const { viewRadius, generateBudget, meshBudget } = this.options;
     // Load nearest missing chunks first.
     let started = 0;
+    const missing: Array<{ cx: number; cz: number; p: number }> = [];
     for (const { cx, cz } of this.spiral(viewRadius)) {
-      if (started >= generateBudget) break;
       const key = chunkKey(cx, cz);
       if (this.world.hasChunk(cx, cz) || this.pending.has(key)) continue;
+      missing.push({ cx, cz, p: this.priority(cx, cz) });
+    }
+    missing.sort((a, b) => a.p - b.p);
+    for (const { cx, cz } of missing) {
+      if (started >= generateBudget) break;
       void this.ensure(cx, cz);
       started++;
     }
@@ -231,7 +254,7 @@ export class ChunkManager implements System {
       .filter((c) => c.dirtyMesh && c.lit)
       .map((c) => ({
         chunk: c,
-        d: Math.max(Math.abs(c.cx - this.focus.cx), Math.abs(c.cz - this.focus.cz)),
+        d: this.priority(c.cx, c.cz),
       }))
       .sort((a, b) => a.d - b.d);
     let done = 0;

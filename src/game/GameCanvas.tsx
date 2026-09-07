@@ -58,6 +58,7 @@ export function GameCanvas() {
         onVillagerSay: (id, text) => useGameStore.getState().pushVillagerLine(id, 'villager', text),
         onFlyChanged: (flying) => useGameStore.getState().setFlying(flying),
         onGamepadActive: (active) => useGameStore.getState().setControllerActive(active),
+        onPointerLock: (locked) => useGameStore.getState().setPointerLocked(locked),
         onCommand: (command) => {
           const s = useGameStore.getState();
           if (command === 'menu') s.openPanel === 'none' ? s.setOpenPanel('menu') : s.closePanels();

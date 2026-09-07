@@ -66,6 +66,8 @@ export type EngineBridge = {
   onCommand?(command: PadCommand): void;
   /** A controller started or stopped being used (show/hide the reticle). */
   onGamepadActive?(active: boolean): void;
+  /** The mouse got grabbed (desktop game controls) or let go. */
+  onPointerLock?(locked: boolean): void;
   /** Called when the last template block was written; persist that fact. */
   onTemplateApplied?(): void;
   /** The player tapped a pet or villager: open its panel. */
@@ -149,6 +151,8 @@ export class Engine {
   readonly renderer: THREE.WebGLRenderer;
   readonly loop = new GameLoop();
   readonly lowPower: boolean;
+  /** A phone or tablet: smaller budgets, no post-processing. */
+  readonly mobile: boolean;
   readonly spawn: { x: number; y: number; z: number };
   /** Set by tools: the engine walks the player toward this point. */
   autoWalk: { x: number; z: number } | null = null;
@@ -166,8 +170,10 @@ export class Engine {
   constructor(private options: EngineOptions) {
     const { container, bridge } = options;
     this.lowPower = Engine.detectSoftwareRendering();
+    this.mobile = Engine.detectMobile();
     this.renderer = new THREE.WebGLRenderer({ antialias: !this.lowPower, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(this.lowPower ? 0.5 : Math.min(window.devicePixelRatio, 2));
+    // Phones render at most 1.5x: a 3x retina canvas costs more than it shows.
+    this.renderer.setPixelRatio(this.lowPower ? 0.5 : Math.min(window.devicePixelRatio, this.mobile ? 1.5 : 2));
     this.renderer.shadowMap.enabled = !this.lowPower;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.domElement.style.display = 'block';
@@ -188,6 +194,7 @@ export class Engine {
     this.mesher = mesher;
 
     this.environment = new EnvironmentSystem(this.scene, this.renderer, VISUAL_MODES[options.settings.visualMode], !this.lowPower);
+    if (this.mobile) this.environment.maxShadowMap = 2048;
     this.environment.setTimeMode(options.settings.timeMode);
     this.environment.setWeather(options.settings.weather);
     if (options.settings.timeOfDay !== undefined) this.environment.setTime(options.settings.timeOfDay);
@@ -199,6 +206,9 @@ export class Engine {
     this.player = new PlayerController(this.world, registry, start);
     this.input = new InputSystem(this.renderer.domElement);
     this.camera = new CameraSystem(this.player, this.input.frame, this.world, registry);
+    // A real mouse on a desktop plays like a desktop block game: click to grab, look freely.
+    this.input.mouseMode = !this.mobile && typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches ? 'game' : 'tap';
+    this.input.onPointerLock = (locked) => bridge.onPointerLock?.(locked);
     this.player.current = (x, y, z) => this.fluids.current(x, y, z);
     if (options.player?.yaw !== undefined) this.camera.yaw = options.player.yaw;
     if (options.player?.pitch !== undefined) this.camera.pitch = options.player.pitch;
@@ -368,6 +378,12 @@ export class Engine {
     } catch {
       return false;
     }
+  }
+
+  static detectMobile(): boolean {
+    if (typeof window === 'undefined') return false;
+    const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    return coarse && Math.min(window.innerWidth, window.innerHeight) < 900;
   }
 
   static detectSoftwareRendering(): boolean {
@@ -665,6 +681,7 @@ export class Engine {
       this.highlight.visible = false;
     }
     this.environment.setFocus(this.player.x, this.player.y, this.player.z);
+    this.chunks.setViewDirection(-Math.sin(this.camera.yaw), -Math.cos(this.camera.yaw));
     const eye = this.camera.camera.position;
     this.environment.setUnderwater(isFluidAt(this.world, registry, eye.x, eye.y, eye.z));
     this.clouds.setFocus(this.player.x, this.player.z);
@@ -713,8 +730,8 @@ export class Engine {
     this.renderer.shadowMap.type = pbr ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     this.chunkRenderer.setPbr(pbr);
     this.clouds.setVisible(!pbr);
-    this.postFx.setEnabled(pbr && def.rendering.postFx);
-    this.chunks.options.viewRadius = (this.lowPower ? 4 : 7) + def.rendering.viewRadiusBonus;
+    this.postFx.setEnabled(pbr && def.rendering.postFx && !this.mobile);
+    this.chunks.options.viewRadius = (this.lowPower ? 4 : this.mobile ? 5 : 7) + (this.mobile ? Math.min(1, def.rendering.viewRadiusBonus) : def.rendering.viewRadiusBonus);
     const smooth = pbr && def.rendering.smooth;
     setBodyStyle({ rounded: smooth });
     if (this.mesher.smooth !== smooth) {
@@ -739,6 +756,7 @@ export class Engine {
 
   /** Block the world input while a panel is open. */
   setInputBlocked(blocked: boolean): void {
+    if (blocked) this.input.releasePointer();
     this.input.blocked = blocked;
   }
 

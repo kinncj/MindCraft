@@ -33,13 +33,13 @@ describe('controller input', () => {
     expect(input.frame.lookDX).toBe(0);
   });
 
-  it('fires buttons once per press: RT taps, bumpers cycle, Start opens the menu', () => {
+  it('fires buttons once per press: RT breaks, bumpers cycle, Start opens the menu', () => {
     pad.buttons[7].pressed = true; // RT
     pad.buttons[5].pressed = true; // RB
     pad.buttons[9].pressed = true; // Start
     pad.buttons[0].pressed = true; // A
     input.update(1 / 60);
-    expect(input.frame.taps).toEqual([{ ndcX: 0, ndcY: 0, button: 0 }]);
+    expect(input.frame.taps).toEqual([{ ndcX: 0, ndcY: 0, button: 2 }]); // RT breaks, like a real block game
     expect(input.frame.commands).toEqual(expect.arrayContaining(['hotbar_next', 'menu']));
     expect(input.frame.jump).toBe(true);
     input.update(1 / 60); // still held: nothing new

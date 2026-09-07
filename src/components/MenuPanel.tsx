@@ -136,8 +136,9 @@ export function MenuPanel() {
           <li>✈️ Planes need speed to take off, then Jump climbs and Sneak dives; helicopters lift with Jump. Tap them again (or press E) to hop out</li>
           <li>🎚️ Levers, buttons, and plates power wires, lamps, pistons, doors, and note blocks</li>
           <li>🤖 Tap a robot to give it a card program: forward, place, repeat…</li>
-          <li>📱 On a phone: joystick to walk, Jump button, pinch to zoom</li>
-          <li>🎮 Gamepad: sticks move and look, A jumps, RT builds, LT removes, D-pad right zooms, Start opens this menu</li>
+          <li>📱 On a phone: touch and drag in the lower-left to walk (the joystick appears under your finger), Jump button, pinch to zoom</li>
+          <li>🖱️ Mouse: click the world once to grab it, then look freely; left-click removes, right-click places, the wheel picks blocks, Esc lets go</li>
+          <li>🎮 Gamepad: sticks move and look, A jumps, LT places, RT removes, Y opens all blocks, D-pad up changes the view, Start opens this menu</li>
         </ul>
       )}
       {page === 'looks' && (
@@ -224,7 +225,7 @@ export function MenuPanel() {
               </>
             ) : (
               <>
-                <p className="sheet-hint">{gpu ? 'Villagers can understand almost anything with a small language model kept on this device.' : 'This browser has no WebGPU, so the helper cannot run here.'}</p>
+                <p className="sheet-hint">{gpu ? 'Villagers can understand almost anything with a small language model kept on this device. Phones and tablets get a smaller one that fits their memory.' : 'This browser has no WebGPU, so the helper cannot run here.'}</p>
                 {helper.status === 'error' && <p className="menu-footer">Last try failed: {helper.text}</p>}
                 <KidButton tone="primary" disabled={!gpu} onClick={() => setConfirmDownload(true)} aria-label="Download a smarter helper">
                   ⬇️ Download a smarter helper

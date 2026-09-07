@@ -336,6 +336,7 @@ export const useGameStore = create<GameState>((set, get) => {
     canUndo: false,
     canRedo: false,
     controllerActive: false,
+    pointerLocked: false,
     mirror: false,
     containerVersion: 0,
 
@@ -426,6 +427,9 @@ export const useGameStore = create<GameState>((set, get) => {
     },
     setHistoryState(canUndo, canRedo) {
       set({ canUndo, canRedo });
+    },
+    setPointerLocked(locked) {
+      set({ pointerLocked: locked });
     },
     setControllerActive(active) {
       set({ controllerActive: active });

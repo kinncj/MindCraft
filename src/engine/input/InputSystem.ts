@@ -32,6 +32,8 @@ export type InputFrame = {
   commands: PadCommand[];
   /** A controller is connected and was used recently. */
   gamepadActive: boolean;
+  /** The mouse is grabbed: aim with the crosshair. */
+  pointerLocked: boolean;
 };
 
 const DRAG_THRESHOLD_PX = 6;
@@ -47,6 +49,9 @@ const PAD = {
 
 /** Things a controller asks the app layer to do (not world input). */
 export type PadCommand = 'menu' | 'hotbar_next' | 'hotbar_prev' | 'toggle_view' | 'toggle_mode' | 'undo' | 'palette' | 'rotate' | 'tool_next' | 'zoom_cycle' | 'fly_toggle';
+
+/** How a mouse works: `game` locks the pointer like a desktop block game (left breaks, right places), `tap` is the kid-simple click-to-place. */
+export type MouseMode = 'game' | 'tap';
 
 /** Two jump presses this close together toggle flying (keyboard, touch, or pad). */
 export const DOUBLE_TAP_SECONDS = 0.32;
@@ -73,6 +78,7 @@ export class InputSystem implements System {
     pressed: new Set(),
     commands: [],
     gamepadActive: false,
+    pointerLocked: false,
   };
   /** When true, world input is ignored (a panel is open). */
   blocked = false;
@@ -91,6 +97,10 @@ export class InputSystem implements System {
   private pinchDistance: number | null = null;
   private padButtons = new Map<number, boolean>();
   private padActiveUntil = 0;
+  /** Desktop mice may lock the pointer; touch and trackpad-only setups keep tapping. */
+  mouseMode: MouseMode = 'tap';
+  pointerLocked = false;
+  onPointerLock: ((locked: boolean) => void) | null = null;
   private padTapQueued: Tap[] = [];
   private padCommands: PadCommand[] = [];
   private jumpWasDown = false;
@@ -109,7 +119,22 @@ export class InputSystem implements System {
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
     window.addEventListener('blur', this.onBlur);
+    document.addEventListener('pointerlockchange', this.onPointerLockChange);
   }
+
+  /** Let go of the mouse (menus, chat). */
+  releasePointer(): void {
+    if (this.pointerLocked && typeof document.exitPointerLock === 'function') document.exitPointerLock();
+  }
+
+  private onPointerLockChange = (): void => {
+    const locked = document.pointerLockElement === this.canvas;
+    if (locked === this.pointerLocked) return;
+    this.pointerLocked = locked;
+    this.pointerDownAt = null;
+    this.dragging = false;
+    this.onPointerLock?.(locked);
+  };
 
   update(dt: number): void {
     this.pollGamepads(dt);
@@ -139,6 +164,7 @@ export class InputSystem implements System {
     // Menu/back must work even while a panel is open; the rest waits.
     f.commands = blocked ? this.padCommands.filter((c) => c === 'menu') : this.padCommands;
     f.gamepadActive = performance.now() < this.padActiveUntil;
+    f.pointerLocked = this.pointerLocked;
     this.lookDX = 0;
     this.lookDY = 0;
     this.zoom = 0;
@@ -188,15 +214,15 @@ export class InputSystem implements System {
     p.sprint = down(PAD.LS);
     p.sneak = down(PAD.RS);
 
-    if (pressedNow(PAD.RT)) this.padTapQueued.push({ ndcX: 0, ndcY: 0, button: 0 });
-    if (pressedNow(PAD.LT)) this.padTapQueued.push({ ndcX: 0, ndcY: 0, button: 2 });
+    if (pressedNow(PAD.RT)) this.padTapQueued.push({ ndcX: 0, ndcY: 0, button: 2 }); // break
+    if (pressedNow(PAD.LT)) this.padTapQueued.push({ ndcX: 0, ndcY: 0, button: 0 }); // place / use
     if (pressedNow(PAD.RB)) this.padCommands.push('hotbar_next');
     if (pressedNow(PAD.LB)) this.padCommands.push('hotbar_prev');
-    if (pressedNow(PAD.Y)) this.padCommands.push('toggle_view');
+    if (pressedNow(PAD.Y)) this.padCommands.push('palette');
     if (pressedNow(PAD.X)) this.padCommands.push('toggle_mode');
     if (pressedNow(PAD.B)) this.padCommands.push('undo');
     if (pressedNow(PAD.START)) this.padCommands.push('menu');
-    if (pressedNow(PAD.UP)) this.padCommands.push('palette');
+    if (pressedNow(PAD.UP)) this.padCommands.push('toggle_view');
     if (pressedNow(PAD.DOWN)) this.padCommands.push('tool_next');
     if (pressedNow(PAD.LEFT)) this.padCommands.push('rotate');
     if (pressedNow(PAD.RIGHT)) this.padCommands.push('zoom_cycle');
@@ -221,6 +247,25 @@ export class InputSystem implements System {
   }
 
   private onPointerDown = (event: PointerEvent): void => {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen' && this.mouseMode === 'game') {
+      if (!this.pointerLocked) {
+        // First click grabs the mouse, like a desktop block game; the next ones act.
+        const request = (this.canvas as HTMLElement & { requestPointerLock?: () => Promise<void> | void }).requestPointerLock;
+        if (typeof request === 'function') {
+          try {
+            const result = request.call(this.canvas);
+            if (result && typeof (result as Promise<void>).catch === 'function') (result as Promise<void>).catch(() => undefined);
+          } catch {
+            // Not allowed here (iframe, missing gesture): fall through to tapping.
+          }
+          return;
+        }
+      } else {
+        // Locked: aim at the crosshair. Left breaks, right places or uses.
+        this.taps.push({ ndcX: 0, ndcY: 0, button: event.button === 0 ? 2 : 0 });
+        return;
+      }
+    }
     this.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     try {
       this.canvas.setPointerCapture(event.pointerId);
@@ -240,6 +285,12 @@ export class InputSystem implements System {
   };
 
   private onPointerMove = (event: PointerEvent): void => {
+    if (this.pointerLocked) {
+      this.lookDX += event.movementX;
+      this.lookDY += event.movementY;
+      this.hover = { ndcX: 0, ndcY: 0 };
+      return;
+    }
     const tracked = this.pointers.get(event.pointerId);
     if (tracked) {
       tracked.x = event.clientX;
@@ -265,6 +316,7 @@ export class InputSystem implements System {
   };
 
   private onPointerUp = (event: PointerEvent): void => {
+    if (this.pointerLocked) return;
     this.pointers.delete(event.pointerId);
     if (this.pointers.size < 2) this.pinchDistance = null;
     const start = this.pointerDownAt;
@@ -286,6 +338,11 @@ export class InputSystem implements System {
 
   private onWheel = (event: WheelEvent): void => {
     event.preventDefault();
+    // With the mouse grabbed the wheel flips hotbar slots, like the real thing.
+    if (this.pointerLocked) {
+      if (Math.abs(event.deltaY) > 0) this.padCommands.push(event.deltaY > 0 ? 'hotbar_next' : 'hotbar_prev');
+      return;
+    }
     this.zoom += event.deltaY * 0.02;
   };
 
@@ -321,5 +378,7 @@ export class InputSystem implements System {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('blur', this.onBlur);
+    document.removeEventListener('pointerlockchange', this.onPointerLockChange);
+    this.releasePointer();
   }
 }

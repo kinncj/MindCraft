@@ -94,14 +94,14 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 
 | Action | Keyboard / mouse | Touch | Gamepad |
 |---|---|---|---|
-| Walk / run / sneak | `W A S D` or arrows / `Ctrl` / `Shift` | joystick | left stick / L3 / R3 |
+| Walk / run / sneak | `W A S D` or arrows / `Ctrl` / `Shift` | touch anywhere in the lower-left and drag (the joystick appears under your finger) | left stick / L3 / R3 |
 | Jump / swim up | `Space` | Jump button | A |
-| Look around | drag | drag the world | right stick |
+| Look around | click the world once to grab the mouse, then move it (`Esc` lets go); trackpads can still drag | drag the world | right stick |
 | Zoom | wheel or the ➕ ➖ buttons (all the way in = first person) | pinch or ➕ ➖ | D-pad right cycles |
-| Switch camera | `V` or the view button | view button | Y |
-| Place / use | click | tap | RT |
-| Remove | right-click or Remove mode | Remove mode + tap | LT (or X to switch mode) |
-| Pick a block | `1`–`9`, hotbar, `E` for all blocks | hotbar, ➕ More | LB / RB, D-pad up |
+| Switch camera | `V` or the view button | view button | D-pad up |
+| Place / use | right-click with the mouse grabbed (plain click when not) | tap | LT |
+| Remove | left-click with the mouse grabbed (right-click when not, or Remove mode) | Remove mode + tap | RT (or X to switch mode) |
+| Pick a block | `1`–`9`, mouse wheel when grabbed, `E` for all blocks | hotbar, ➕ More | LB / RB, Y for all blocks |
 | Build tools | Tools button, `R` turns a paste | Tools button | D-pad down cycles, D-pad left turns |
 | Interact only | Tools → Interact | Tools → Interact | D-pad down to it |
 | Fly | double-tap `Space` or the 🪽 button; hold `Space` to rise, `Shift` to sink, land to stop | double-tap Jump / 🪽 | double-tap A |
