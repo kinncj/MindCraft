@@ -29,7 +29,7 @@ The player is about six. These rules shape every screen and interaction.
 ## No scary anything
 
 - Bright palette, soft shapes, daylight sky
-- No sudden sounds (currently no sound at all)
+- No sudden loud sounds; the soundtrack is soft, generated, and slows down at night; one big mute button
 - No enemies, weapons, or damage — not even cartoonish
 
 ## Accessible

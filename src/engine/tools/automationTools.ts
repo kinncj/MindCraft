@@ -68,6 +68,26 @@ export function registerAutomationTools(engine: Engine): void {
   });
 
   tools.register({
+    name: 'audio_set',
+    description: 'Sound settings: muted, music on/off, volume 0..1.',
+    inputSchema: { type: 'object', properties: { muted: { type: 'boolean' }, music: { type: 'boolean' }, volume: { type: 'number' } } },
+    execute: (settings: { muted?: boolean; music?: boolean; volume?: number }) => {
+      engine.audio.setSettings(settings);
+      engine.onAudioSettings?.(engine.audio.settings);
+      return engine.audio.settings;
+    },
+  });
+  tools.register({
+    name: 'audio_play',
+    description: 'Play a sound effect: place, remove, jump, splash, door, click, pop, happy, craft, piston, vroom, gift, sizzle.',
+    inputSchema: { type: 'object', properties: { sound: str }, required: ['sound'] },
+    execute: ({ sound }: { sound: string }) => {
+      engine.audio.play(sound as 'pop');
+      return { played: sound, ready: engine.audio.ready };
+    },
+  });
+
+  tools.register({
     name: 'robot_list',
     description: 'Every robot with its program, position, and whether it is running.',
     inputSchema: { type: 'object', properties: {} },

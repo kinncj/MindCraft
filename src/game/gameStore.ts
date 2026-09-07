@@ -11,7 +11,7 @@ import { getEngine } from './engineRef';
 import { createWorldRecord } from './store/worldRecords';
 import { blueprintById } from '../engine/build/blueprints';
 import type { InteractionMode } from '../types/game';
-import type { PlayerLookState } from './store/types';
+import type { AudioState, PlayerLookState } from './store/types';
 import type { GameState, ViewMode } from './store/types';
 
 export type { GameState, PanelId, ViewMode, WorldPreset } from './store/types';
@@ -23,6 +23,32 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null;
 // Every change bumps this. A finishing save may only report "saved" if no
 // newer change happened while it was writing.
 let changeSeq = 0;
+
+const AUDIO_KEY = 'mindcraft-audio';
+
+function loadAudio(): AudioState {
+  const fallback: AudioState = { muted: false, music: true, volume: 0.7 };
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(AUDIO_KEY) : null;
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as Partial<AudioState>;
+    return {
+      muted: typeof parsed.muted === 'boolean' ? parsed.muted : fallback.muted,
+      music: typeof parsed.music === 'boolean' ? parsed.music : fallback.music,
+      volume: typeof parsed.volume === 'number' ? Math.max(0, Math.min(1, parsed.volume)) : fallback.volume,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function saveAudio(audio: AudioState): void {
+  try {
+    localStorage.setItem(AUDIO_KEY, JSON.stringify(audio));
+  } catch {
+    // Private mode: settings just do not stick.
+  }
+}
 
 const DEFAULT_LOOK: PlayerLookState = { shirt: '#ffb03c', pants: '#4a7fd6', skin: '#f2c79a', hair: '#6b4a26', hat: 'none' };
 
@@ -383,6 +409,17 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     // --- settings slice ---
+    audio: loadAudio(),
+    setAudio(audio) {
+      const next = { ...get().audio, ...audio };
+      set({ audio: next });
+      saveAudio(next);
+      const engine = getEngine();
+      if (engine) {
+        void engine.audio.start();
+        engine.audio.setSettings(next);
+      }
+    },
     look: DEFAULT_LOOK,
     setLook(look) {
       const next = { ...get().look, ...look };

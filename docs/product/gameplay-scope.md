@@ -47,6 +47,10 @@ Survival mechanics are excluded on purpose, permanently — not "later":
 - No timers, scores, or objectives
 - No chat, accounts, multiplayer, or purchases
 
-## Planned next (see README "Roadmap")
+- Sound: a generative Tone.js soundtrack by biome and time of day, effects for
+  building, walking, doors, pets, crafting, pistons, and tunable note blocks; mute,
+  music toggle, and three volume levels
 
-Generated music and sound effects with Tone.js.
+## Planned next
+
+Polish and whatever the kid asks for next. See the README roadmap.

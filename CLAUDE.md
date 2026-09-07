@@ -14,6 +14,8 @@ ads, no tracking, no external requests at runtime. Original art generated in cod
   - `input/` keyboard, mouse, touch, gamepad → `InputFrame`; camera; interaction
   - `entities/` creatures with `Brain`s (rule-based; no in-browser LLM)
   - `commands/` undoable edits; `tools/` the tool registry + WebMCP adapter
+  - `build/` room/fill/paint/copy/paste/mirror + blueprints; `crafting/` recipes
+  - `logic/` the 10 Hz power system and pistons; `audio/` Tone.js music and effects
   - `core/Engine.ts` composes everything and runs the `GameLoop`
 - `src/game/` is the app layer: zustand store (slices in `store/`), `GameCanvas`.
 - `src/storage/` Dexie v2: `worlds` + `chunks` rows, RLE codec, v1 migration.

@@ -37,6 +37,7 @@ export function GameCanvas() {
       storage: store.storageAvailable ? worldStore.chunkStorage(world.id) : null,
       settings: { visualMode: store.visualMode, timeMode: store.timeMode, weather: store.weather, timeOfDay: world.settings.timeOfDay, look: store.look },
       entities: (world.entities ?? []) as import('../engine/entities/Entity').StoredEntity[],
+      audio: store.audio,
       bridge: {
         getSelectedBlockId: () => registry.byId(useGameStore.getState().selectedBlockType)?.numericId ?? 1,
         getMode: () => useGameStore.getState().mode,
@@ -68,6 +69,7 @@ export function GameCanvas() {
     });
     setEngine(engine);
     engine.setViewMode(store.viewMode);
+    engine.onAudioSettings = (settings) => useGameStore.getState().setAudio(settings);
 
     const unsubWorld = engine.world.subscribe({
       onBlockChanged: () => useGameStore.getState().markDirty(),

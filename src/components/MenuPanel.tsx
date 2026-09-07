@@ -10,12 +10,13 @@ import { KidButton } from './KidButton';
 import { MenuRow } from './ui/MenuRow';
 import { Sheet } from './ui/Sheet';
 
-type Page = 'main' | 'help' | 'looks' | 'worlds' | 'share' | 'reset' | 'about';
+type Page = 'main' | 'help' | 'looks' | 'sound' | 'worlds' | 'share' | 'reset' | 'about';
 
 const TITLES: Record<Page, { title: string; emoji: string }> = {
   main: { title: 'Menu', emoji: '🧱' },
   help: { title: 'How to play', emoji: '❓' },
   looks: { title: 'World looks', emoji: '🌈' },
+  sound: { title: 'Sound', emoji: '🔊' },
   worlds: { title: 'Your worlds', emoji: '🌍' },
   share: { title: 'Save & share', emoji: '💾' },
   reset: { title: 'Start over', emoji: '🔄' },
@@ -32,6 +33,8 @@ export function MenuPanel() {
   const setOpenPanel = useGameStore((state) => state.setOpenPanel);
   const storageAvailable = useGameStore((state) => state.storageAvailable);
   const worldName = useGameStore((state) => state.worldName);
+  const audio = useGameStore((state) => state.audio);
+  const setAudio = useGameStore((state) => state.setAudio);
   const [page, setPage] = useState<Page>('main');
 
   const open = openPanel === 'menu' || openPanel === 'worlds';
@@ -54,6 +57,7 @@ export function MenuPanel() {
           <MenuRow emoji="🔨" label="Crafting" hint="Picture recipes to make things" onClick={() => setOpenPanel('crafting')} ariaLabel="Open crafting" />
           <MenuRow emoji="👕" label="Dress up" hint="Shirt, pants, hair, and a hat" onClick={() => setOpenPanel('dressup')} ariaLabel="Dress up your character" />
           <MenuRow emoji="🌈" label="World looks" hint="Visual mode, sky, and weather" onClick={() => setPage('looks')} />
+          <MenuRow emoji="🔊" label="Sound" hint={audio.muted ? 'Muted' : audio.music ? 'Music and effects on' : 'Effects only'} onClick={() => setPage('sound')} />
           <MenuRow emoji="🌍" label="My worlds" hint={`Playing: ${worldName}`} onClick={() => setPage('worlds')} ariaLabel="See all your worlds" />
           <MenuRow emoji="💾" label="Save & share" hint="Export and import world files" onClick={() => setPage('share')} />
           <MenuRow emoji="🔄" label="Start over" hint="Fresh meadow or Toy Land" onClick={() => setPage('reset')} />
@@ -87,6 +91,33 @@ export function MenuPanel() {
           <VisualModeSelector />
           <WorldSettings />
         </>
+      )}
+      {page === 'sound' && (
+        <div className="menu-list">
+          <p className="sheet-hint">All the music is made up on the spot by the game. It changes with where you are and the time of day.</p>
+          <div className="setting-group" role="group" aria-label="Sound">
+            <KidButton tone={audio.muted ? 'primary' : 'default'} aria-pressed={audio.muted} onClick={() => setAudio({ muted: !audio.muted })}>
+              {audio.muted ? '🔇 Muted' : '🔊 Sound on'}
+              <span className="setting-hint">Tap to {audio.muted ? 'unmute' : 'mute everything'}</span>
+            </KidButton>
+            <KidButton tone={audio.music ? 'primary' : 'default'} aria-pressed={audio.music} onClick={() => setAudio({ music: !audio.music })}>
+              {audio.music ? '🎵 Music on' : '🎵 Music off'}
+              <span className="setting-hint">The soundtrack</span>
+            </KidButton>
+          </div>
+          <div className="setting-group" role="group" aria-label="Volume">
+            <h3>How loud</h3>
+            {[
+              { v: 0.35, label: '🔉 Quiet' },
+              { v: 0.7, label: '🔊 Normal' },
+              { v: 1, label: '📢 Loud' },
+            ].map((opt) => (
+              <KidButton key={opt.v} tone={Math.abs(audio.volume - opt.v) < 0.05 ? 'primary' : 'default'} aria-pressed={Math.abs(audio.volume - opt.v) < 0.05} onClick={() => setAudio({ volume: opt.v, muted: false })}>
+                {opt.label}
+              </KidButton>
+            ))}
+          </div>
+        </div>
       )}
       {page === 'worlds' && <WorldsList />}
       {page === 'share' && (

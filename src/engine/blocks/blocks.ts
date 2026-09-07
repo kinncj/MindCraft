@@ -53,6 +53,7 @@ const doorBehavior: BlockBehavior = {
     const { x, y, z } = ctx.position;
     const open = !BlockState.isOpen(ctx.state);
     const otherY = BlockState.isTopHalf(ctx.state) ? y - 1 : y + 1;
+    ctx.perform('door', { position: ctx.position, open });
     ctx.world.setBlock(x, y, z, ctx.blockId, BlockState.withOpen(ctx.state, open));
     if (ctx.world.getBlock(x, otherY, z) === ctx.blockId) {
       ctx.world.setBlock(x, otherY, z, ctx.blockId, BlockState.withOpen(ctx.world.getState(x, otherY, z), open));

@@ -52,6 +52,10 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 - Autosave of edited chunks to IndexedDB, honest save indicator, versioned JSON
   export/import with strict validation. **MindCraft 1.0 saves and export files are
   converted automatically.**
+- **Sound, made up on the spot**: a Tone.js soundtrack that follows the biome and the
+  time of day (slow and soft at night), footsteps, pops for building, splashes, doors,
+  happy pets, crafting sparkles, pistons, and note blocks you can tune. A big mute
+  button, a Sound menu, and no audio files at all.
 - **Every capability is a tool** — `player_walk_to`, `world_place_block`,
   `build_stamp_blueprint`, `villager_talk`, `pet_adopt`, `vehicle_mount`, … — exposed through WebMCP
   (`navigator.modelContext`) and `window.mindcraftTools`, so agents can play too.
@@ -163,7 +167,7 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 3. ~~Life layer~~ — done: furniture, car and boat, pets, villagers with jobs, dress-up
 4. ~~UI refresh~~ — done: bottom sheets, a menu with submenus, a tools drawer, safe areas
 5. ~~Crafting and logic~~ — done: recipe book, levers/buttons/plates/wire/lamps/pistons/doors/note blocks, robots
-6. **Sound** — Tone.js music by biome and time of day, effects, a big mute button
+6. ~~Sound~~ — done: generative Tone.js soundtrack by biome and time, effects, mute and volume
 
 Nothing before the basics stay boring and reliable.
 
@@ -171,6 +175,5 @@ Nothing before the basics stay boring and reliable.
 
 - Terrain generation runs in a Web Worker; on very old browsers it runs inline and
   new chunks appear more slowly
-- No sound yet
 - Wild animals respawn fresh each session; pets, villagers, and vehicles are saved
 - Ultra mode is realism-inspired, not ray-traced — see `docs/product/visual-modes.md`

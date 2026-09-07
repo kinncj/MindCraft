@@ -65,7 +65,11 @@ export type UiSlice = {
 
 export type PlayerLookState = { shirt: string; pants: string; skin: string; hair: string; hat: 'none' | 'cap' | 'crown' | 'cowboy' | 'party' };
 
+export type AudioState = { muted: boolean; music: boolean; volume: number };
+
 export type SettingsSlice = {
+  audio: AudioState;
+  setAudio: (audio: Partial<AudioState>) => void;
   look: PlayerLookState;
   setLook: (look: Partial<PlayerLookState>) => void;
   visualMode: VisualModeId;

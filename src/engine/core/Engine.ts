@@ -8,6 +8,9 @@ import type { StoredEntity } from '../entities/Entity';
 import { registerLifeTools } from '../tools/lifeTools';
 import { registerAutomationTools } from '../tools/automationTools';
 import { LogicSystem, type LogicEvent } from '../logic/LogicSystem';
+import { AudioSystem } from '../audio/AudioSystem';
+import type { AudioSettings } from '../audio/music';
+import { InfiniteGenerator } from '../world/generation/InfiniteGenerator';
 import { recipeById } from '../crafting/recipes';
 import { CameraSystem, type ViewMode } from '../input/CameraSystem';
 import { InputSystem, type PadCommand } from '../input/InputSystem';
@@ -77,6 +80,7 @@ export type EngineOptions = {
   storage: ChunkStorage | null;
   bridge: EngineBridge;
   settings: { visualMode: VisualModeId; timeMode: TimeMode; weather: WeatherMode; timeOfDay?: number; look?: Partial<PlayerLook> };
+  audio?: Partial<AudioSettings>;
   /** Pets, villagers, and vehicles saved with the world. */
   entities?: StoredEntity[] | null;
   /** Smaller radius for tests and slow machines. */
@@ -109,6 +113,7 @@ export class Engine {
   readonly history: CommandHistory;
   readonly build: BuildTools;
   readonly logic: LogicSystem;
+  readonly audio = new AudioSystem();
   readonly tools = new ToolRegistry();
   readonly generator: WorldGenerator;
   readonly player: PlayerController;
@@ -129,6 +134,8 @@ export class Engine {
   readonly spawn: { x: number; y: number; z: number };
   /** Set by tools: the engine walks the player toward this point. */
   autoWalk: { x: number; z: number } | null = null;
+  /** The app persists sound settings changed through tools. */
+  onAudioSettings: ((settings: AudioSettings) => void) | null = null;
 
   private atlas: TextureAtlas;
   private chunkRenderer: ChunkRenderer;
@@ -190,10 +197,19 @@ export class Engine {
       return boxes;
     };
     this.logic.onEvent((event) => {
-      if (event.kind === 'note') this.particles.burst(event.x, event.y + 1, event.z, '#ffd94a', 6, 0.4);
-      if (event.kind === 'piston') this.particles.burst(event.x, event.y, event.z, '#9aa2ab', 6, 0.5);
+      if (event.kind === 'note') {
+        this.particles.burst(event.x, event.y + 1, event.z, '#ffd94a', 6, 0.4);
+        this.audio.playNote(event.pitch);
+      }
+      if (event.kind === 'piston') {
+        this.particles.burst(event.x, event.y, event.z, '#9aa2ab', 6, 0.5);
+        this.audio.play('piston');
+      }
       bridge.onLogicEvent?.(event);
     });
+    if (options.audio) this.audio.setSettings(options.audio);
+    // Audio may only start from a user gesture; the first tap on the world is one.
+    this.renderer.domElement.addEventListener('pointerdown', () => void this.audio.start(), { passive: true });
     this.clouds = new CloudLayer(this.scene, options.generator.seed);
 
     this.chunks = new ChunkManager(this.world, this.generator, lighting, mesher, options.storage, {
@@ -230,10 +246,12 @@ export class Engine {
         if (!entity) return false;
         if (entity.vehicle) {
           this.entities.mount(entity);
+          this.audio.play('vroom');
           bridge.toast(entity.variant === 'boat' ? '⛵ All aboard! Tap the boat again to hop off.' : '🚗 Vroom! Tap the car again to hop out.');
           return true;
         }
         this.entities.pet(entity);
+        this.audio.play('happy');
         this.particles.burst(entity.x, entity.y + 0.6, entity.z, '#ffd94a', 10, 0.6);
         if (entity.kind === 'pet' || entity.kind === 'villager' || entity.kind === 'robot') bridge.onEntityTapped?.({ id: entity.id, kind: entity.kind, name: entity.name, variant: entity.variant });
         else bridge.onPet(entity.kind, entity.name);
@@ -241,8 +259,14 @@ export class Engine {
       },
       perform: (action, payload) => this.perform(action, payload),
       spawn: (spec, x, y, z) => this.spawnFromCard(spec, x, y, z),
-      onBlockPlaced: (def, x, y, z) => this.particles.burst(x, y, z, def.color, 10, 0.4),
-      onBlockRemoved: (def, x, y, z) => this.particles.burst(x, y, z, def.color, 16, 0.7),
+      onBlockPlaced: (def, x, y, z) => {
+        this.particles.burst(x, y, z, def.color, 10, 0.4);
+        this.audio.play('place', def.category === 'ground' ? -5 : def.category === 'light' ? 7 : 0);
+      },
+      onBlockRemoved: (def, x, y, z) => {
+        this.particles.burst(x, y, z, def.color, 16, 0.7);
+        this.audio.play('remove');
+      },
     }, this.build);
     this.ghost = new GhostPreview(this.scene, registry, this.interaction.state, () => bridge.getSelectedBlockId());
 
@@ -267,6 +291,8 @@ export class Engine {
       .add(this.particles)
       .add(this.clouds)
       .add(this.environment)
+      .add(this.audio)
+      .add({ name: 'mood', update: (_dt, elapsed) => this.updateMood(elapsed) })
       .add({ name: 'render', update: () => this.render() });
 
     this.disposeTools = exposeTools(this.tools);
@@ -372,8 +398,17 @@ export class Engine {
     }
   }
 
+  private lastMoodAt = -10;
+  private updateMood(elapsed: number): void {
+    if (elapsed - this.lastMoodAt < 2) return;
+    this.lastMoodAt = elapsed;
+    const biome = this.generator instanceof InfiniteGenerator ? this.generator.biomeOf(Math.round(this.player.x), Math.round(this.player.z)) : 'meadow';
+    this.audio.setMood(biome, this.environment.time);
+  }
+
   private updatePlayer(dt: number): void {
     const f = this.input.frame;
+    const wasOnGround = this.player.onGround;
     if (this.entities.mounted) {
       this.entities.driveInput = { forward: f.forward, back: f.back, left: f.left, right: f.right };
       if (f.pressed.has(' ')) this.entities.dismount();
@@ -381,6 +416,8 @@ export class Engine {
     }
     this.entities.driveInput = null;
     this.player.update(dt, f, this.camera.yaw);
+    if (this.player.moving && (this.player.onGround || this.player.inWater)) this.audio.step(this.loopElapsed(), this.player.inWater);
+    if (wasOnGround && !this.player.onGround && this.player.vy > 0) this.audio.play('jump');
   }
 
   private perform(action: string, payload: unknown): void {
@@ -390,13 +427,16 @@ export class Engine {
     switch (action) {
       case 'sit':
         this.player.sitAt(x, y, z);
+        this.audio.play('pop');
         this.options.bridge.toast('Ahh, comfy! Move to get up. 🪑');
         break;
       case 'cook':
+        this.audio.play('sizzle');
         this.particles.burst(x, y + 0.7, z, '#ffb03c', 18, 0.5);
         this.options.bridge.toast('Sizzle sizzle! 🍳 Dinner is ready!');
         break;
       case 'splash':
+        this.audio.play('splash');
         this.particles.burst(x, y + 0.6, z, '#7cc2f2', 16, 0.5);
         this.options.bridge.toast('Splish splash! 🚰');
         break;
@@ -404,9 +444,14 @@ export class Engine {
       case 'switch_on':
       case 'switch_off':
       case 'click':
+        this.audio.play('switch');
         this.particles.burst(x, y, z, '#fff3b0', 8, 0.5);
         break;
+      case 'door':
+        this.audio.play('door', (payload as { open?: boolean }).open ? 0 : -5);
+        break;
       case 'press_button':
+        this.audio.play('click');
         this.logic.pressButton(x, y, z);
         this.particles.burst(x, y, z, '#fff3b0', 6, 0.4);
         break;
@@ -455,6 +500,7 @@ export class Engine {
     if (!entity || entity.kind !== 'villager') return null;
     const reply = this.entities.talk(entity, choice);
     if (reply.gift !== undefined) {
+      this.audio.play('gift');
       this.options.bridge.onGift?.(reply.gift, reply.giftLabel ?? 'a gift');
       this.particles.burst(entity.x, entity.y + 1.2, entity.z, '#ffd94a', 20, 0.6);
     }
@@ -467,6 +513,7 @@ export class Engine {
     const def = recipe ? resolveBlockId(recipe.result) : undefined;
     if (!recipe || !def) return false;
     this.particles.burst(this.player.x, this.player.y + 1.4, this.player.z, def.color, 24, 1);
+    this.audio.play('craft');
     this.options.bridge.onCrafted?.(def.numericId, def.label, recipe.count);
     return true;
   }

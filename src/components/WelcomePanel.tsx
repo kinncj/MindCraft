@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { blockIconDataUrl } from '../game/blockIcons';
 import { KidButton } from './KidButton';
+import { getEngine } from '../game/engineRef';
 
 const FLOATING: Array<{ type: string; left: string; delay: string; size: string }> = [
   { type: 'grass', left: '8%', delay: '0s', size: '3.2rem' },
@@ -64,7 +65,15 @@ export function WelcomePanel() {
             <span aria-hidden="true">💾</span> Your world is saved here, on this computer
           </li>
         </ul>
-        <KidButton tone="primary" className="splash-play" onClick={() => setDismissed(true)} autoFocus>
+        <KidButton
+          tone="primary"
+          className="splash-play"
+          onClick={() => {
+            void getEngine()?.audio.start();
+            setDismissed(true);
+          }}
+          autoFocus
+        >
           Let&apos;s build! 🚀
         </KidButton>
         <p className="splash-version">MindCraft 2.0 — no internet needed, everything stays here</p>

@@ -30,6 +30,8 @@ export function App() {
   const undo = useGameStore((state) => state.undo);
   const redo = useGameStore((state) => state.redo);
   const controllerActive = useGameStore((state) => state.controllerActive);
+  const audio = useGameStore((state) => state.audio);
+  const setAudio = useGameStore((state) => state.setAudio);
   const init = useGameStore((state) => state.init);
 
   useEffect(() => {
@@ -95,6 +97,7 @@ export function App() {
 
       <div className="side-actions">
         <IconButton emoji={viewMode === 'third' ? '👀' : '🧍'} label="Change camera view" onClick={toggleViewMode} />
+        <IconButton emoji={audio.muted ? '🔇' : '🔊'} label={audio.muted ? 'Unmute sound' : 'Mute sound'} onClick={() => setAudio({ muted: !audio.muted })} />
       </div>
 
       {(viewMode === 'first' || controllerActive) && (
