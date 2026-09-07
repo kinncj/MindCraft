@@ -1,7 +1,38 @@
 import type { BlockRegistry } from '../blocks/registry';
 import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
 
-export type FurnitureItem = { id: number; state?: number };
+export type FurnitureItem = { id: number; state?: number; /** Something on top (a TV on a table). */ on?: number };
+
+export type FeatureKind = 'court' | 'playground' | 'pool' | 'garden' | 'parking' | 'fountain' | 'fence';
+
+/** Footprints of the outdoor features. */
+export const FEATURE_SIZE: Record<FeatureKind, { w: number; d: number }> = {
+  court: { w: 13, d: 9 },
+  playground: { w: 11, d: 9 },
+  pool: { w: 9, d: 7 },
+  garden: { w: 9, d: 7 },
+  parking: { w: 11, d: 7 },
+  fountain: { w: 7, d: 7 },
+  fence: { w: 1, d: 1 },
+};
+
+/** Blocks the features are made of. */
+export type FeatureKit = {
+  courtFloor: number;
+  courtLine: number;
+  fence: number;
+  sand: number;
+  planks: number;
+  ladder: number;
+  stairs: number;
+  slab: number;
+  poolRim: number;
+  water: number;
+  grass: number;
+  flowers: number[];
+  parkingFloor: number;
+  lamp: number | null;
+};
 
 export type HouseOptions = {
   width: number;
@@ -34,6 +65,13 @@ export type HouseOptions = {
   sign: 'cross' | null;
   /** Flag bitmap rows (block ids, 0 = gap), top row first; null for no flag. */
   flag: number[][] | null;
+  /** Rooms in order (classroom ×6, computer room ×1...). */
+  roomPlan: Array<{ purpose: string; count: number }>;
+  /** Furniture per room purpose. */
+  purposeFurniture: Record<string, FurnitureItem[]>;
+  /** Outdoor features placed around the building. */
+  features: FeatureKind[];
+  kit: FeatureKit;
   /** Colour blocks for pillars and roof when colourful. */
   palette: number[];
 }
@@ -288,24 +326,39 @@ export class BuildTools {
       }
     }
     // Rooms: big floors get a corridor down the middle with rooms on both sides.
+    // Each room gets a purpose from the plan (classroom, computer room, ward...) and its furniture.
     const roomy = opts.rooms && width >= 11 && depth >= 9;
+    const roomRects: Array<{ x0: number; x1: number; z0: number; z1: number; base: number }> = [];
     if (roomy) {
+      const corridorZ0 = z - 1;
+      const corridorZ1 = z + 1;
       for (let f = 0; f < floors; f++) {
         const base = groundY + f * storey;
-        const corridorZ0 = z - 1;
-        const corridorZ1 = z + 1;
+        const walls: number[] = [];
         for (let px = x0 + 4; px < x1 - 1; px += 4) {
+          walls.push(px);
           for (let pz = z0 + 1; pz < z1; pz++) {
             if (pz >= corridorZ0 && pz <= corridorZ1) continue;
             for (let h = 1; h < storey; h++) put(px, base + h, pz, opts.wall);
-            // A doorway from the corridor into each room.
-            if (pz === corridorZ0 - 1 || pz === corridorZ1 + 1) {
-              put(px, base + 1, pz, air);
-              put(px, base + 2, pz, air);
-            }
           }
         }
-        // Room doors face the corridor: openings in the corridor walls are the whole corridor side.
+        // Corridor walls with a doorway into every room.
+        const edges = [x0, ...walls, x1];
+        for (let i = 0; i + 1 < edges.length; i++) {
+          const rx0 = edges[i] + 1;
+          const rx1 = edges[i + 1] - 1;
+          if (rx1 - rx0 < 1) continue;
+          const doorAt = Math.floor((rx0 + rx1) / 2);
+          for (const [rz0, rz1, wallZ] of [[z0 + 1, corridorZ0 - 2, corridorZ0 - 1], [corridorZ1 + 2, z1 - 1, corridorZ1 + 1]] as const) {
+            if (rz1 - rz0 < 1) continue;
+            for (let px = rx0; px <= rx1; px++) {
+              for (let h = 1; h < storey; h++) put(px, base + h, wallZ, px === doorAt && h <= 2 ? air : opts.wall);
+            }
+            // Keep the staircase corner free of a room on the back side.
+            const stairsHere = f < floors - 1 && rz1 >= z1 - 3 && rx0 <= x0 + 2 + storey;
+            roomRects.push({ x0: rx0, x1: rx1, z0: rz0, z1: stairsHere ? rz1 - 2 : rz1, base });
+          }
+        }
       }
     }
     // Staircases: one flight per floor along the back wall, rising toward +x, with a hole above.
@@ -325,8 +378,25 @@ export class BuildTools {
       }
       // The top step sits in the slab; the headroom cuts carve the way up onto the next floor.
     }
-    // Furniture that fits the building.
-    if (opts.furnish) {
+    // Furniture: each room by its purpose when there is a plan, otherwise along the walls.
+    if (opts.furnish && roomRects.length > 0) {
+      const plan: string[] = [];
+      for (const r of opts.roomPlan) for (let n = 0; n < r.count; n++) plan.push(r.purpose);
+      roomRects.forEach((room, i) => {
+        const purpose = plan[i];
+        const set = purpose ? (opts.purposeFurniture[purpose] ?? opts.furniture) : opts.furniture;
+        if (set.length === 0) return;
+        let n = 0;
+        for (let pz = room.z0; pz <= room.z1; pz += 2) {
+          for (let px = room.x0; px <= room.x1; px += 2) {
+            if (px === Math.floor((room.x0 + room.x1) / 2) && (pz === room.z0 || pz === room.z1)) continue; // leave the doorway free
+            const item = set[n++ % set.length];
+            put(px, room.base + 1, pz, item.id, item.state ?? 0);
+            if (item.on !== undefined) put(px, room.base + 2, pz, item.on);
+          }
+        }
+      });
+    } else if (opts.furnish) {
       const perFloor = opts.furniture;
       for (let f = 0; f < floors; f++) {
         const base = groundY + f * storey;
@@ -392,7 +462,124 @@ export class BuildTools {
         }
       }
     }
+    // Outdoor features, laid out around the building: right, then left, then behind.
+    const slots = [
+      { x: x1 + 4, z: z0, dir: 1 },
+      { x: x0 - 4, z: z0, dir: -1 },
+      { x: x0, z: z1 + 4, dir: 0 },
+      { x: x1 + 4, z: z1 + 4, dir: 1 },
+    ];
+    let slot = 0;
+    for (const feature of opts.features) {
+      const at = slots[slot++ % slots.length];
+      const size = FEATURE_SIZE[feature];
+      const fx0 = at.dir === 1 ? at.x : at.dir === -1 ? at.x - size.w + 1 : at.x;
+      const fz0 = at.z;
+      this.planFeature(feature, fx0, groundY, fz0, size.w, size.d, opts, put);
+      if (at.dir === 0) at.x += size.w + 3;
+      else at.z += size.d + 3;
+    }
     return [...cells.values()];
+  }
+
+  /** A sports court, playground, pool, garden, car park, fountain, or fence, at ground level. */
+  private planFeature(feature: FeatureKind, fx0: number, groundY: number, fz0: number, w: number, d: number, opts: HouseOptions, put: (x: number, y: number, z: number, id: number, state?: number) => void): void {
+    const fx1 = fx0 + w - 1;
+    const fz1 = fz0 + d - 1;
+    const k = opts.kit;
+    const clear = (x: number, z: number, height: number): void => {
+      for (let h = 1; h <= height; h++) put(x, groundY + h, z, 0);
+    };
+    const flat = (id: number): void => {
+      for (let x = fx0; x <= fx1; x++) for (let z = fz0; z <= fz1; z++) {
+        put(x, groundY, z, id);
+        clear(x, z, 3);
+      }
+    };
+    switch (feature) {
+      case 'court': {
+        flat(k.courtFloor);
+        const midX = Math.floor((fx0 + fx1) / 2);
+        for (let z = fz0; z <= fz1; z++) put(midX, groundY, z, k.courtLine);
+        for (let x = fx0; x <= fx1; x++) for (const z of [fz0, fz1]) put(x, groundY, z, k.courtLine);
+        for (let z = fz0; z <= fz1; z++) for (const x of [fx0, fx1]) put(x, groundY, z, k.courtLine);
+        // Goals at both ends and a low fence around.
+        for (const x of [fx0, fx1]) for (let dz = -1; dz <= 1; dz++) for (let h = 1; h <= 2; h++) put(x, groundY + h, Math.floor((fz0 + fz1) / 2) + dz, k.fence);
+        for (let x = fx0 - 1; x <= fx1 + 1; x++) for (const z of [fz0 - 1, fz1 + 1]) put(x, groundY + 1, z, k.fence);
+        for (let z = fz0 - 1; z <= fz1 + 1; z++) for (const x of [fx0 - 1, fx1 + 1]) put(x, groundY + 1, z, k.fence);
+        break;
+      }
+      case 'playground': {
+        flat(k.sand);
+        // A climbing frame: a small tower with a ladder and a slide of stairs down one side.
+        const tx = fx0 + 2;
+        const tz = fz0 + 2;
+        for (let h = 1; h <= 3; h++) for (let dx = 0; dx <= 2; dx++) for (let dz = 0; dz <= 2; dz++) {
+          const edge = dx === 0 || dx === 2 || dz === 0 || dz === 2;
+          if (edge && (dx + dz) % 2 === 0) put(tx + dx, groundY + h, tz + dz, opts.palette[(dx + dz + h) % opts.palette.length]);
+        }
+        for (let dx = 0; dx <= 2; dx++) for (let dz = 0; dz <= 2; dz++) put(tx + dx, groundY + 4, tz + dz, k.planks);
+        for (let h = 1; h <= 4; h++) put(tx - 1, groundY + h, tz + 1, k.ladder);
+        for (let i = 0; i < 4; i++) put(tx + 3 + i, groundY + 4 - i, tz + 1, k.stairs, opts.stairRotation);
+        for (let dx = 0; dx <= 2; dx++) for (let dz = 0; dz <= 2; dz++) put(tx + dx, groundY + 5, tz + dz, 0);
+        // Swings: a frame with two seats.
+        const sx = fx0 + 2;
+        const sz = fz1 - 2;
+        for (const x of [sx, sx + 5]) for (let h = 1; h <= 3; h++) put(x, groundY + h, sz, k.fence);
+        for (let x = sx; x <= sx + 5; x++) put(x, groundY + 4, sz, k.planks);
+        for (const x of [sx + 2, sx + 3]) {
+          put(x, groundY + 3, sz, k.fence);
+          put(x, groundY + 2, sz, k.slab);
+        }
+        // A sandpit rim and a flower or two.
+        for (let x = fx0; x <= fx1; x++) for (const z of [fz0 - 1, fz1 + 1]) put(x, groundY + 1, z, k.fence);
+        for (let z = fz0; z <= fz1; z++) for (const x of [fx0 - 1, fx1 + 1]) put(x, groundY + 1, z, k.fence);
+        break;
+      }
+      case 'pool': {
+        for (let x = fx0; x <= fx1; x++) for (let z = fz0; z <= fz1; z++) {
+          const rim = x === fx0 || x === fx1 || z === fz0 || z === fz1;
+          put(x, groundY, z, rim ? k.poolRim : k.water);
+          put(x, groundY - 1, z, rim ? k.poolRim : k.water);
+          put(x, groundY - 2, z, k.poolRim);
+          clear(x, z, 3);
+        }
+        break;
+      }
+      case 'garden': {
+        flat(k.grass);
+        let i = 0;
+        for (let x = fx0; x <= fx1; x++) for (let z = fz0; z <= fz1; z++) {
+          if ((x + z) % 2 === 0) put(x, groundY + 1, z, k.flowers[i++ % k.flowers.length]);
+        }
+        for (let x = fx0 - 1; x <= fx1 + 1; x++) for (const z of [fz0 - 1, fz1 + 1]) put(x, groundY + 1, z, k.fence);
+        for (let z = fz0 - 1; z <= fz1 + 1; z++) for (const x of [fx0 - 1, fx1 + 1]) put(x, groundY + 1, z, k.fence);
+        break;
+      }
+      case 'parking': {
+        flat(k.parkingFloor);
+        for (let x = fx0 + 1; x < fx1; x += 3) for (let z = fz0; z <= fz1; z++) put(x, groundY, z, k.courtLine);
+        for (let x = fx0; x <= fx1; x++) put(x, groundY + 1, fz1 + 1, k.lamp ?? k.fence);
+        break;
+      }
+      case 'fountain': {
+        flat(k.poolRim);
+        const cx = Math.floor((fx0 + fx1) / 2);
+        const cz = Math.floor((fz0 + fz1) / 2);
+        for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
+          const ring = Math.max(Math.abs(dx), Math.abs(dz)) === 2;
+          put(cx + dx, groundY + 1, cz + dz, ring ? k.poolRim : k.water);
+        }
+        for (let h = 1; h <= 3; h++) put(cx, groundY + h, cz, k.poolRim);
+        put(cx, groundY + 4, cz, k.water);
+        break;
+      }
+      case 'fence': {
+        for (let x = fx0; x <= fx1; x++) for (const z of [fz0, fz1]) put(x, groundY + 1, z, k.fence);
+        for (let z = fz0; z <= fz1; z++) for (const x of [fx0, fx1]) put(x, groundY + 1, z, k.fence);
+        break;
+      }
+    }
   }
 
   planShape(shape: string, x: number, y: number, z: number, id: number, size = 5): BlockEdit[] {

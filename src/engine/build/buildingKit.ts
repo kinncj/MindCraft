@@ -3,7 +3,7 @@ import type { BlockRegistry } from '../blocks/registry';
 import { resolveBlockId } from '../blocks/blocks';
 import { SHAPES } from '../blocks/shapes';
 import { DIR_PX } from '../world/coords';
-import type { FurnitureItem, HouseOptions } from './BuildTools';
+import type { FeatureKind, FeatureKit, FurnitureItem, HouseOptions } from './BuildTools';
 
 /**
  * Everything the building generator needs beyond the kid's words: which
@@ -26,6 +26,8 @@ export type BuildingArgs = {
   flag?: string | null;
   rooms?: boolean;
   flatRoof?: boolean;
+  roomPlan?: Array<{ purpose: string; count: number }>;
+  features?: string[];
 };
 
 const FURNITURE: Record<string, string[]> = {
@@ -59,6 +61,26 @@ const FLAG_ART: Record<string, { rows: string[]; colors: Record<string, string> 
   rainbow: { rows: ['RRRRRRRRRRRR', 'OOOOOOOOOOOO', 'YYYYYYYYYYYY', 'GGGGGGGGGGGG', 'BBBBBBBBBBBB', 'PPPPPPPPPPPP', 'KKKKKKKKKKKK'], colors: { R: 'color_red', O: 'color_orange', Y: 'color_yellow', G: 'color_green', B: 'color_blue', P: 'color_purple', K: 'color_pink' } },
 };
 
+/** Furniture per room purpose; a pair stacks something on top (a screen on a desk). */
+const ROOM_FURNITURE: Record<string, Array<string | [string, string]>> = {
+  classroom: ['table', 'chair', 'table', 'chair', 'bookshelf', 'table', 'chair', 'table', 'chair'],
+  'computer room': [['table', 'tv'], ['table', 'tv'], 'chair', ['table', 'tv'], 'chair', ['table', 'tv']],
+  library: ['bookshelf', 'bookshelf', 'table', 'chair', 'bookshelf', 'bookshelf'],
+  canteen: ['table', 'chair', 'cake', 'table', 'chair', 'fridge', 'stove', 'sink'],
+  gym: ['fence', 'hay', 'fence'],
+  office: ['table', 'chair', 'painting', 'bookshelf'],
+  ward: ['bed', 'bed', 'table', 'chair', 'flower_pot'],
+  bedroom: ['bed', 'table', 'painting', 'flower_pot'],
+  lab: ['table', 'glow_crystal', 'table', 'chair', 'bookshelf'],
+  kitchen: ['stove', 'fridge', 'sink', 'table', 'cake'],
+  'living room': ['tv', 'chair', 'chair', 'table', 'painting', 'flower_pot'],
+  bathroom: ['sink', 'flower_pot'],
+  shop: ['bookshelf', 'table', 'cake', 'fridge'],
+  room: ['table', 'chair', 'bookshelf'],
+};
+
+export const FEATURE_KINDS: FeatureKind[] = ['court', 'playground', 'pool', 'garden', 'parking', 'fountain', 'fence'];
+
 export function flagNames(): string[] {
   return Object.keys(FLAG_ART);
 }
@@ -86,6 +108,31 @@ export function houseOptions(registry: BlockRegistry, a: BuildingArgs): HouseOpt
   const type = a.type ?? (castle ? 'castle' : 'house');
   const wall = id(a.wall, castle ? 'stone_bricks' : 'planks');
   const furniture: FurnitureItem[] = (FURNITURE[type] ?? FURNITURE.house).filter((n) => registry.has(n)).map((n) => ({ id: registry.numericOf(n) }));
+  const purposeFurniture: Record<string, FurnitureItem[]> = {};
+  for (const [purpose, items] of Object.entries(ROOM_FURNITURE)) {
+    purposeFurniture[purpose] = items
+      .map((it) => (typeof it === 'string' ? { base: it, on: undefined } : { base: it[0], on: it[1] }))
+      .filter((it) => registry.has(it.base))
+      .map((it) => ({ id: registry.numericOf(it.base), on: it.on && registry.has(it.on) ? registry.numericOf(it.on) : undefined }));
+  }
+  const kit: FeatureKit = {
+    courtFloor: registry.numericOf('color_green'),
+    courtLine: registry.numericOf('color_white'),
+    fence: id('fence', 'wood'),
+    sand: registry.numericOf('sand'),
+    planks: registry.numericOf('planks'),
+    ladder: id('ladder', 'planks'),
+    stairs: id('planks_stairs', 'planks'),
+    slab: id('planks_slab', 'planks'),
+    poolRim: id('stone_bricks', 'stone'),
+    water: registry.numericOf('water'),
+    grass: registry.numericOf('grass'),
+    flowers: ['flower_pink', 'flower_yellow', 'flower_blue', 'flower_red'].filter((n) => registry.has(n)).map((n) => registry.numericOf(n)),
+    parkingFloor: id('stone', 'cobblestone'),
+    lamp: maybe('lantern'),
+  };
+  const roomPlan = (a.roomPlan ?? []).filter((r) => r.count > 0);
+  const features = (a.features ?? []).filter((f): f is FeatureKind => (FEATURE_KINDS as string[]).includes(f));
   const flatRoof = a.flatRoof ?? (type === 'skyscraper' || type === 'hospital' || type === 'firestation');
   return {
     width: a.width ?? 7,
@@ -108,9 +155,13 @@ export function houseOptions(registry: BlockRegistry, a: BuildingArgs): HouseOpt
     colorful: a.colorful === true,
     castle,
     flatRoof,
-    rooms: a.rooms ?? (type !== 'house' && type !== 'castle' && type !== 'barn'),
-    furnish: a.furnish === true,
+    rooms: a.rooms ?? (roomPlan.length > 0 || (type !== 'house' && type !== 'castle' && type !== 'barn')),
+    furnish: a.furnish === true || roomPlan.length > 0,
     furniture,
+    roomPlan,
+    purposeFurniture,
+    features,
+    kit,
     sign: a.sign ?? null,
     flag: a.flag ? flagRows(registry, a.flag) : null,
     palette: ['color_red', 'color_orange', 'color_yellow', 'color_green', 'color_blue', 'color_purple', 'color_pink'].map((c) => registry.numericOf(c)),

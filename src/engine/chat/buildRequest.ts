@@ -25,6 +25,10 @@ export type BuildSpec = {
   flag: string | null;
   /** Villagers to spawn beside the building. */
   people: Array<{ job: string; name?: string; count: number }>;
+  /** Rooms in order, with purposes. */
+  rooms: Array<{ purpose: string; count: number }>;
+  /** Outdoor features around the building. */
+  features: string[];
   /** Words for the reply. */
   label: string;
 };
@@ -90,6 +94,31 @@ const PEOPLE_WORDS: Array<[RegExp, string, string | undefined]> = [
   [/\b(builders?|workers?)\b/, 'builder', undefined],
   [/\b(musicians?|singers?|band)\b/, 'musician', undefined],
   [/\b(people|villagers|neighbou?rs|friends|family)\b/, 'random', undefined],
+];
+
+const ROOM_WORDS: Array<[RegExp, string]> = [
+  [/\b(class ?rooms?|classes)\b/, 'classroom'],
+  [/\b(computer (rooms?|labs?)|it rooms?|pc rooms?)\b/, 'computer room'],
+  [/\b(librar(y|ies))\b/, 'library'],
+  [/\b(canteens?|cafeterias?|dining (rooms?|halls?)|lunch ?rooms?)\b/, 'canteen'],
+  [/\b(gyms?|gymnasiums?|sports? halls?)\b/, 'gym'],
+  [/\b(offices?|staff ?rooms?|reception)\b/, 'office'],
+  [/\b(wards?|patient rooms?|surgery rooms?|operating rooms?)\b/, 'ward'],
+  [/\b(bedrooms?|guest rooms?|hotel rooms?)\b/, 'bedroom'],
+  [/\b(labs?|laborator(y|ies)|science rooms?)\b/, 'lab'],
+  [/\b(kitchens?)\b/, 'kitchen'],
+  [/\b(living rooms?|lounges?)\b/, 'living room'],
+  [/\b(bathrooms?|toilets?|restrooms?)\b/, 'bathroom'],
+];
+
+const FEATURE_WORDS: Array<[RegExp, string]> = [
+  [/\b(sports? (courts?|fields?|grounds?)|football (pitch|field)|soccer (pitch|field)|basketball courts?|tennis courts?|playing fields?|courts?)\b/, 'court'],
+  [/\b(playgrounds?|play ?structures?|play ?areas?|slides?|swings?|climbing frames?|jungle gyms?)\b/, 'playground'],
+  [/\b(swimming pools?|pools?)\b/, 'pool'],
+  [/\b(gardens?|flower ?beds?)\b/, 'garden'],
+  [/\b(parking( lot)?|car ?park)\b/, 'parking'],
+  [/\b(fountains?)\b/, 'fountain'],
+  [/\b(fenced?|fence around|wall around)\b/, 'fence'],
 ];
 
 const FLAGS: Array<[RegExp, string]> = [
@@ -172,6 +201,24 @@ export function parseBuildRequest(raw: string): BuildSpec | null {
   }
   if (people.length === 0 && /\b(with|and)\b/.test(text) === false) people.push(...d.people);
   else if (people.length === 0) people.push(...d.people);
+  // Rooms with purposes and counts ("6 classrooms, a computer room").
+  const rooms: BuildSpec['rooms'] = [];
+  for (const [pattern, purpose] of ROOM_WORDS) {
+    if (!pattern.test(text)) continue;
+    const m = new RegExp(`\\b(a|an|one|two|three|four|five|six|seven|eight|nine|ten|\\d{1,2})\\s+(?:\\w+\\s+){0,2}?(?:${pattern.source.slice(2, -2)})`).exec(text);
+    const count = m ? (NUMBER_WORDS[m[1]] ?? Number(m[1]) ?? 1) : 1;
+    rooms.push({ purpose, count: Math.max(1, Math.min(24, count)) });
+  }
+  const features: string[] = [];
+  for (const [pattern, feature] of FEATURE_WORDS) if (pattern.test(text) && !features.includes(feature)) features.push(feature);
+  // Grow the building until the rooms fit: two rooms per 4-block section per floor.
+  const wanted = rooms.reduce((n, r) => n + r.count, 0);
+  if (wanted > 0) {
+    const perFloor = (w: number): number => 2 * Math.floor((w - 3) / 4);
+    if (depth < 13) depth = 13; // rooms three deep hold real furniture
+    while (perFloor(width) * floors < wanted && width < 25) width += 4;
+    while (perFloor(width) * floors < wanted && floors < 10) floors += 1;
+  }
   let flag: string | null = null;
   if (/\bflag\b/.test(text)) {
     for (const [pattern, name] of FLAGS) if (pattern.test(text)) flag = name;
@@ -181,7 +228,7 @@ export function parseBuildRequest(raw: string): BuildSpec | null {
   const sizeWord = huge ? 'massive' : big ? 'big' : small ? 'little' : '';
   const noun = type === 'house' ? (/\bmansion\b/.test(text) ? 'mansion' : /\bpalace\b/.test(text) ? 'palace' : /\bcottage\b/.test(text) ? 'cottage' : 'house') : type === 'firestation' ? 'fire station' : type;
   const label = [sizeWord, colorful ? 'colourful' : '', materialWord, noun].filter(Boolean).join(' ');
-  return { kind: type === 'castle' ? 'castle' : 'house', type, width, depth, floors, wall, roof, trim, colorful, furnish, sign: d.sign, flag, people, label };
+  return { kind: type === 'castle' ? 'castle' : 'house', type, width, depth, floors, wall, roof, trim, colorful, furnish: furnish || rooms.length > 0, sign: d.sign, flag, people, rooms, features, label };
 }
 
 import type { ChatAction, ChatContext } from './types';
@@ -197,6 +244,7 @@ export function buildActionsFor(spec: BuildSpec, ctx: ChatContext): ChatAction[]
         type: spec.type, width: spec.width, depth: spec.depth, floors: spec.floors,
         wall: spec.wall, roof: spec.roof, trim: spec.trim, colorful: spec.colorful, castle: spec.kind === 'castle',
         furnish: spec.furnish, sign: spec.sign, flag: spec.flag,
+        roomPlan: spec.rooms, features: spec.features,
       },
     },
   ];

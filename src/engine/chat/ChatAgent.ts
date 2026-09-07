@@ -218,6 +218,8 @@ export class ChatAgent {
           furnish: a.furnish === true,
           sign: a.sign === 'cross' ? 'cross' : null,
           flag: str(a.flag) ?? null,
+          roomPlan: Array.isArray(a.roomPlan) ? (a.roomPlan as Array<{ purpose: string; count: number }>).filter((r) => r && typeof r.purpose === 'string' && typeof r.count === 'number') : undefined,
+          features: Array.isArray(a.features) ? (a.features as unknown[]).filter((f): f is string => typeof f === 'string') : undefined,
         });
         const what = str(a.type) ?? (opts.castle ? 'castle' : 'house');
         return { label: `Build a ${what}`, edits: this.deps.build.planHouse(num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), opts) };

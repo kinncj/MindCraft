@@ -136,3 +136,32 @@ describe('the words win over a model that copies its example', () => {
     expect(ben.work!.edits.some((e) => e.id === blocks.numericOf('color_pink'))).toBe(false);
   });
 });
+
+describe('a whole campus from one sentence', () => {
+  const sentence = 'build me a school with 6 classrooms, a computer room, a sports court, and students and teachers, and a playground with playstructure';
+  it('reads rooms with counts, outdoor features, and people, and sizes the school to fit', () => {
+    const spec = parseBuildRequest(sentence)!;
+    expect(spec.type).toBe('school');
+    expect(spec.rooms).toEqual([{ purpose: 'classroom', count: 6 }, { purpose: 'computer room', count: 1 }]);
+    expect(spec.features).toEqual(['court', 'playground']);
+    expect(spec.people.map((p) => p.job).sort()).toEqual(['random', 'teacher']);
+    const capacity = 2 * Math.floor((spec.width - 3) / 4) * spec.floors;
+    expect(capacity).toBeGreaterThanOrEqual(7);
+    expect(spec.furnish).toBe(true);
+  });
+
+  it('builds seven rooms with the right furniture, a court with goals, and a playground with a slide and swings', () => {
+    const world = flat();
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    const spec = parseBuildRequest(sentence)!;
+    const edits = build.planHouse(8, 3, 8, houseOptions(blocks, { type: spec.type, width: spec.width, depth: spec.depth, floors: spec.floors, wall: spec.wall, trim: spec.trim, furnish: true, roomPlan: spec.rooms, features: spec.features }));
+    const count = (name: string) => edits.filter((e) => e.id === blocks.numericOf(name)).length;
+    expect(count('tv')).toBeGreaterThanOrEqual(3); // the computer room's screens
+    expect(count('table')).toBeGreaterThan(20); // desks in six classrooms
+    expect(count('color_green')).toBeGreaterThan(60); // the court, minus its lines
+    expect(count('ladder')).toBeGreaterThanOrEqual(4); // the climbing frame
+    expect(count('sand')).toBeGreaterThan(60); // the playground sandpit
+    expect(count('fence')).toBeGreaterThan(20); // goals, swings, rims
+    expect(count('planks_stairs')).toBeGreaterThanOrEqual(4 + 4); // the slide and the staircase
+  });
+});
