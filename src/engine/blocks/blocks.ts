@@ -155,6 +155,17 @@ const noteBehavior: BlockBehavior = {
   },
 };
 
+/** Pistons face the player sideways, or up/down when placed while looking steeply down/up. */
+const pistonBehavior: BlockBehavior = {
+  onPlace: (ctx) => {
+    const state = BlockState.withRotation(0, ctx.playerRotation);
+    const pitch = ctx.playerPitch ?? 0;
+    if (pitch > 0.85) return BlockState.withVariant(state, 1); // looking down: piston points up at you
+    if (pitch < -0.85) return BlockState.withVariant(state, 2);
+    return state;
+  },
+};
+
 const craftingBehavior: BlockBehavior = {
   onPlace: (ctx) => BlockState.withRotation(0, ctx.playerRotation),
   onInteract: (ctx) => {
@@ -263,8 +274,8 @@ const DEFINITIONS: BlockDefinitionInput[] = [
   { id: 'wire', numericId: 124, label: 'Wire', category: 'special', emoji: '🔴', color: '#8a1f18', shape: 'flat', collision: 'none', bucket: 'alpha', textures: { top: 'wire', side: 'wire', bottom: 'wire' }, variants: { 1: { top: 'wire_on', side: 'wire_on', bottom: 'wire_on' } }, logic: { role: 'wire', kind: 'wire' } },
   { id: 'logic_lamp', numericId: 125, label: 'Logic Lamp', category: 'special', emoji: '💡', color: '#7a6f4a', textures: { top: 'logic_lamp', side: 'logic_lamp', bottom: 'logic_lamp' }, behavior: logicLampBehavior, logic: { role: 'consumer', kind: 'lamp' } },
   { id: 'logic_lamp_on', numericId: 126, label: 'Logic Lamp (on)', category: 'special', emoji: '💡', color: '#fff2a8', lightLevel: 14, inPalette: false, textures: { top: 'logic_lamp_on', side: 'logic_lamp_on', bottom: 'logic_lamp_on' }, behavior: logicLampBehavior, logic: { role: 'consumer', kind: 'lamp' } },
-  { id: 'piston', numericId: 127, label: 'Piston', category: 'special', emoji: '🔩', color: '#9aa2ab', facesPlayer: true, textures: { top: 'piston_side', side: 'piston_side', bottom: 'piston_back' }, behavior: facingBehavior, logic: { role: 'consumer', kind: 'piston' }, immovable: true },
-  { id: 'sticky_piston', numericId: 128, label: 'Sticky Piston', category: 'special', emoji: '🔩', color: '#4f8f3a', facesPlayer: true, textures: { top: 'piston_sticky', side: 'piston_side', bottom: 'piston_back' }, behavior: facingBehavior, logic: { role: 'consumer', kind: 'sticky_piston' }, immovable: true },
+  { id: 'piston', numericId: 127, label: 'Piston', category: 'special', emoji: '🔩', color: '#9aa2ab', facesPlayer: true, textures: { top: 'piston_side', side: 'piston_side', bottom: 'piston_back' }, behavior: pistonBehavior, logic: { role: 'consumer', kind: 'piston' }, immovable: true },
+  { id: 'sticky_piston', numericId: 128, label: 'Sticky Piston', category: 'special', emoji: '🔩', color: '#4f8f3a', facesPlayer: true, textures: { top: 'piston_sticky', side: 'piston_side', bottom: 'piston_back' }, behavior: pistonBehavior, logic: { role: 'consumer', kind: 'sticky_piston' }, immovable: true },
   { id: 'piston_head', numericId: 129, label: 'Piston Head', category: 'special', emoji: '🔩', color: '#d3a35e', inPalette: false, shape: 'slab', textures: { top: 'piston_face', side: 'piston_face', bottom: 'piston_face' }, logic: { role: 'consumer', kind: 'head' }, immovable: true },
   { id: 'note_block', numericId: 130, label: 'Note Block', category: 'special', emoji: '🎵', color: '#8a6238', textures: { top: 'note_block', side: 'note_block', bottom: 'note_block' }, behavior: noteBehavior, logic: { role: 'consumer', kind: 'note' } },
   { id: 'villager', numericId: 114, label: 'Friend', category: 'friends', emoji: '🧑', color: '#4a7fd6', spawns: { kind: 'villager', variant: 'random' }, textures: { top: 'villager', side: 'villager', bottom: 'villager' } },

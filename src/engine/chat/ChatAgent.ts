@@ -225,6 +225,7 @@ export class ChatAgent {
           doorHeight: typeof a.doorHeight === 'number' ? a.doorHeight : undefined,
           automaticDoor: a.automaticDoor === true,
           elevator: a.elevator === true,
+          pistonDoor: a.pistonDoor === true,
         });
         const site = { x: num(a.x, ctx.site.x), y: num(a.y, ctx.site.y), z: num(a.z, ctx.site.z) };
         const layout = houseLayout(site.x, site.y, site.z, opts);

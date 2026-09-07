@@ -65,6 +65,8 @@ export type PlaceContext = {
   position: Vec3i;
   /** Player yaw in quarter turns (0..3), for facing the player. */
   playerRotation: number;
+  /** Camera pitch in radians, positive looking down; pistons face up or down when placed steeply. */
+  playerPitch?: number;
   /** Which face of the neighbor was clicked to place here. */
   face: Direction;
   /** Height within the clicked face (0..1), for top/bottom slab choice. */

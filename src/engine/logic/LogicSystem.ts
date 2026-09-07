@@ -3,9 +3,9 @@ import { BlockState } from '../blocks/BlockState';
 import type { System } from '../core/System';
 import type { Box } from '../physics/collision';
 import type { Chunk } from '../world/Chunk';
-import { CHUNK_SIZE, DIRECTIONS, WORLD_HEIGHT, localIndex, positionKey, rotationToDirection } from '../world/coords';
+import { CHUNK_SIZE, DIRECTIONS, WORLD_HEIGHT, localIndex, positionKey } from '../world/coords';
 import type { BlockChange, VoxelWorld } from '../world/VoxelWorld';
-import { extendPiston, retractPiston } from './pistons';
+import { extendPiston, pistonDirection, retractPiston } from './pistons';
 
 export type LogicRole = 'source' | 'wire' | 'consumer';
 
@@ -162,6 +162,24 @@ export class LogicSystem implements System {
         next.set(nkey, nlevel);
         if (role === 'wire') queue.push([nx, ny, nz, nlevel]);
       }
+      // Wire climbs: dust on a step connects to dust one block up or down next to it.
+      if (this.role(this.world.getBlock(x, y, z)) !== 'wire') continue;
+      for (const d of DIRECTIONS) {
+        if (d.y !== 0) continue;
+        for (const dy of [1, -1]) {
+          const nx = x + d.x;
+          const ny = y + dy;
+          const nz = z + d.z;
+          if (ny < 0 || ny >= WORLD_HEIGHT) continue;
+          const nid = this.world.getBlock(nx, ny, nz);
+          if (nid === 0 || this.role(nid) !== 'wire') continue;
+          const nkey = positionKey(nx, ny, nz);
+          const nlevel = level - 1;
+          if (nlevel <= 0 || (next.get(nkey) ?? 0) >= nlevel) continue;
+          next.set(nkey, nlevel);
+          queue.push([nx, ny, nz, nlevel]);
+        }
+      }
     }
 
     // Notify changes.
@@ -183,7 +201,7 @@ export class LogicSystem implements System {
         const state = this.world.getState(cell.x, cell.y, cell.z);
         def.behavior?.onPowerChanged?.({ world: this.world, position: cell, blockId: id, state, powered: now });
         if (def.logic?.kind === 'piston' || def.logic?.kind === 'sticky_piston') {
-          const dir = rotationToDirection(BlockState.rotation(state));
+          const dir = pistonDirection(state);
           const ok = now ? extendPiston(this.world, this.registry, cell.x, cell.y, cell.z, dir) : retractPiston(this.world, this.registry, cell.x, cell.y, cell.z, dir, def.logic.kind === 'sticky_piston');
           if (ok) for (const l of this.listeners) l({ kind: 'piston', ...cell, extended: now });
         }

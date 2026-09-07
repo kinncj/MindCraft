@@ -221,3 +221,38 @@ describe('doors, stairs, and elevators the way the kid asked', () => {
     expect(stored?.data?.stops).toEqual([3, 7, 11]);
   });
 });
+
+describe('a piston door that really slides', () => {
+  it('four sticky pistons close the doorway when the lever goes on and open it again when it goes off', async () => {
+    const { LogicSystem } = await import('../../src/engine/logic/LogicSystem');
+    const { BlockState } = await import('../../src/engine/blocks/BlockState');
+    const world = flat();
+    const history = new CommandHistory(world);
+    const build = new BuildTools(world, blocks, history);
+    const spec = parseBuildRequest('a stone house with a piston door')!;
+    expect(spec.pistonDoor).toBe(true);
+    const logic = new LogicSystem(world, blocks);
+    const edits = build.planHouse(8, 3, 8, houseOptions(blocks, { type: 'house', width: 11, depth: 9, floors: 1, wall: 'stone_bricks', pistonDoor: true }));
+    build.run('piston house', edits);
+    const sticky = edits.filter((e) => e.id === blocks.numericOf('sticky_piston'));
+    expect(sticky).toHaveLength(4);
+    const lever = edits.find((e) => e.id === blocks.numericOf('lever'))!;
+    expect(lever).toBeDefined();
+    // Open at first: the doorway is clear.
+    const z0 = 8 - 4;
+    expect(world.getBlock(8, 3, z0)).toBe(0);
+    expect(world.getBlock(9, 4, z0)).toBe(0);
+    // Lever on: pistons extend and the doorway fills.
+    world.setBlock(lever.x, lever.y, lever.z, lever.id, BlockState.withOpen(0, true));
+    for (let i = 0; i < 3; i++) logic.tick();
+    expect(world.getBlock(8, 3, z0)).not.toBe(0);
+    expect(world.getBlock(9, 3, z0)).not.toBe(0);
+    expect(world.getBlock(8, 4, z0)).not.toBe(0);
+    expect(world.getBlock(9, 4, z0)).not.toBe(0);
+    // Lever off: sticky pistons pull the door blocks back and the doorway opens.
+    world.setBlock(lever.x, lever.y, lever.z, lever.id, BlockState.withOpen(0, false));
+    for (let i = 0; i < 3; i++) logic.tick();
+    expect(world.getBlock(8, 3, z0)).toBe(0);
+    expect(world.getBlock(9, 4, z0)).toBe(0);
+  });
+});

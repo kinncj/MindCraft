@@ -1,5 +1,11 @@
 import type { BlockRegistry } from '../blocks/registry';
 import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
+import { BlockState } from '../blocks/BlockState';
+import { DIR_NX, DIR_PX, rotationToDirection } from '../world/coords';
+
+/** Quarter turns that make a piston face +x and -x. */
+const PISTON_FACING_PX = [0, 1, 2, 3].find((r) => rotationToDirection(r) === DIR_PX) ?? 1;
+const PISTON_FACING_NX = [0, 1, 2, 3].find((r) => rotationToDirection(r) === DIR_NX) ?? 3;
 
 export type FurnitureItem = { id: number; state?: number; /** Something on top (a TV on a table). */ on?: number };
 
@@ -82,6 +88,11 @@ export type HouseOptions = {
   plate: number | null;
   /** An elevator shaft through every floor, with a lift entity spawned by the caller. */
   elevator: boolean;
+  /** A two-wide sliding door of sticky pistons, wired to one lever. */
+  pistonDoor: boolean;
+  stickyPiston: number | null;
+  wire: number | null;
+  lever: number | null;
   /** Colour blocks for pillars and roof when colourful. */
   palette: number[];
 }
@@ -323,7 +334,7 @@ export class BuildTools {
             }
             const corner = onX && onZ;
             const along = onZ ? px - x0 : pz - z0;
-            const window = !corner && (h === 2 || h === 3) && along % 2 === 0 && along > 0 && !(f === 0 && pz === z0 && Math.abs(px - doorX) <= 2);
+            const window = !corner && (h === 2 || h === 3) && along % 2 === 0 && along > 0 && !(f === 0 && pz === z0 && (opts.pistonDoor ? px >= doorX - 5 && px <= doorX + 4 : Math.abs(px - doorX) <= 2));
             let id = opts.wall;
             if (corner) id = trimOrWall(f);
             if (window) id = opts.glass;
@@ -337,16 +348,46 @@ export class BuildTools {
     const doorH = Math.max(2, Math.min(3, opts.doorHeight));
     const doorCells: number[] = [];
     for (let i = 0; i < doorW; i++) doorCells.push(doorX - Math.floor((doorW - 1) / 2) + i);
-    for (const dx of doorCells) {
-      put(dx, groundY + 1, z0, opts.door, opts.doorState);
-      for (let h = 2; h <= doorH; h++) put(dx, groundY + h, z0, air);
-    }
-    if (opts.lantern) {
-      put(doorCells[0] - 1, groundY + 3, z0 - 1, opts.lantern);
-      put(doorCells[doorCells.length - 1] + 1, groundY + 3, z0 - 1, opts.lantern);
+    // Piston door: four sticky pistons slide two door blocks per row out of the way. Unpowered
+    // means open; the lever closes it. One ground wire feeds the lower row, a wire on top of the
+    // pistons feeds the upper row, and a two-step wire staircase joins them, redstone style.
+    if (opts.pistonDoor && opts.stickyPiston && opts.wire && opts.lever) {
+      const dl = doorX; // doorway cells doorX, doorX+1
+      const dr = doorX + 1;
+      const slab = opts.trim ?? opts.roof;
+      for (let h = 1; h <= 2; h++) {
+        const py = groundY + h;
+        put(dl, py, z0, air);
+        put(dr, py, z0, air);
+        put(dl - 2, py, z0, opts.stickyPiston, BlockState.withRotation(0, PISTON_FACING_PX));
+        put(dl - 1, py, z0, slab); // the door block, pulled back
+        put(dr + 2, py, z0, opts.stickyPiston, BlockState.withRotation(0, PISTON_FACING_NX));
+        put(dr + 1, py, z0, slab);
+      }
+      // Ground wire outside, in front of the lower row.
+      for (let px = dl - 3; px <= dr + 2; px++) put(px, groundY + 1, z0 - 1, opts.wire);
+      // Wire on top of the upper row, across the lintel.
+      for (let px = dl - 5; px <= dr + 2; px++) put(px, groundY + 3, z0, opts.wire);
+      // The staircase that lets the wire climb: two step blocks with wire on top.
+      put(dl - 4, groundY + 1, z0 - 1, slab);
+      put(dl - 4, groundY + 2, z0 - 1, opts.wire);
+      put(dl - 5, groundY + 2, z0 - 1, slab);
+      put(dl - 5, groundY + 3, z0 - 1, opts.wire);
+      // The lever, next to the ground wire.
+      put(dl - 3, groundY + 2, z0 - 1, opts.lever);
+      if (opts.lantern) put(dr + 3, groundY + 3, z0 - 1, opts.lantern);
+    } else {
+      for (const dx of doorCells) {
+        put(dx, groundY + 1, z0, opts.door, opts.doorState);
+        for (let h = 2; h <= doorH; h++) put(dx, groundY + h, z0, air);
+      }
+      if (opts.lantern) {
+        put(doorCells[0] - 1, groundY + 3, z0 - 1, opts.lantern);
+        put(doorCells[doorCells.length - 1] + 1, groundY + 3, z0 - 1, opts.lantern);
+      }
     }
     // Automatic door: pressure plates on both sides power the door blocks next to them.
-    if (opts.automaticDoor && opts.plate) {
+    if (opts.automaticDoor && opts.plate && !opts.pistonDoor) {
       for (const dx of doorCells) {
         put(dx, groundY + 1, z0 - 1, opts.plate);
         put(dx, groundY + 1, z0 + 1, opts.plate);

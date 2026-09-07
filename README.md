@@ -65,7 +65,9 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   ever leaves the device.
 - **Crafting**: a picture recipe book with a tap-to-fill 3×3 grid and a crafting
   table. Recipes teach "this is made of that"; the result lands in the hotbar.
-- **Logic and automation**: levers, buttons, pressure plates, wire that fades over
+- **Logic and automation** like the real thing: pistons face all six ways and push up to
+  twelve blocks, sticky pistons pull one back, wire climbs steps; ask a villager for "a
+  house with a piston door" and get four sticky pistons on one lever. Levers, buttons, pressure plates, wire that fades over
   fifteen blocks, logic lamps, pistons and sticky pistons that push and pull, powered
   doors, and note blocks. A **robot** you program with picture cards (forward, turn,
   up, place, remove, repeat ×N) that builds while you watch.

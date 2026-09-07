@@ -137,7 +137,7 @@ export function MenuPanel() {
           <li>🛗 Ask a neighbor for a building with an elevator: stand on the lift, Jump goes up a floor, Sneak goes down</li>
           <li>🚗 Tap a ride to hop in, or ask a neighbor to drive or fly it around; tap it again (or press space) to hop off</li>
           <li>✈️ Planes need speed to take off, then Jump climbs and Sneak dives; helicopters lift with Jump. Tap them again (or press E) to hop out</li>
-          <li>🎚️ Levers, buttons, and plates power wires, lamps, pistons, doors, and note blocks</li>
+          <li>🎚️ Levers, buttons, and plates power wires, lamps, pistons, doors, and note blocks; wire climbs steps, pistons face any way (look up or down while placing) and push up to 12 blocks</li>
           <li>🤖 Tap a robot to give it a card program: forward, place, repeat…</li>
           <li>📱 On a phone: touch and drag in the lower-left to walk (the joystick appears under your finger), Jump button, pinch to zoom</li>
           <li>🖱️ Mouse: click the world once to grab it, then look freely; left-click removes, right-click places, the wheel picks blocks, Esc lets go</li>

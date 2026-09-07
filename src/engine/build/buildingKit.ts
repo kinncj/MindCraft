@@ -32,6 +32,7 @@ export type BuildingArgs = {
   doorHeight?: number;
   automaticDoor?: boolean;
   elevator?: boolean;
+  pistonDoor?: boolean;
 };
 
 const FURNITURE: Record<string, string[]> = {
@@ -159,6 +160,10 @@ export function houseOptions(registry: BlockRegistry, a: BuildingArgs): HouseOpt
     automaticDoor: a.automaticDoor === true,
     plate: maybe('pressure_plate'),
     elevator: a.elevator === true,
+    pistonDoor: a.pistonDoor === true,
+    stickyPiston: maybe('sticky_piston'),
+    wire: maybe('wire'),
+    lever: maybe('lever'),
     pole: id('fence', 'wood'),
     signBlock: registry.numericOf('color_red'),
     trim: a.trim ? id(a.trim, 'planks') : null,

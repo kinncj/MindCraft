@@ -158,6 +158,7 @@ export class InteractionSystem implements System {
         world: this.world,
         position: { x, y, z },
         playerRotation: this.camera.rotationQuarter(),
+        playerPitch: this.camera.pitch,
         face,
         hitHeight,
         place: (ex, ey, ez, eid, estate = 0) => extras.push({ x: ex, y: ey, z: ez, id: eid, state: estate }),

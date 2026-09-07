@@ -125,10 +125,10 @@ describe('logic', () => {
     expect(BlockState.isOpen(world.getState(4, 3, 8))).toBe(false);
   });
 
-  it('a piston cannot push bedrock or more than eight blocks', () => {
+  it('a piston cannot push bedrock or more than twelve blocks', () => {
     const { world, logic } = rig();
     world.setBlock(0, 3, 0, B.piston, BlockState.withRotation(0, 1));
-    for (let x = 1; x <= 9; x++) world.setBlock(x, 3, 0, B.stone);
+    for (let x = 1; x <= 13; x++) world.setBlock(x, 3, 0, B.stone);
     world.setBlock(-1, 3, 0, B.lever, BlockState.withOpen(0, true));
     logic.tick();
     expect(world.getBlock(1, 3, 0)).toBe(B.stone);
@@ -173,5 +173,48 @@ describe('robots', () => {
     expect(restored.robot?.program).toEqual([{ op: 'forward' }]);
     expect(restored.robot?.blockId).toBe(B.stone);
     expect(bot.name).toBe('Beep');
+  });
+});
+
+describe('pistons like the real thing', () => {
+  it('face up and down, push twelve blocks but not thirteen, and wire climbs a step', async () => {
+    const { B, blocks } = await import('../../src/engine/blocks/blocks');
+    const { BlockState } = await import('../../src/engine/blocks/BlockState');
+    const { MAX_PUSH, PISTON_UP, PISTON_DOWN, pistonDirection, extendPiston } = await import('../../src/engine/logic/pistons');
+    const { DIR_PY, DIR_NY, DIR_PX } = await import('../../src/engine/world/coords');
+    const { Chunk } = await import('../../src/engine/world/Chunk');
+    const { VoxelWorld } = await import('../../src/engine/world/VoxelWorld');
+    const { LogicSystem } = await import('../../src/engine/logic/LogicSystem');
+    expect(MAX_PUSH).toBe(12);
+    expect(pistonDirection(BlockState.withVariant(0, PISTON_UP))).toBe(DIR_PY);
+    expect(pistonDirection(BlockState.withVariant(0, PISTON_DOWN))).toBe(DIR_NY);
+
+    const world = new VoxelWorld(blocks);
+    for (let cx = -1; cx <= 2; cx++) for (let cz = -1; cz <= 1; cz++) {
+      const chunk = new Chunk(cx, cz);
+      for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) chunk.set(x, 0, z, B.stone);
+      world.addChunk(chunk);
+    }
+    // A row of twelve bricks moves; thirteen do not.
+    const facePx = [0, 1, 2, 3].find((r) => pistonDirection(BlockState.withRotation(0, r)) === DIR_PX)!;
+    world.setBlock(0, 1, 5, B.piston, BlockState.withRotation(0, facePx));
+    for (let i = 1; i <= 12; i++) world.setBlock(i, 1, 5, B.brick);
+    expect(extendPiston(world, blocks, 0, 1, 5, pistonDirection(world.getState(0, 1, 5)))).toBe(true);
+    expect(world.getBlock(13, 1, 5)).toBe(B.brick);
+    world.setBlock(0, 1, 8, B.piston, BlockState.withRotation(0, facePx));
+    for (let i = 1; i <= 13; i++) world.setBlock(i, 1, 8, B.brick);
+    expect(extendPiston(world, blocks, 0, 1, 8, pistonDirection(world.getState(0, 1, 8)))).toBe(false);
+
+    // Wire climbing: lever -> ground wire -> wire on a step -> lamp two blocks up.
+    const logic = new LogicSystem(world, blocks);
+    world.setBlock(5, 1, 12, B.lever, BlockState.withOpen(0, true));
+    world.setBlock(6, 1, 12, B.wire);
+    world.setBlock(7, 1, 12, B.stone);
+    world.setBlock(7, 2, 12, B.wire);
+    world.setBlock(8, 2, 12, B.stone);
+    world.setBlock(8, 3, 12, B.wire);
+    world.setBlock(9, 3, 12, B.logic_lamp);
+    logic.tick();
+    expect(world.getBlock(9, 3, 12)).toBe(B.logic_lamp_on); // lit
   });
 });
