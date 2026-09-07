@@ -19,6 +19,10 @@ export type InteractionBridge = {
   getSelectedBlockId(): number;
   getMode(): InteractionMode;
   openPanel(kind: string, payload: unknown): void;
+  /** Physical actions a block asks for: sit, cook, switch, splash. */
+  perform?(action: string, payload: unknown): void;
+  /** Placing a spawner card: put a creature or vehicle here instead of a block. */
+  spawn?(spec: { kind: 'vehicle' | 'pet' | 'villager'; variant: string }, x: number, y: number, z: number): boolean;
   /** Return true when something (an animal) consumed the tap. */
   tapEntity?(ray: Ray): boolean;
   onBlockPlaced?(def: BlockDefinition, x: number, y: number, z: number): void;
@@ -145,6 +149,7 @@ export class InteractionSystem implements System {
     const def = this.registry.get(id);
     if (!def) return false;
     if (!this.canPlaceAt(x, y, z, def)) return false;
+    if (def.spawns) return this.bridge.spawn?.(def.spawns, x, y, z) ?? false;
     const extras: BlockEdit[] = [];
     const state =
       def.behavior?.onPlace?.({
@@ -190,6 +195,7 @@ export class InteractionSystem implements System {
       state: this.world.getState(x, y, z),
       face,
       openPanel: (kind, payload) => this.bridge.openPanel(kind, payload),
+      perform: (action, payload) => this.bridge.perform?.(action, payload),
     });
   }
 

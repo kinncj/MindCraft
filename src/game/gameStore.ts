@@ -11,6 +11,7 @@ import { getEngine } from './engineRef';
 import { createWorldRecord } from './store/worldRecords';
 import { blueprintById } from '../engine/build/blueprints';
 import type { InteractionMode } from '../types/game';
+import type { PlayerLookState } from './store/types';
 import type { GameState, ViewMode } from './store/types';
 
 export type { GameState, PanelId, ViewMode, WorldPreset } from './store/types';
@@ -23,10 +24,25 @@ let toastTimer: ReturnType<typeof setTimeout> | null = null;
 // newer change happened while it was writing.
 let changeSeq = 0;
 
+const DEFAULT_LOOK: PlayerLookState = { shirt: '#ffb03c', pants: '#4a7fd6', skin: '#f2c79a', hair: '#6b4a26', hat: 'none' };
+
+function lookOf(raw: StoredWorld['settings']['look']): PlayerLookState {
+  const hex = (v: unknown, fallback: string): string => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v : fallback);
+  const hats = ['none', 'cap', 'crown', 'cowboy', 'party'];
+  return {
+    shirt: hex(raw?.shirt, DEFAULT_LOOK.shirt),
+    pants: hex(raw?.pants, DEFAULT_LOOK.pants),
+    skin: hex(raw?.skin, DEFAULT_LOOK.skin),
+    hair: hex(raw?.hair, DEFAULT_LOOK.hair),
+    hat: (hats.includes(raw?.hat ?? '') ? raw!.hat : 'none') as PlayerLookState['hat'],
+  };
+}
+
 function settingsOf(world: StoredWorld) {
   const s = normalizeSettings(world.settings, (id) => registry.has(id));
   return {
     worldName: world.name,
+    look: lookOf(world.settings.look),
     selectedBlockType: s.selectedBlockType,
     hotbar: s.hotbar,
     visualMode: s.visualMode,
@@ -74,9 +90,11 @@ export const useGameStore = create<GameState>((set, get) => {
           timeMode: state.timeMode,
           weather: state.weather,
           timeOfDay: engine?.environment.time,
+          look: state.look,
         },
         player: engine?.playerState(),
         template: engine ? engine.pendingTemplate().map((t) => ({ ...t })) : undefined,
+        entities: engine ? engine.entities.serialize() : undefined,
       });
       if (changeSeq === seqAtStart) set({ saveState: 'saved' });
     } catch {
@@ -227,9 +245,11 @@ export const useGameStore = create<GameState>((set, get) => {
           timeMode: state.timeMode,
           weather: state.weather,
           timeOfDay: engine?.environment.time,
+          look: state.look,
         },
         player: engine?.playerState(),
         template: engine ? engine.pendingTemplate() : world.template,
+        entities: engine ? engine.entities.serialize() : world.entities,
       };
       downloadWorldExport(buildWorldExport(record, chunks));
       get().showToast('World exported! Keep that file safe.');
@@ -300,6 +320,11 @@ export const useGameStore = create<GameState>((set, get) => {
       const index = order.indexOf(get().mode);
       get().setMode(order[(index + 1) % order.length]);
     },
+    receiveGift(blockId, label) {
+      const def = registry.get(blockId);
+      if (def) get().selectBlockType(def.id);
+      get().showToast(`🎁 You got ${label}! It's in your hotbar.`);
+    },
     selectBlueprint(id) {
       const bp = blueprintById(id);
       const engine = getEngine();
@@ -353,6 +378,13 @@ export const useGameStore = create<GameState>((set, get) => {
     },
 
     // --- settings slice ---
+    look: DEFAULT_LOOK,
+    setLook(look) {
+      const next = { ...get().look, ...look };
+      set({ look: next });
+      getEngine()?.setLook(next);
+      scheduleAutosave();
+    },
     visualMode: DEFAULT_SETTINGS.visualMode,
     timeMode: DEFAULT_SETTINGS.timeMode,
     weather: DEFAULT_SETTINGS.weather,

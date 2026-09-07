@@ -25,7 +25,22 @@ export type StoredWorld = {
     timeMode: TimeMode;
     weather: WeatherMode;
     timeOfDay?: number;
+    /** Dress-up colors and hat. */
+    look?: { shirt?: string; pants?: string; skin?: string; hair?: string; hat?: string };
   };
+  /** Pets, villagers, and vehicles living in this world. */
+  entities?: Array<{
+    id: string;
+    kind: string;
+    variant?: string;
+    name?: string;
+    x: number;
+    y: number;
+    z: number;
+    brain: string;
+    home?: { x: number; z: number };
+    data?: Record<string, unknown>;
+  }>;
   /** Block-id palette used by this world's chunk rows. */
   palette: Record<number, string>;
   thumbnail?: string;

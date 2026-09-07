@@ -51,6 +51,87 @@ export function buildButterfly(): { group: THREE.Group; wings: [THREE.Mesh, THRE
   return { group, wings: [left, right] };
 }
 
+export function buildDog(color = '#c98d4b'): THREE.Group {
+  const group = new THREE.Group();
+  const body = box(0.7, 0.4, 0.4, color);
+  body.position.y = 0.45;
+  const head = box(0.36, 0.34, 0.36, color);
+  head.position.set(0.45, 0.68, 0);
+  const snout = box(0.16, 0.14, 0.2, '#f3efe7');
+  snout.position.set(0.66, 0.6, 0);
+  const earL = box(0.1, 0.22, 0.08, '#8a6238');
+  earL.position.set(0.4, 0.86, -0.16);
+  const earR = earL.clone();
+  earR.position.z = 0.16;
+  const tail = box(0.28, 0.08, 0.08, color);
+  tail.position.set(-0.45, 0.6, 0);
+  tail.rotation.z = 0.6;
+  group.add(body, head, snout, earL, earR, tail);
+  for (const [dx, dz] of [[0.22, 0.14], [0.22, -0.14], [-0.22, 0.14], [-0.22, -0.14]]) {
+    const leg = box(0.12, 0.3, 0.12, color);
+    leg.position.set(dx, 0.15, dz);
+    group.add(leg);
+  }
+  return group;
+}
+
+export function buildCat(color = '#f2903c'): THREE.Group {
+  const group = new THREE.Group();
+  const body = box(0.6, 0.32, 0.32, color);
+  body.position.y = 0.38;
+  const head = box(0.3, 0.28, 0.3, color);
+  head.position.set(0.4, 0.58, 0);
+  const earL = box(0.08, 0.12, 0.06, color);
+  earL.position.set(0.42, 0.78, -0.1);
+  const earR = earL.clone();
+  earR.position.z = 0.1;
+  const tail = box(0.34, 0.06, 0.06, color);
+  tail.position.set(-0.42, 0.55, 0);
+  tail.rotation.z = 0.9;
+  const nose = box(0.04, 0.04, 0.06, '#f291bb');
+  nose.position.set(0.56, 0.54, 0);
+  group.add(body, head, earL, earR, tail, nose);
+  for (const [dx, dz] of [[0.2, 0.1], [0.2, -0.1], [-0.2, 0.1], [-0.2, -0.1]]) {
+    const leg = box(0.1, 0.24, 0.1, color);
+    leg.position.set(dx, 0.12, dz);
+    group.add(leg);
+  }
+  return group;
+}
+
+export type VillagerLook = { shirt: string; pants: string; skin: string; hair: string; hat?: string };
+
+export function buildVillager(look: VillagerLook): THREE.Group {
+  const group = new THREE.Group();
+  const body = box(0.5, 0.62, 0.3, look.shirt);
+  body.position.y = 1.06;
+  const head = box(0.46, 0.46, 0.46, look.skin);
+  head.position.y = 1.6;
+  const hair = box(0.48, 0.14, 0.48, look.hair);
+  hair.position.y = 1.78;
+  const eyeL = box(0.06, 0.06, 0.02, '#3a3226');
+  eyeL.position.set(-0.1, 1.64, 0.24);
+  const eyeR = eyeL.clone();
+  eyeR.position.x = 0.1;
+  const smile = box(0.16, 0.03, 0.02, '#d8735f');
+  smile.position.set(0, 1.5, 0.24);
+  group.add(body, head, hair, eyeL, eyeR, smile);
+  for (const [dx, color, h, y] of [[-0.33, look.shirt, 0.55, 1.35], [0.33, look.shirt, 0.55, 1.35], [-0.13, look.pants, 0.75, 0.75], [0.13, look.pants, 0.75, 0.75]] as const) {
+    const limb = box(0.16, h, 0.16, color);
+    limb.geometry.translate(0, -h / 2, 0);
+    limb.position.set(dx, y, 0);
+    group.add(limb);
+  }
+  if (look.hat) {
+    const hat = box(0.56, 0.12, 0.56, look.hat);
+    hat.position.y = 1.9;
+    const top = box(0.36, 0.22, 0.36, look.hat);
+    top.position.y = 2.05;
+    group.add(hat, top);
+  }
+  return group;
+}
+
 export function disposeGroup(group: THREE.Group): void {
   group.traverse((child) => {
     if (child instanceof THREE.Mesh) {

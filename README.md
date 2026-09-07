@@ -30,14 +30,24 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   **Ultra**, **Claude Dream**).
 - Friendly animals with pluggable brains, pettable.
 - **Undo and redo** for everything, a nine-slot hotbar, and a picture palette of all
-  blocks. Beds skip the night. The Magic Delivery Box keeps its treasures inside the
-  block itself.
+  blocks. A green ghost shows where a block will land. Beds skip the night. The Magic
+  Delivery Box keeps its treasures inside the block itself.
+- **Build tools** on a tools bar: a two-tap **Room** tool (floor, hollow walls, a
+  doorway), **Fill**, **Paint** (recolor a block in place), **Copy** and **Paste** with
+  rotation, a **Mirror** toggle, and six **blueprint cards** (cozy house, castle tower,
+  bridge, garden, pool, treehouse) to stamp down and change.
+- **A life layer**: chairs you can sit on, TVs and lamps that switch on, a fridge that
+  stores food, a stove that sizzles, ladders to climb, a **car** and a **boat** to
+  drive, **puppies and kitties** that follow you (rename them, tell them to stay),
+  and **villagers with jobs** (baker, farmer, builder, doctor, teacher, firefighter,
+  shopkeeper, musician) who chat in pictures, hand out gifts, and play along.
+- **Dress up**: shirt, pants, skin, hair, and a hat (cap, crown, cowboy, party).
 - **Multiple named worlds** with two presets: a meadow or **Toy Land**.
 - Autosave of edited chunks to IndexedDB, honest save indicator, versioned JSON
   export/import with strict validation. **MindCraft 1.0 saves and export files are
   converted automatically.**
 - **Every capability is a tool** — `player_walk_to`, `world_place_block`,
-  `world_fill`, `entity_spawn`, `time_set`, … — exposed through WebMCP
+  `build_stamp_blueprint`, `villager_talk`, `pet_adopt`, `vehicle_mount`, … — exposed through WebMCP
   (`navigator.modelContext`) and `window.mindcraftTools`, so agents can play too.
 - Works on desktop, tablet, and phone with **keyboard and mouse, touch, or a gamepad**.
 
@@ -53,6 +63,8 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 | Place / use | click | tap | RT |
 | Remove | right-click or Remove mode | Remove mode + tap | LT (or X to switch mode) |
 | Pick a block | `1`–`9`, hotbar, `E` for all blocks | hotbar, ➕ More | LB / RB, D-pad up |
+| Build tools | tools bar, `R` turns a paste | tools bar | D-pad down cycles, D-pad left turns |
+| Ride / hop off | tap the car or boat, `Space` to hop off | tap | RT, A to hop off |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Shift+Z` or buttons | buttons | B |
 | Menu | `Escape` or the Menu button | Menu button | Start |
 
@@ -137,13 +149,13 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 
 ## Roadmap
 
-1. **World** — larger biome variety, bigger trees, more blocks, block preview ghost
-2. **Build mode** — room tool, paint, copy/paste stamps, mirror, blueprint cards
-3. **Life layer** — working furniture, a car and a boat, pets that follow, villagers
-   with picture dialogue and pretend jobs, character dress-up
-4. **Crafting and logic** — a picture recipe book, buttons/levers/wire/lamps/pistons,
+1. ~~World~~ — done: biomes, big oaks, flower meadows, ladders, clouds, particles, ghost
+2. ~~Build mode~~ — done: room, fill, paint, copy/paste, mirror, blueprints
+3. ~~Life layer~~ — done: furniture, car and boat, pets, villagers with jobs, dress-up
+4. **UI refresh** — a modern menu with submenus that fits a phone
+5. **Crafting and logic** — a picture recipe book, buttons/levers/wire/lamps/pistons,
    a programmable robot with Scratch-style cards
-5. **Sound** — Tone.js music by biome and time of day, effects, a big mute button
+6. **Sound** — Tone.js music by biome and time of day, effects, a big mute button
 
 Nothing before the basics stay boring and reliable.
 
@@ -152,5 +164,5 @@ Nothing before the basics stay boring and reliable.
 - Terrain generation runs in a Web Worker; on very old browsers it runs inline and
   new chunks appear more slowly
 - No sound yet
-- Animals respawn fresh each session; pets and villagers will persist when they arrive
+- Wild animals respawn fresh each session; pets, villagers, and vehicles are saved
 - Ultra mode is realism-inspired, not ray-traced — see `docs/product/visual-modes.md`

@@ -3,7 +3,9 @@ import { blocks as registry, resolveBlockId } from '../blocks/blocks';
 import { CommandHistory } from '../commands/CommandHistory';
 import { BuildTools } from '../build/BuildTools';
 import { EntitySystem } from '../entities/EntitySystem';
-import { PlayerAvatar } from '../entities/PlayerAvatar';
+import { DEFAULT_LOOK as DEFAULT_LOOK_IMPORT, PlayerAvatar, type PlayerLook } from '../entities/PlayerAvatar';
+import type { StoredEntity } from '../entities/Entity';
+import { registerLifeTools } from '../tools/lifeTools';
 import { CameraSystem, type ViewMode } from '../input/CameraSystem';
 import { InputSystem, type PadCommand } from '../input/InputSystem';
 import { InteractionSystem, type InteractionMode } from '../input/InteractionSystem';
@@ -53,6 +55,10 @@ export type EngineBridge = {
   onGamepadActive?(active: boolean): void;
   /** Called when the last template block was written; persist that fact. */
   onTemplateApplied?(): void;
+  /** The player tapped a pet or villager: open its panel. */
+  onEntityTapped?(entity: { id: string; kind: string; name?: string; variant?: string }): void;
+  /** A villager handed over a block: put it in the hotbar. */
+  onGift?(blockId: number, label: string): void;
 };
 
 export type EngineOptions = {
@@ -63,7 +69,9 @@ export type EngineOptions = {
   template?: TemplateBlock[] | null;
   storage: ChunkStorage | null;
   bridge: EngineBridge;
-  settings: { visualMode: VisualModeId; timeMode: TimeMode; weather: WeatherMode; timeOfDay?: number };
+  settings: { visualMode: VisualModeId; timeMode: TimeMode; weather: WeatherMode; timeOfDay?: number; look?: Partial<PlayerLook> };
+  /** Pets, villagers, and vehicles saved with the world. */
+  entities?: StoredEntity[] | null;
   /** Smaller radius for tests and slow machines. */
   viewRadius?: number;
   useWorker?: boolean;
@@ -162,7 +170,7 @@ export class Engine {
       bridge.onViewModeChange(mode);
     });
     this.scene.add(this.camera.camera);
-    this.avatar = new PlayerAvatar(this.scene, this.player, this.camera.camera);
+    this.avatar = new PlayerAvatar(this.scene, this.player, this.camera.camera, { ...DEFAULT_LOOK_IMPORT, ...(options.settings.look ?? {}) });
     this.entities = new EntitySystem(this.scene, this.world, registry, this.player);
     this.particles = new ParticleSystem(this.scene);
     this.clouds = new CloudLayer(this.scene, options.generator.seed);
@@ -193,13 +201,25 @@ export class Engine {
       getMode: () => bridge.getMode(),
       openPanel: (kind, payload) => bridge.openPanel(kind, payload),
       tapEntity: (ray) => {
-        const entity = this.entities.tap(ray);
-        if (entity) {
-          bridge.onPet(entity.kind, entity.name);
-          this.particles.burst(entity.x, entity.y + 0.6, entity.z, '#ffd94a', 10, 0.6);
+        if (this.entities.mounted) {
+          this.entities.dismount();
+          return true;
         }
-        return entity !== null;
+        const entity = this.entities.pick(ray);
+        if (!entity) return false;
+        if (entity.vehicle) {
+          this.entities.mount(entity);
+          bridge.toast(entity.variant === 'boat' ? '⛵ All aboard! Tap the boat again to hop off.' : '🚗 Vroom! Tap the car again to hop out.');
+          return true;
+        }
+        this.entities.pet(entity);
+        this.particles.burst(entity.x, entity.y + 0.6, entity.z, '#ffd94a', 10, 0.6);
+        if (entity.kind === 'pet' || entity.kind === 'villager') bridge.onEntityTapped?.({ id: entity.id, kind: entity.kind, name: entity.name, variant: entity.variant });
+        else bridge.onPet(entity.kind, entity.name);
+        return true;
       },
+      perform: (action, payload) => this.perform(action, payload),
+      spawn: (spec, x, y, z) => this.spawnFromCard(spec, x, y, z),
       onBlockPlaced: (def, x, y, z) => this.particles.burst(x, y, z, def.color, 10, 0.4),
       onBlockRemoved: (def, x, y, z) => this.particles.burst(x, y, z, def.color, 16, 0.7),
     }, this.build);
@@ -214,7 +234,7 @@ export class Engine {
       .add(this.input)
       .add({ name: 'commands', update: () => this.dispatchCommands() })
       .add({ name: 'autowalk', update: () => this.driveAutoWalk() })
-      .add({ name: 'player', update: (dt) => this.player.update(dt, this.input.frame, this.camera.yaw) })
+      .add({ name: 'player', update: (dt) => this.updatePlayer(dt) })
       .add(this.camera)
       .add(this.chunks)
       .add({ name: 'settle', update: () => this.settleWhenReady() })
@@ -230,6 +250,7 @@ export class Engine {
     this.disposeTools = exposeTools(this.tools);
     registerCoreTools(this);
     registerBuildTools(this);
+    registerLifeTools(this);
     this.installDebugHooks();
     this.handleResize();
     window.addEventListener('resize', this.handleResize);
@@ -302,6 +323,10 @@ export class Engine {
     this.player.settleOnGround();
     this.settled = true;
     this.entities.spawnFlock(this.player.x, this.player.z);
+    if (!this.entitiesRestored) {
+      this.entitiesRestored = true;
+      this.entities.restore(this.options.entities ?? []);
+    }
   }
 
   private gamepadWasActive = false;
@@ -323,6 +348,84 @@ export class Engine {
       this.input.frame.hover = { ndcX: 0, ndcY: 0 };
     }
   }
+
+  private updatePlayer(dt: number): void {
+    const f = this.input.frame;
+    if (this.entities.mounted) {
+      this.entities.driveInput = { forward: f.forward, back: f.back, left: f.left, right: f.right };
+      if (f.pressed.has(' ')) this.entities.dismount();
+      return;
+    }
+    this.entities.driveInput = null;
+    this.player.update(dt, f, this.camera.yaw);
+  }
+
+  private perform(action: string, payload: unknown): void {
+    const pos = (payload as { position?: { x: number; y: number; z: number } } | undefined)?.position;
+    if (!pos) return;
+    const { x, y, z } = pos;
+    switch (action) {
+      case 'sit':
+        this.player.sitAt(x, y, z);
+        this.options.bridge.toast('Ahh, comfy! Move to get up. 🪑');
+        break;
+      case 'cook':
+        this.particles.burst(x, y + 0.7, z, '#ffb03c', 18, 0.5);
+        this.options.bridge.toast('Sizzle sizzle! 🍳 Dinner is ready!');
+        break;
+      case 'splash':
+        this.particles.burst(x, y + 0.6, z, '#7cc2f2', 16, 0.5);
+        this.options.bridge.toast('Splish splash! 🚰');
+        break;
+      case 'switch':
+      case 'switch_on':
+      case 'switch_off':
+        this.particles.burst(x, y, z, '#fff3b0', 8, 0.5);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private spawnFromCard(spec: { kind: 'vehicle' | 'pet' | 'villager'; variant: string }, x: number, y: number, z: number): boolean {
+    if (spec.kind === 'vehicle' && (spec.variant === 'car' || spec.variant === 'boat')) {
+      const e = this.entities.spawnVehicle(spec.variant, x, y - 0.5, z);
+      this.options.bridge.toast(spec.variant === 'car' ? '🚗 A car! Tap it to drive.' : '⛵ A boat! Put it on water and tap it.');
+      this.particles.burst(e.x, e.y + 0.5, e.z, '#ffffff', 14, 0.8);
+      return true;
+    }
+    if (spec.kind === 'pet' && (spec.variant === 'dog' || spec.variant === 'cat')) {
+      const e = this.entities.spawnPet(spec.variant, x, z);
+      this.options.bridge.toast(`${spec.variant === 'dog' ? '🐶' : '🐱'} Meet ${e.name}! Tap to say hi.`);
+      this.particles.burst(e.x, e.y + 0.5, e.z, '#f291bb', 14, 0.8);
+      return true;
+    }
+    if (spec.kind === 'villager') {
+      const e = this.entities.spawnVillager('random', x, z);
+      this.options.bridge.toast(`🧑 ${e.name} moved in! Tap to chat.`);
+      this.particles.burst(e.x, e.y + 1, e.z, '#ffd94a', 14, 0.8);
+      return true;
+    }
+    return false;
+  }
+
+  /** A villager conversation, from the panel or a tool. */
+  talkTo(id: string, choice: 'hi' | 'gift' | 'play' | 'bye'): { line: string; gift?: number; giftLabel?: string } | null {
+    const entity = this.entities.byId(id);
+    if (!entity || entity.kind !== 'villager') return null;
+    const reply = this.entities.talk(entity, choice);
+    if (reply.gift !== undefined) {
+      this.options.bridge.onGift?.(reply.gift, reply.giftLabel ?? 'a gift');
+      this.particles.burst(entity.x, entity.y + 1.2, entity.z, '#ffd94a', 20, 0.6);
+    }
+    return reply;
+  }
+
+  setLook(look: Partial<PlayerLook>): void {
+    this.avatar.setLook(look);
+  }
+
+  private entitiesRestored = false;
 
   private driveAutoWalk(): void {
     const goal = this.autoWalk;

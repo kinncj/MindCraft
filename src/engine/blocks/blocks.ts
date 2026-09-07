@@ -73,6 +73,46 @@ const containerBehavior: BlockBehavior = {
   },
 };
 
+const sitBehavior: BlockBehavior = {
+  onPlace: (ctx) => BlockState.withRotation(0, ctx.playerRotation),
+  onInteract: (ctx) => {
+    ctx.perform('sit', { position: ctx.position });
+    return true;
+  },
+};
+
+/** Flip the variant bit 0: on/off for TVs and screens. */
+const toggleBehavior: BlockBehavior = {
+  onPlace: (ctx) => BlockState.withRotation(0, ctx.playerRotation),
+  onInteract: (ctx) => {
+    const { x, y, z } = ctx.position;
+    const on = BlockState.variant(ctx.state) === 1;
+    ctx.world.setBlock(x, y, z, ctx.blockId, BlockState.withVariant(ctx.state, on ? 0 : 1));
+    ctx.perform(on ? 'switch_off' : 'switch_on', { position: ctx.position });
+    return true;
+  },
+};
+
+/** Swap between two block ids (a lamp that lights up). */
+function swapBehavior(otherId: () => number): BlockBehavior {
+  return {
+    onInteract: (ctx) => {
+      const { x, y, z } = ctx.position;
+      ctx.world.setBlock(x, y, z, otherId(), ctx.state);
+      ctx.perform('switch', { position: ctx.position });
+      return true;
+    },
+  };
+}
+
+const stoveBehavior: BlockBehavior = {
+  onPlace: (ctx) => BlockState.withRotation(0, ctx.playerRotation),
+  onInteract: (ctx) => {
+    ctx.perform('cook', { position: ctx.position });
+    return true;
+  },
+};
+
 const bedBehavior: BlockBehavior = {
   onPlace: (ctx) => BlockState.withRotation(0, ctx.playerRotation),
   onInteract: (ctx) => {
@@ -146,11 +186,22 @@ const DEFINITIONS: BlockDefinitionInput[] = [
   // Furniture 90..99
   { id: 'bed', numericId: 90, label: 'Bed', category: 'furniture', emoji: '🛏️', color: '#e8574f', shape: 'slab', facesPlayer: true, textures: { top: 'bed_top', side: 'bed_side', bottom: 'planks' }, behavior: bedBehavior },
   { id: 'table', numericId: 91, label: 'Table', category: 'furniture', emoji: '🪑', color: '#d3a35e', shape: 'slab', textures: { top: 'planks', side: 'table', bottom: 'planks' }, behavior: { onPlace: () => BlockState.withTopHalf(0, true) } },
-  { id: 'chair', numericId: 92, label: 'Chair', category: 'furniture', emoji: '🪑', color: '#4a7fd6', shape: 'stairs', facesPlayer: true, textures: { top: 'chair', side: 'chair', bottom: 'planks' }, behavior: facingBehavior },
+  { id: 'chair', numericId: 92, label: 'Chair', category: 'furniture', emoji: '🪑', color: '#4a7fd6', shape: 'stairs', facesPlayer: true, textures: { top: 'chair', side: 'chair', bottom: 'planks' }, behavior: sitBehavior },
   { id: 'bookshelf', numericId: 93, label: 'Bookshelf', category: 'furniture', emoji: '📚', color: '#8a6238', textures: { top: 'planks', side: 'bookshelf', bottom: 'planks' } },
-  { id: 'tv', numericId: 94, label: 'TV', category: 'furniture', emoji: '📺', color: '#2b2b2b', facesPlayer: true, textures: { top: 'tv', side: 'tv', bottom: 'tv' }, behavior: facingBehavior },
+  { id: 'tv', numericId: 94, label: 'TV', category: 'furniture', emoji: '📺', color: '#2b2b2b', facesPlayer: true, textures: { top: 'tv', side: 'tv', bottom: 'tv' }, variants: { 1: { top: 'tv', side: 'tv_on', bottom: 'tv' } }, behavior: toggleBehavior },
   { id: 'painting', numericId: 95, label: 'Painting', category: 'furniture', emoji: '🖼️', color: '#c98d4b', facesPlayer: true, textures: { top: 'planks', side: 'painting', bottom: 'planks' }, behavior: facingBehavior },
   { id: 'cake', numericId: 96, label: 'Cake', category: 'furniture', emoji: '🎂', color: '#f8e5c8', shape: 'slab', textures: { top: 'cake', side: 'cake', bottom: 'cake' } },
+  { id: 'lamp', numericId: 98, label: 'Lamp', category: 'furniture', emoji: '🛋️', color: '#f4e7c3', shape: 'torch', collision: 'none', textures: { top: 'lamp', side: 'lamp', bottom: 'lamp' }, behavior: swapBehavior(() => B.lamp_on) },
+  { id: 'lamp_on', numericId: 99, label: 'Lamp (on)', category: 'furniture', emoji: '💡', color: '#fff2a8', shape: 'torch', collision: 'none', lightLevel: 12, inPalette: false, textures: { top: 'lamp_on', side: 'lamp_on', bottom: 'lamp_on' }, behavior: swapBehavior(() => B.lamp) },
+  { id: 'stove', numericId: 101, label: 'Stove', category: 'furniture', emoji: '🍳', color: '#d8d8d8', facesPlayer: true, textures: { top: 'stove_top', side: 'stove', bottom: 'stove' }, behavior: stoveBehavior },
+  { id: 'fridge', numericId: 102, label: 'Fridge', category: 'furniture', emoji: '🧊', color: '#eef2f5', facesPlayer: true, textures: { top: 'fridge_top', side: 'fridge', bottom: 'fridge_top' }, behavior: { onPlace: (ctx) => BlockState.withRotation(0, ctx.playerRotation), onInteract: (ctx) => { ctx.openPanel('container', { position: ctx.position, name: 'Fridge' }); return true; } } },
+  { id: 'sink', numericId: 103, label: 'Sink', category: 'furniture', emoji: '🚰', color: '#dfe6ea', shape: 'slab', textures: { top: 'sink_top', side: 'sink', bottom: 'sink' }, behavior: { onPlace: () => BlockState.withTopHalf(0, true), onInteract: (ctx) => { ctx.perform('splash', { position: ctx.position }); return true; } } },
+  // Friends & rides 110..119: placing one of these spawns a creature or vehicle.
+  { id: 'car', numericId: 110, label: 'Car', category: 'friends', emoji: '🚗', color: '#e8574f', spawns: { kind: 'vehicle', variant: 'car' }, textures: { top: 'car', side: 'car', bottom: 'car' } },
+  { id: 'boat', numericId: 111, label: 'Boat', category: 'friends', emoji: '⛵', color: '#c98d4b', spawns: { kind: 'vehicle', variant: 'boat' }, textures: { top: 'boat', side: 'boat', bottom: 'boat' } },
+  { id: 'dog', numericId: 112, label: 'Puppy', category: 'friends', emoji: '🐶', color: '#c98d4b', spawns: { kind: 'pet', variant: 'dog' }, textures: { top: 'dog', side: 'dog', bottom: 'dog' } },
+  { id: 'cat', numericId: 113, label: 'Kitty', category: 'friends', emoji: '🐱', color: '#f2903c', spawns: { kind: 'pet', variant: 'cat' }, textures: { top: 'cat', side: 'cat', bottom: 'cat' } },
+  { id: 'villager', numericId: 114, label: 'Friend', category: 'friends', emoji: '🧑', color: '#4a7fd6', spawns: { kind: 'villager', variant: 'random' }, textures: { top: 'villager', side: 'villager', bottom: 'villager' } },
   { id: 'flower_pot', numericId: 97, label: 'Flower Pot', category: 'furniture', emoji: '🪴', color: '#c96f25', shape: 'cross', collision: 'none', bucket: 'alpha', textures: { top: 'flower_pot', side: 'flower_pot', bottom: 'flower_pot' } },
 
   // Special 100..109

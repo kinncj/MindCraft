@@ -551,6 +551,148 @@ const flowerPot: Painter = (ctx) => {
   ctx.fillRect(7, 2, 2, 2);
 };
 
+const tvOn: Painter = (ctx) => {
+  ctx.fillStyle = '#2b2b2b';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#aee3ff';
+  ctx.fillRect(2, 2, 12, 9);
+  ctx.fillStyle = '#8ed75f';
+  ctx.fillRect(3, 8, 10, 3);
+  ctx.fillStyle = '#ffd94a';
+  ctx.fillRect(9, 3, 3, 3);
+  ctx.fillStyle = '#f291bb';
+  ctx.fillRect(4, 4, 3, 3);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(3, 3, 1, 1);
+  ctx.fillStyle = '#555555';
+  ctx.fillRect(6, 12, 4, 3);
+};
+const lamp: Painter = (ctx) => {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#f4e7c3';
+  ctx.fillRect(3, 1, 10, 6);
+  ctx.fillStyle = '#8a6238';
+  ctx.fillRect(7, 7, 2, 7);
+  ctx.fillRect(4, 14, 8, 2);
+};
+const lampOn: Painter = (ctx) => {
+  lamp(ctx, () => 0);
+  ctx.fillStyle = '#fff2a8';
+  ctx.fillRect(3, 1, 10, 6);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(6, 3, 4, 2);
+};
+const stove: Painter = (ctx) => {
+  ctx.fillStyle = '#d8d8d8';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#3a3a3a';
+  ctx.fillRect(2, 5, 12, 8);
+  ctx.fillStyle = '#ffb03c';
+  ctx.fillRect(4, 7, 8, 4);
+  ctx.fillStyle = '#8a8a8a';
+  for (let x = 3; x < 13; x += 3) ctx.fillRect(x, 2, 2, 2);
+};
+const stoveTop: Painter = (ctx) => {
+  ctx.fillStyle = '#d8d8d8';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#3a3a3a';
+  for (const [x, y] of [[2, 2], [9, 2], [2, 9], [9, 9]]) ctx.fillRect(x, y, 5, 5);
+  ctx.fillStyle = '#e8574f';
+  ctx.fillRect(3, 3, 3, 3);
+};
+const fridge: Painter = (ctx) => {
+  ctx.fillStyle = '#eef2f5';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#c9d3da';
+  ctx.fillRect(0, 6, SIZE, 1);
+  ctx.fillStyle = '#8a8a8a';
+  ctx.fillRect(12, 2, 1, 3);
+  ctx.fillRect(12, 8, 1, 6);
+  ctx.fillStyle = '#f291bb';
+  ctx.fillRect(3, 9, 3, 3);
+};
+const fridgeTop: Painter = (ctx) => {
+  ctx.fillStyle = '#eef2f5';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#c9d3da';
+  ctx.fillRect(1, 1, 14, 14);
+};
+const sink: Painter = (ctx) => {
+  ctx.fillStyle = '#dfe6ea';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#b8c4cc';
+  ctx.fillRect(2, 10, 12, 4);
+};
+const sinkTop: Painter = (ctx) => {
+  ctx.fillStyle = '#dfe6ea';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#4fa8e8';
+  ctx.fillRect(3, 4, 10, 8);
+  ctx.fillStyle = '#8a8a8a';
+  ctx.fillRect(7, 1, 2, 4);
+};
+function cardPainter(bg: string, draw: (ctx: Ctx) => void): Painter {
+  return (ctx) => {
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(1, 1, 14, 14);
+    draw(ctx);
+  };
+}
+const carCard = cardPainter('#e8574f', (ctx) => {
+  ctx.fillStyle = '#e8574f';
+  ctx.fillRect(2, 7, 12, 5);
+  ctx.fillRect(4, 4, 8, 3);
+  ctx.fillStyle = '#aee3ff';
+  ctx.fillRect(5, 5, 6, 2);
+  ctx.fillStyle = '#3a3a3a';
+  ctx.fillRect(3, 11, 3, 3);
+  ctx.fillRect(10, 11, 3, 3);
+});
+const boatCard = cardPainter('#4fa8e8', (ctx) => {
+  ctx.fillStyle = '#c98d4b';
+  ctx.fillRect(2, 9, 12, 4);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(7, 2, 1, 7);
+  ctx.fillStyle = '#e8574f';
+  ctx.fillRect(8, 3, 5, 5);
+  ctx.fillStyle = '#4fa8e8';
+  ctx.fillRect(1, 13, 14, 2);
+});
+const dogCard = cardPainter('#c98d4b', (ctx) => {
+  ctx.fillStyle = '#c98d4b';
+  ctx.fillRect(4, 5, 8, 7);
+  ctx.fillRect(2, 4, 3, 5);
+  ctx.fillRect(11, 4, 3, 5);
+  ctx.fillStyle = '#3a3226';
+  ctx.fillRect(6, 7, 1, 1);
+  ctx.fillRect(9, 7, 1, 1);
+  ctx.fillRect(7, 9, 2, 1);
+});
+const catCard = cardPainter('#f2903c', (ctx) => {
+  ctx.fillStyle = '#f2903c';
+  ctx.fillRect(4, 6, 8, 6);
+  ctx.fillRect(4, 3, 2, 3);
+  ctx.fillRect(10, 3, 2, 3);
+  ctx.fillStyle = '#67c23a';
+  ctx.fillRect(6, 8, 1, 1);
+  ctx.fillRect(9, 8, 1, 1);
+  ctx.fillStyle = '#f291bb';
+  ctx.fillRect(7, 10, 2, 1);
+});
+const villagerCard = cardPainter('#4a7fd6', (ctx) => {
+  ctx.fillStyle = '#f2c79a';
+  ctx.fillRect(5, 3, 6, 5);
+  ctx.fillStyle = '#6b4a26';
+  ctx.fillRect(5, 2, 6, 2);
+  ctx.fillStyle = '#4a7fd6';
+  ctx.fillRect(4, 8, 8, 6);
+  ctx.fillStyle = '#3a3226';
+  ctx.fillRect(6, 5, 1, 1);
+  ctx.fillRect(9, 5, 1, 1);
+});
+
 // --- Magic Delivery Box ---------------------------------------------------
 
 const cardboardBase: Painter = (ctx, rand) => {
@@ -660,6 +802,20 @@ export const PAINTERS: Record<string, { paint: Painter; seed: number }> = {
   painting: { paint: painting, seed: 156 },
   cake: { paint: cake, seed: 157 },
   flower_pot: { paint: flowerPot, seed: 158 },
+  tv_on: { paint: tvOn, seed: 159 },
+  lamp: { paint: lamp, seed: 160 },
+  lamp_on: { paint: lampOn, seed: 161 },
+  stove: { paint: stove, seed: 162 },
+  stove_top: { paint: stoveTop, seed: 163 },
+  fridge: { paint: fridge, seed: 164 },
+  fridge_top: { paint: fridgeTop, seed: 165 },
+  sink: { paint: sink, seed: 166 },
+  sink_top: { paint: sinkTop, seed: 167 },
+  car: { paint: carCard, seed: 170 },
+  boat: { paint: boatCard, seed: 171 },
+  dog: { paint: dogCard, seed: 172 },
+  cat: { paint: catCard, seed: 173 },
+  villager: { paint: villagerCard, seed: 174 },
   box_top: { paint: boxTop, seed: 144 },
   box_side: { paint: boxSide, seed: 145 },
   box_bottom: { paint: boxBottom, seed: 146 },

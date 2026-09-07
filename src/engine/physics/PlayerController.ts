@@ -43,6 +43,10 @@ export class PlayerController {
   onGround = false;
   inWater = false;
   onLadder = false;
+  /** Sitting on a chair: frozen until the player moves. */
+  seated: { x: number; y: number; z: number } | null = null;
+  /** Riding a vehicle: the entity system drives the position. */
+  mounted = false;
   facing = 0; // radians around y
   /** True while the body is being animated as walking. */
   moving = false;
@@ -84,7 +88,31 @@ export class PlayerController {
     return { x: this.x, y: this.y + EYE_HEIGHT, z: this.z };
   }
 
+  sitAt(x: number, y: number, z: number): void {
+    this.seated = { x, y, z };
+    this.teleport(x, y, z);
+    this.onGround = true;
+  }
+
+  standUp(): void {
+    if (!this.seated) return;
+    const { x, y, z } = this.seated;
+    this.seated = null;
+    this.teleport(x, y + 0.5, z);
+  }
+
   update(dt: number, input: PlayerInput, cameraYaw: number): void {
+    if (this.mounted) {
+      this.moving = false;
+      return;
+    }
+    if (this.seated) {
+      if (input.forward || input.back || input.left || input.right || input.jump) this.standUp();
+      else {
+        this.moving = false;
+        return;
+      }
+    }
     // Don't simulate on unloaded ground: the player would fall forever.
     if (!this.world.isLoaded(Math.round(this.x), Math.round(this.z))) return;
 

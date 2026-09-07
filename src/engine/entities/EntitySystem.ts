@@ -4,22 +4,28 @@ import type { System } from '../core/System';
 import type { PlayerController } from '../physics/PlayerController';
 import type { Ray } from '../physics/raycast';
 import type { VoxelWorld } from '../world/VoxelWorld';
-import { WanderBrain, type Brain, type BrainSense } from './Brain';
-import { buildBunny, buildButterfly, buildChick, disposeGroup } from './bodies';
-import type { Entity, EntityKind } from './Entity';
+import { FollowBrain, HomeBrain, WanderBrain, createBrain, type Brain, type BrainSense } from './Brain';
+import { buildBunny, buildButterfly, buildCat, buildChick, buildDog, buildVillager, disposeGroup } from './bodies';
+import type { Entity, EntityKind, StoredEntity } from './Entity';
+import { Vehicle, type DriveInput, type VehicleKind } from './vehicles';
+import { PET_NAMES, VILLAGER_NAMES, jobById, randomJob, randomName, type TalkChoice } from './villagers';
 
 let nextId = 1;
 
 /**
- * Creatures: bodies in the scene, brains deciding where to go, simple
- * ground-following movement. Animals spawn fresh near the player; pets
- * and villagers (later) persist with the world.
+ * Everything alive or drivable: animals, pets, villagers, vehicles.
+ * Bodies in the scene, brains deciding where to go, ground-following
+ * movement. Pets, villagers, and vehicles persist with the world.
  */
 export class EntitySystem implements System {
   readonly name = 'entities';
   readonly entities: Entity[] = [];
+  /** The vehicle the player is riding, if any. */
+  mounted: Entity | null = null;
+  driveInput: DriveInput | null = null;
   private raycaster = new THREE.Raycaster();
   private spawnedAround: string | null = null;
+  private elapsed = 0;
 
   constructor(
     private scene: THREE.Scene,
@@ -33,12 +39,39 @@ export class EntitySystem implements System {
     if (top < 0) return false;
     const def = this.registry.get(this.world.getBlock(x, top, z));
     if (!def) return false;
-    return def.id === 'grass' || def.category === 'nature' && def.collision === 'none';
+    return def.collision === 'solid' && def.shape === 'cube' && def.id !== 'water';
   }
 
   private groundY(x: number, z: number): number {
     const top = this.world.height(Math.round(x), Math.round(z));
     return top >= 0 ? top + 0.5 : this.player.y;
+  }
+
+  private add(entity: Entity): Entity {
+    this.scene.add(entity.group);
+    this.entities.push(entity);
+    return entity;
+  }
+
+  private base(kind: EntityKind, group: THREE.Group, x: number, z: number, brain: Brain, speed: number): Entity {
+    return {
+      id: `e${nextId++}`,
+      kind,
+      group,
+      x,
+      y: this.groundY(x, z),
+      z,
+      targetX: x,
+      targetZ: z,
+      speed,
+      flies: false,
+      restTimer: Math.random() * 2,
+      happyTimer: 0,
+      phase: Math.random() * Math.PI * 2,
+      mood: 'curious',
+      brain,
+      persistent: false,
+    };
   }
 
   spawn(kind: EntityKind, x: number, z: number, brain: Brain = new WanderBrain(), name?: string): Entity {
@@ -53,38 +86,57 @@ export class EntitySystem implements System {
     } else {
       group = buildBunny();
     }
-    this.scene.add(group);
-    const entity: Entity = {
-      id: `e${nextId++}`,
-      kind,
-      name,
-      group,
-      x,
-      y: this.groundY(x, z),
-      z,
-      targetX: x,
-      targetZ: z,
-      speed: kind === 'butterfly' ? 1.6 : kind === 'chick' ? 1.0 : 1.2,
-      flies: kind === 'butterfly',
-      restTimer: Math.random() * 2,
-      happyTimer: 0,
-      phase: Math.random() * Math.PI * 2,
-      mood: 'curious',
-      brain,
-      wings,
-      persistent: kind === 'pet' || kind === 'villager',
-    };
-    this.entities.push(entity);
-    return entity;
+    const entity = this.base(kind, group, x, z, brain, kind === 'butterfly' ? 1.6 : kind === 'chick' ? 1.0 : 1.2);
+    entity.name = name;
+    entity.flies = kind === 'butterfly';
+    entity.wings = wings;
+    return this.add(entity);
+  }
+
+  spawnPet(variant: 'dog' | 'cat', x: number, z: number, name = randomName(PET_NAMES), brainName = 'follow'): Entity {
+    const group = variant === 'dog' ? buildDog() : buildCat();
+    const entity = this.base('pet', group, x, z, createBrain(brainName), variant === 'dog' ? 3.2 : 2.8);
+    entity.name = name;
+    entity.variant = variant;
+    entity.persistent = true;
+    entity.data = { brain: brainName };
+    return this.add(entity);
+  }
+
+  spawnVillager(jobId: string | 'random', x: number, z: number, name = randomName(VILLAGER_NAMES), home?: { x: number; z: number }): Entity {
+    const job = jobId === 'random' ? randomJob() : (jobById(jobId) ?? randomJob());
+    const entity = this.base('villager', buildVillager(job.look), x, z, new HomeBrain(home ?? { x, z }), 1.3);
+    entity.name = name;
+    entity.variant = job.id;
+    entity.home = home ?? { x, z };
+    entity.persistent = true;
+    entity.data = { job: job.id };
+    return this.add(entity);
+  }
+
+  spawnVehicle(kind: VehicleKind, x: number, y: number, z: number, color?: string): Entity {
+    const vehicle = new Vehicle(kind, this.world, this.registry, { x, y, z }, color ?? (kind === 'car' ? '#e8574f' : '#c98d4b'));
+    const entity = this.base('vehicle', vehicle.group, x, z, new WanderBrain(0), 0);
+    entity.y = y;
+    entity.variant = kind;
+    entity.vehicle = vehicle;
+    entity.persistent = true;
+    entity.data = { color: vehicle.color };
+    return this.add(entity);
   }
 
   remove(id: string): boolean {
     const index = this.entities.findIndex((e) => e.id === id);
     if (index < 0) return false;
     const [entity] = this.entities.splice(index, 1);
+    if (this.mounted === entity) this.dismount();
     this.scene.remove(entity.group);
     disposeGroup(entity.group);
     return true;
+  }
+
+  byId(id: string): Entity | undefined {
+    return this.entities.find((e) => e.id === id);
   }
 
   /** A friendly flock near a point. Called once the ground has loaded. */
@@ -105,17 +157,112 @@ export class EntitySystem implements System {
     }
   }
 
+  // --- riding ---------------------------------------------------------------
+
+  mount(entity: Entity): boolean {
+    if (!entity.vehicle || this.mounted) return false;
+    this.mounted = entity;
+    this.player.mounted = true;
+    return true;
+  }
+
+  dismount(): boolean {
+    const entity = this.mounted;
+    if (!entity) return false;
+    this.mounted = null;
+    this.player.mounted = false;
+    // Step off beside the vehicle onto the ground.
+    const x = entity.x + Math.cos((entity.vehicle?.yaw ?? 0) + Math.PI / 2) * 1.4;
+    const z = entity.z - Math.sin((entity.vehicle?.yaw ?? 0) + Math.PI / 2) * 1.4;
+    this.player.teleport(x, this.groundY(x, z), z);
+    return true;
+  }
+
+  // --- talking --------------------------------------------------------------
+
+  /** A villager answers a picture choice; may hand over a gift block id. */
+  talk(entity: Entity, choice: TalkChoice): { line: string; gift?: number; giftLabel?: string } {
+    const job = jobById(entity.variant ?? '') ?? randomJob();
+    entity.happyTimer = 0.6;
+    switch (choice) {
+      case 'hi':
+        return { line: job.greeting };
+      case 'gift':
+        return { line: job.giftLine, gift: job.gift(), giftLabel: job.giftLabel };
+      case 'play':
+        entity.savedBrain = entity.savedBrain ?? entity.brain;
+        entity.brain = new FollowBrain(2.5);
+        entity.brainUntil = this.elapsed + 45;
+        entity.restTimer = 0;
+        return { line: job.playLine };
+      default:
+        return { line: job.byeLine };
+    }
+  }
+
+  setPetBrain(entity: Entity, brainName: 'follow' | 'stay' | 'wander'): void {
+    entity.brain = createBrain(brainName);
+    entity.data = { ...entity.data, brain: brainName };
+    entity.targetX = entity.x;
+    entity.targetZ = entity.z;
+    entity.restTimer = 0;
+  }
+
+  // --- persistence ----------------------------------------------------------
+
+  serialize(): StoredEntity[] {
+    return this.entities
+      .filter((e) => e.persistent)
+      .map((e) => ({
+        id: e.id,
+        kind: e.kind,
+        variant: e.variant,
+        name: e.name,
+        x: e.x,
+        y: e.y,
+        z: e.z,
+        brain: (e.savedBrain ?? e.brain).kind,
+        home: e.home,
+        data: e.data,
+      }));
+  }
+
+  restore(list: StoredEntity[]): void {
+    for (const s of list) {
+      let entity: Entity | null = null;
+      if (s.kind === 'pet' && (s.variant === 'dog' || s.variant === 'cat')) {
+        entity = this.spawnPet(s.variant, s.x, s.z, s.name, typeof s.data?.brain === 'string' ? (s.data.brain as string) : s.brain);
+      } else if (s.kind === 'villager') {
+        entity = this.spawnVillager(s.variant ?? 'random', s.x, s.z, s.name, s.home);
+      } else if (s.kind === 'vehicle' && (s.variant === 'car' || s.variant === 'boat')) {
+        entity = this.spawnVehicle(s.variant, s.x, s.y, s.z, typeof s.data?.color === 'string' ? (s.data.color as string) : undefined);
+      }
+      if (entity) entity.id = s.id;
+    }
+    const max = this.entities.reduce((m, e) => Math.max(m, Number(e.id.slice(1)) || 0), 0);
+    nextId = Math.max(nextId, max + 1);
+  }
+
+  // --- interaction ------------------------------------------------------------
+
+  /** Did a ray hit a creature or vehicle? Returns it (does not pet it). */
+  pick(ray: Ray): Entity | null {
+    this.raycaster.set(new THREE.Vector3(ray.ox, ray.oy, ray.oz), new THREE.Vector3(ray.dx, ray.dy, ray.dz));
+    this.raycaster.far = 12;
+    let best: { entity: Entity; d: number } | null = null;
+    for (const entity of this.entities) {
+      if (entity === this.mounted) continue;
+      const hit = this.raycaster.intersectObject(entity.group, true)[0];
+      if (hit && (!best || hit.distance < best.d)) best = { entity, d: hit.distance };
+    }
+    return best?.entity ?? null;
+  }
+
   /** Did a ray hit a creature? Pets it and returns it. */
   tap(ray: Ray): Entity | null {
-    this.raycaster.set(new THREE.Vector3(ray.ox, ray.oy, ray.oz), new THREE.Vector3(ray.dx, ray.dy, ray.dz));
-    for (const entity of this.entities) {
-      const hit = this.raycaster.intersectObject(entity.group, true)[0];
-      if (hit) {
-        this.pet(entity);
-        return entity;
-      }
-    }
-    return null;
+    const entity = this.pick(ray);
+    if (entity && !entity.vehicle) this.pet(entity);
+    return entity;
   }
 
   pet(entity: Entity): void {
@@ -142,9 +289,29 @@ export class EntitySystem implements System {
   }
 
   update(dt: number, elapsed: number): void {
+    this.elapsed = elapsed;
     for (const entity of this.entities) {
-      // Creatures outside loaded ground just wait.
       if (!this.world.isLoaded(Math.round(entity.x), Math.round(entity.z))) continue;
+
+      if (entity.vehicle) {
+        const riding = this.mounted === entity;
+        entity.vehicle.update(dt, riding ? this.driveInput : null, elapsed);
+        entity.x = entity.vehicle.x;
+        entity.y = entity.vehicle.y;
+        entity.z = entity.vehicle.z;
+        if (riding) {
+          const seat = entity.vehicle.seat();
+          this.player.teleport(seat.x, seat.y, seat.z);
+          this.player.facing = entity.vehicle.yaw - Math.PI / 2;
+        }
+        continue;
+      }
+
+      if (entity.brainUntil !== undefined && elapsed > entity.brainUntil) {
+        entity.brain = entity.savedBrain ?? entity.brain;
+        entity.savedBrain = undefined;
+        entity.brainUntil = undefined;
+      }
 
       if (entity.happyTimer > 0) {
         entity.happyTimer -= dt;
@@ -173,7 +340,6 @@ export class EntitySystem implements System {
         const step = Math.min(distance, entity.speed * dt);
         const nx = entity.x + (dx / distance) * step;
         const nz = entity.z + (dz / distance) * step;
-        // Don't walk up cliffs: give up on targets more than a block higher.
         if (!entity.flies && this.groundY(nx, nz) > entity.y + 1.1) {
           entity.targetX = entity.x;
           entity.targetZ = entity.z;
@@ -195,7 +361,7 @@ export class EntitySystem implements System {
         }
       } else {
         const moving = distance >= 0.1;
-        const hop = moving ? Math.abs(Math.sin(elapsed * 7 + entity.phase)) * 0.18 : 0;
+        const hop = moving && entity.kind !== 'villager' ? Math.abs(Math.sin(elapsed * 7 + entity.phase)) * 0.18 : 0;
         entity.group.position.set(entity.x, entity.y + hop, entity.z);
       }
     }

@@ -1,7 +1,7 @@
 import type { StoredWorld } from '../../storage/db';
 import type { InteractionMode, SaveState, TimeMode, VisualModeId, WeatherMode } from '../../types/game';
 
-export type PanelId = 'none' | 'menu' | 'container' | 'sleep' | 'palette' | 'worlds' | 'blueprints';
+export type PanelId = 'none' | 'menu' | 'container' | 'sleep' | 'palette' | 'worlds' | 'blueprints' | 'pet' | 'villager' | 'dressup';
 export type ViewMode = 'third' | 'first';
 export type WorldPreset = 'meadow' | 'toyland';
 
@@ -53,13 +53,19 @@ export type UiSlice = {
   nextTool: () => void;
   /** Load a blueprint into the clipboard and switch to paste mode. */
   selectBlueprint: (id: string) => void;
+  /** A villager handed over a block. */
+  receiveGift: (blockId: number, label: string) => void;
   undo: () => void;
   redo: () => void;
   petAnimal: (kind: string, name?: string) => void;
   sleepUntilMorning: () => void;
 };
 
+export type PlayerLookState = { shirt: string; pants: string; skin: string; hair: string; hat: 'none' | 'cap' | 'crown' | 'cowboy' | 'party' };
+
 export type SettingsSlice = {
+  look: PlayerLookState;
+  setLook: (look: Partial<PlayerLookState>) => void;
   visualMode: VisualModeId;
   timeMode: TimeMode;
   weather: WeatherMode;

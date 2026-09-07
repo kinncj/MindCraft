@@ -5,6 +5,7 @@ import { useGameStore } from '../game/gameStore';
 import { KidButton } from './KidButton';
 
 const CATEGORIES: Array<{ id: BlockCategory; label: string; emoji: string }> = [
+  { id: 'friends', label: 'Friends & Rides', emoji: '🐶' },
   { id: 'ground', label: 'Ground', emoji: '🌍' },
   { id: 'building', label: 'Building', emoji: '🧱' },
   { id: 'nature', label: 'Nature', emoji: '🌳' },

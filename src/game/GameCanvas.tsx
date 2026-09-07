@@ -35,7 +35,8 @@ export function GameCanvas() {
       player: world.player ?? null,
       template: world.template ?? null,
       storage: store.storageAvailable ? worldStore.chunkStorage(world.id) : null,
-      settings: { visualMode: store.visualMode, timeMode: store.timeMode, weather: store.weather, timeOfDay: world.settings.timeOfDay },
+      settings: { visualMode: store.visualMode, timeMode: store.timeMode, weather: store.weather, timeOfDay: world.settings.timeOfDay, look: store.look },
+      entities: (world.entities ?? []) as import('../engine/entities/Entity').StoredEntity[],
       bridge: {
         getSelectedBlockId: () => registry.byId(useGameStore.getState().selectedBlockType)?.numericId ?? 1,
         getMode: () => useGameStore.getState().mode,
@@ -48,6 +49,8 @@ export function GameCanvas() {
         onViewModeChange: (mode) => useGameStore.getState().setViewMode(mode),
         onPet: (kind, name) => useGameStore.getState().petAnimal(kind, name),
         onTemplateApplied: () => useGameStore.getState().markDirty(),
+        onEntityTapped: (entity) => useGameStore.getState().setOpenPanel(entity.kind === 'pet' ? 'pet' : 'villager', entity),
+        onGift: (blockId, label) => useGameStore.getState().receiveGift(blockId, label),
         onGamepadActive: (active) => useGameStore.getState().setControllerActive(active),
         onCommand: (command) => {
           const s = useGameStore.getState();

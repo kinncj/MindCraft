@@ -20,6 +20,7 @@ export type BlockShapeId =
   | 'flat';
 
 export type BlockCategory =
+  | 'friends'
   | 'ground'
   | 'building'
   | 'nature'
@@ -54,6 +55,8 @@ export type InteractContext = {
   face: Direction;
   /** Ask the UI layer to open something (a container, a dialog). */
   openPanel(kind: string, payload: unknown): void;
+  /** Ask the engine to do something physical (sit, sizzle, spawn). */
+  perform(action: string, payload?: unknown): void;
 };
 
 export type PlaceContext = {
@@ -111,6 +114,10 @@ export type BlockDefinition = {
   lightLevel: number;
   bucket: RenderBucket;
   textures: FaceTextures;
+  /** Alternate textures by state variant (a TV that is on). */
+  variants?: Record<number, FaceTextures>;
+  /** Placing this "block" spawns a creature or vehicle instead. */
+  spawns?: { kind: 'vehicle' | 'pet' | 'villager'; variant: string };
   /** Shown in the block palette? */
   inPalette: boolean;
   /** Rotate to face the player on placement. */

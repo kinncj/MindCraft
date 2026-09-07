@@ -25,6 +25,11 @@
   version 2 files; version 1 saves and files are converted automatically
 - Every capability exposed as a tool (`player_*`, `world_*`, `entity_*`, `time_*`,
   `weather_*`, `camera_*`, `history_*`) via WebMCP and `window.mindcraftTools`
+- Build tools: room, fill, paint, copy/paste with rotation, mirror, six blueprint cards
+- Life layer: sit on chairs, switch TVs and lamps, a fridge that stores, a stove that
+  sizzles, ladders; a drivable car and boat; puppies and kitties that follow or stay;
+  villagers with eight pretend jobs, picture dialogue, gifts, and "let's play"
+- Dress-up: shirt, pants, skin, hair, hats
 - Works with keyboard and mouse, touch (joystick, jump button, pinch zoom), and
   standard gamepads
 
@@ -39,7 +44,6 @@ Survival mechanics are excluded on purpose, permanently — not "later":
 
 ## Planned next (see README "Roadmap")
 
-Build tools (room tool, paint, copy/paste stamps, blueprints), the life layer
-(furniture that works, a car and a boat, pets, villagers with picture dialogue and
-pretend jobs, dress-up), a picture recipe crafting book, a logic layer (buttons,
-levers, wire, lamps, pistons, a programmable robot), and generated music with Tone.js.
+A modern menu that fits a phone, a picture recipe crafting book, a logic layer
+(buttons, levers, wire, lamps, pistons, a programmable robot), and generated music
+with Tone.js.

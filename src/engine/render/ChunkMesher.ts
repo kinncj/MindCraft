@@ -1,4 +1,5 @@
 import type { RenderBucket } from '../blocks/BlockDefinition';
+import { BlockState } from '../blocks/BlockState';
 import type { BlockRegistry } from '../blocks/registry';
 import { SHAPES } from '../blocks/shapes';
 import type { Chunk } from '../world/Chunk';
@@ -67,6 +68,7 @@ export class ChunkMesher {
           const z = baseZ + lz;
           const selfGlow = def.lightLevel / 15;
           const target = buffers[def.bucket];
+          const textures = def.variants?.[BlockState.variant(state)] ?? def.textures;
 
           for (const quad of shape.quads(state)) {
             let lightX = x;
@@ -97,7 +99,7 @@ export class ChunkMesher {
             }
             const sky = this.world.getSkyLight(lightX, lightY, lightZ) / 15;
             const block = Math.max(selfGlow, this.world.getBlockLight(lightX, lightY, lightZ) / 15);
-            const rect = this.atlas.rect(def.textures[quad.slot]);
+            const rect = this.atlas.rect(textures[quad.slot]);
             emit(target, x, y, z, quad.corners, quad.normal, rect, quad.uv, sky, block);
             if (quad.doubleSided) {
               emit(target, x, y, z, [...quad.corners].reverse(), oppositeDirection(quad.normal), rect, quad.uv, sky, block);

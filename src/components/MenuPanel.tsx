@@ -43,10 +43,15 @@ export function MenuPanel() {
               <li>Drag to look around, scroll to zoom, arrows or WASD to move</li>
               <li>Press V (or zoom all the way in) to look through your own eyes</li>
               <li>Press E for all the blocks, and ↩️ Undo if you make a mistake</li>
-              <li>Tap doors to open them, beds to sleep, and the 📦 Magic Delivery Box to store treasures</li>
+              <li>Tap doors to open them, beds to sleep, chairs to sit, and the 📦 Magic Delivery Box to store treasures</li>
+              <li>Find 🐶 Friends & Rides in the block list: puppies, kitties, neighbors, a car and a boat</li>
+              <li>Tap a car or boat to ride it, then tap it again (or press space) to hop off</li>
               <li>The animals are just friends — they like watching you build</li>
             </ul>
           )}
+          <KidButton onClick={() => setOpenPanel('dressup')} aria-label="Dress up your character">
+            👕 Dress up
+          </KidButton>
           <VisualModeSelector />
           <WorldSettings />
           <h3>Your world: {worldName}</h3>

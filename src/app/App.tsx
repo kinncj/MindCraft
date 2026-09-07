@@ -5,6 +5,9 @@ import { blocks } from '../engine/blocks/blocks';
 import { blockIconDataUrl } from '../game/blockIcons';
 import { BlockPalette } from '../components/BlockPalette';
 import { BlueprintsPanel } from '../components/BlueprintsPanel';
+import { DressUpPanel } from '../components/DressUpPanel';
+import { PetPanel } from '../components/PetPanel';
+import { VillagerPanel } from '../components/VillagerPanel';
 import { ToolsBar } from '../components/ToolsBar';
 import { Hotbar } from '../components/Hotbar';
 import { SaveIndicator } from '../components/SaveIndicator';
@@ -126,6 +129,9 @@ export function App() {
       <VirtualControls />
       <BlockPalette />
       <BlueprintsPanel />
+      <PetPanel />
+      <VillagerPanel />
+      <DressUpPanel />
       <MagicDeliveryBoxPanel />
       <SleepPanel />
       <WorldsPanel />

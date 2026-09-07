@@ -76,3 +76,43 @@ export class FollowBrain implements Brain {
     return { target: null, restFor: 2, mood: 'happy' };
   }
 }
+
+/** Wanders, but never far from home: villagers. */
+export class HomeBrain implements Brain {
+  readonly kind = 'home';
+  constructor(
+    private home: { x: number; z: number },
+    private radius = 7,
+  ) {}
+
+  decide(sense: BrainSense): BrainIntent {
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const x = Math.round(this.home.x + (sense.random() * 2 - 1) * this.radius);
+      const z = Math.round(this.home.z + (sense.random() * 2 - 1) * this.radius);
+      if (sense.standable(x, z)) return { target: { x, z }, restFor: 2 + sense.random() * 4, mood: 'busy' };
+    }
+    return { target: null, restFor: 3, mood: 'relaxed' };
+  }
+
+  onPet(): BrainIntent {
+    return { target: null, restFor: 3, mood: 'happy' };
+  }
+}
+
+/** Sits still: a pet told to stay. */
+export class StayBrain implements Brain {
+  readonly kind = 'stay';
+  decide(): BrainIntent {
+    return { target: null, restFor: 5, mood: 'patient' };
+  }
+  onPet(): BrainIntent {
+    return { target: null, restFor: 2, mood: 'happy' };
+  }
+}
+
+export function createBrain(name: string, home?: { x: number; z: number }): Brain {
+  if (name === 'follow') return new FollowBrain();
+  if (name === 'stay') return new StayBrain();
+  if (name === 'home' && home) return new HomeBrain(home);
+  return new WanderBrain();
+}
