@@ -2109,3 +2109,26 @@ h3 {
     flex-basis: 50px;
   }
 }
+
+/* --- helper download ---------------------------------------------------- */
+
+.helper-card {
+  padding: 0.9rem;
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-lg);
+  background: var(--glass-2);
+}
+
+.progress {
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  margin: 0.4rem 0;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--grad-primary);
+  transition: width 0.2s ease;
+}

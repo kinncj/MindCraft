@@ -26,6 +26,23 @@ let changeSeq = 0;
 
 const AUDIO_KEY = 'mindcraft-audio';
 const SMART_KEY = 'mindcraft-smart-chat';
+const HELPER_KEY = 'mindcraft-helper';
+
+function loadHelperEnabled(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(HELPER_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function saveHelperEnabled(on: boolean): void {
+  try {
+    localStorage.setItem(HELPER_KEY, on ? '1' : '0');
+  } catch {
+    // fine
+  }
+}
 
 function loadSmartChat(): boolean {
   try {
@@ -443,6 +460,40 @@ export const useGameStore = create<GameState>((set, get) => {
       }
       const engine = getEngine();
       if (engine) engine.chat.smart = on;
+    },
+    helper: { status: 'none', progress: 0, text: '', enabled: loadHelperEnabled() },
+    async downloadHelper() {
+      const engine = getEngine();
+      if (!engine) return;
+      set({ helper: { ...get().helper, status: 'downloading', progress: 0, text: 'Starting…' } });
+      engine.chat.helper.onProgress = (p) => set({ helper: { ...get().helper, status: 'downloading', progress: p.progress, text: p.text } });
+      try {
+        await engine.chat.helper.load();
+        engine.chat.helper.enabled = true;
+        saveHelperEnabled(true);
+        set({ helper: { status: 'ready', progress: 1, text: 'Ready', enabled: true } });
+        get().showToast('✨ The smarter helper is ready! Villagers understand more now.');
+      } catch (error) {
+        set({ helper: { ...get().helper, status: 'error', text: error instanceof Error ? error.message : 'Could not load the helper.' } });
+      }
+    },
+    setHelperEnabled(on) {
+      const engine = getEngine();
+      if (engine) engine.chat.helper.enabled = on;
+      saveHelperEnabled(on);
+      set({ helper: { ...get().helper, enabled: on } });
+    },
+    async removeHelper() {
+      const engine = getEngine();
+      if (engine) {
+        engine.chat.helper.enabled = false;
+        await engine.chat.helper.unload();
+      }
+      const { deleteHelperModel } = await import('../engine/chat/WebLlmProvider');
+      await deleteHelperModel().catch(() => undefined);
+      saveHelperEnabled(false);
+      set({ helper: { status: 'none', progress: 0, text: '', enabled: false } });
+      get().showToast('The helper was removed from this device.');
     },
     audio: loadAudio(),
     setAudio(audio) {

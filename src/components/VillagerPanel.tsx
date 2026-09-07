@@ -100,7 +100,9 @@ export function VillagerPanel() {
           <Icon name="send" size={26} />
         </KidButton>
       </form>
-      <p className="chat-provider">Answered by: {engine.chat.providerName === 'rules' ? 'the game' : engine.chat.providerName === 'built-in' ? "your browser's built-in AI" : engine.chat.providerName}</p>
+      <p className="chat-provider">
+        Answered by: {engine.chat.providerName === 'rules' ? 'the game' : engine.chat.providerName === 'built-in' ? "your browser's built-in AI" : engine.chat.providerName === 'helper' ? 'the helper on this device' : engine.chat.providerName}
+      </p>
     </Sheet>
   );
 }

@@ -136,3 +136,26 @@ describe('chat agent and villager work', () => {
     expect(agent.providerName).toBe('rules');
   });
 });
+
+describe('provider order with the helper', () => {
+  it('uses the helper before the rules once it is loaded and enabled', async () => {
+    const { WebLlmProvider } = await import('../../src/engine/chat/WebLlmProvider');
+    const world = flatWorld();
+    const player = new PlayerController(world, blocks, { x: 8, y: 2.5, z: 8 });
+    const entities = new EntitySystem(new THREE.Scene(), world, blocks, player);
+    const history = new CommandHistory(world);
+    const helper = new WebLlmProvider('t', async () => ({
+      chat: { completions: { create: async () => ({ choices: [{ message: { content: '{"say":"Helper here! 🌟","actions":[]}' } }] }) } },
+      unload: async () => undefined,
+    }));
+    const agent = new ChatAgent({ tools: new ToolRegistry(), entities, build: new BuildTools(world, blocks, history), registry: blocks, player: () => ({ x: 8, y: 2.5, z: 8, yaw: 0 }), surface: (x, z) => world.height(x, z), say: () => undefined, helper });
+    const villager = entities.spawnVillager('baker', 5, 5, 'Mia');
+    expect((await agent.send(villager.id, 'hello'))?.provider).toBe('rules');
+    await helper.load();
+    helper.enabled = true;
+    const result = await agent.send(villager.id, 'hello');
+    expect(result?.provider).toBe('helper');
+    expect(result?.say).toBe('Helper here! 🌟');
+    expect(agent.providerName).toBe('helper');
+  });
+});

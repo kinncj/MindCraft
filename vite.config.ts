@@ -15,7 +15,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Three.js and Tone.js change rarely; keep them cacheable on their own.
-        manualChunks: { three: ['three'], tone: ['tone'] },
+        manualChunks: { three: ['three'], tone: ['tone'], webllm: ['@mlc-ai/web-llm'] },
       },
     },
   },

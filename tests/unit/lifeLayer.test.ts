@@ -64,7 +64,7 @@ describe('furniture', () => {
 describe('pets and villagers', () => {
   it('a pet follows the player and can be told to stay', () => {
     const { player, entities } = setup();
-    const dog = entities.spawnPet('dog', 2, 2, 'Rex');
+    const dog = entities.spawnPet('dog', 2, 2, 'Rex', 'follow');
     expect(dog.persistent).toBe(true);
     player.teleport(12, 2.5, 12);
     for (let i = 0; i < 480; i++) entities.update(1 / 60, i / 60);

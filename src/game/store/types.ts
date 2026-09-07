@@ -78,6 +78,11 @@ export type SettingsSlice = {
   /** Let villager chats use the browser's built-in on-device model when it has one. */
   smartChat: boolean;
   setSmartChat: (on: boolean) => void;
+  /** The downloadable helper model: a parent's choice, kept on the device. */
+  helper: { status: 'none' | 'downloading' | 'ready' | 'error'; progress: number; text: string; enabled: boolean };
+  downloadHelper: () => Promise<void>;
+  setHelperEnabled: (on: boolean) => void;
+  removeHelper: () => Promise<void>;
   look: PlayerLookState;
   setLook: (look: Partial<PlayerLookState>) => void;
   visualMode: VisualModeId;

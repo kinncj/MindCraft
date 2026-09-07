@@ -8,6 +8,7 @@ import { resolveBlockId } from '../blocks/blocks';
 import type { ToolRegistry } from '../tools/ToolRegistry';
 import { BuiltInModelProvider } from './BuiltInModelProvider';
 import { RuleChatProvider, rotationFromYaw } from './RuleChatProvider';
+import { WebLlmProvider } from './WebLlmProvider';
 import { CHAT_TOOL_ALLOWLIST, HANDS_ON_TOOLS, type ChatAction, type ChatContext, type ChatProvider, type ChatReply, type ChatTurn } from './types';
 
 export type ChatResult = ChatReply & { provider: string; performed: string[] };
@@ -23,6 +24,8 @@ export class ChatAgent {
   smart = false;
   private external: ChatProvider | null = null;
   private builtIn = new BuiltInModelProvider();
+  /** The downloadable on-device model (WebLLM), off until a grown-up enables it. */
+  readonly helper: WebLlmProvider;
   private rules = new RuleChatProvider();
   private histories = new Map<string, ChatTurn[]>();
 
@@ -35,15 +38,20 @@ export class ChatAgent {
       player: () => { x: number; y: number; z: number; yaw: number };
       surface: (x: number, z: number) => number;
       say: (villagerId: string, text: string) => void;
+      helper?: WebLlmProvider;
     },
-  ) {}
+  ) {
+    this.helper = deps.helper ?? new WebLlmProvider();
+  }
 
   registerProvider(provider: ChatProvider | null): void {
     this.external = provider;
   }
 
   get providerName(): string {
-    return this.external?.name ?? (this.smart ? 'built-in' : 'rules');
+    if (this.external) return this.external.name;
+    if (this.helper.enabled && this.helper.ready) return 'helper';
+    return this.smart ? 'built-in' : 'rules';
   }
 
   async builtInAvailable(): Promise<boolean> {
@@ -83,6 +91,7 @@ export class ChatAgent {
     let provider = 'rules';
     const candidates: ChatProvider[] = [];
     if (this.external) candidates.push(this.external);
+    candidates.push(this.helper);
     if (this.smart) candidates.push(this.builtIn);
     candidates.push(this.rules);
     reply = { say: '', actions: [] };

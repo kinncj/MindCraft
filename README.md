@@ -49,9 +49,11 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 - **Chat with villagers.** Tap a neighbor and type or tap a chip: "build a house",
   "make a castle", "follow me", "make it night", "can I have a puppy". The villager
   answers and walks over to build it block by block (Undo removes the whole thing).
-  Answers come from the game's own rules, from your browser's built-in on-device AI
-  if a grown-up turns that on in Menu → Friends, or from an outside agent that
-  registers on `window.mindcraftChat`. Nothing is ever downloaded or sent anywhere.
+  Answers come from the game's own rules, from a **small language model a grown-up
+  can download once** (Qwen 2.5 0.5B, about 400 MB, kept on the device, run with
+  WebLLM on WebGPU), from your browser's built-in on-device AI if it has one, or from
+  an outside agent that registers on `window.mindcraftChat`. Nothing the child types
+  ever leaves the device.
 - **Crafting**: a picture recipe book with a tap-to-fill 3×3 grid and a crafting
   table. Recipes teach "this is made of that"; the result lands in the hotbar.
 - **Logic and automation**: levers, buttons, pressure plates, wire that fades over
@@ -160,7 +162,9 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 ## Privacy and safety
 
 - No backend, no accounts, no multiplayer, no chat, no ads, no analytics
-- No external requests at runtime; all assets are generated in code
+- No external requests at runtime; all assets are generated in code. The one
+  exception is the optional helper model, downloaded only when a grown-up taps
+  "Download" in Menu → Friends and confirms the size (ADR-0012)
 - Creative mode only, forever: no health, hunger, damage, death, monsters, weapons,
   combat, or failure states. Night is a cozy navy, never scary.
 - Creature "brains" are a tiny neural policy (ADR-0010), not a language model:

@@ -1,7 +1,8 @@
 # MindCraft — working rules
 
 A creative block game for a six-year-old. Browser only, no backend, no accounts, no
-ads, no tracking, no external requests at runtime. Original art generated in code.
+ads, no tracking, no external requests at runtime (sole exception: the optional
+helper model a grown-up downloads on purpose, ADR-0012). Original art generated in code.
 
 ## Architecture (ADR-0006)
 

@@ -72,6 +72,12 @@ export function GameCanvas() {
     engine.setViewMode(store.viewMode);
     engine.onAudioSettings = (settings) => useGameStore.getState().setAudio(settings);
     engine.chat.smart = store.smartChat;
+    // A helper the parent downloaded earlier loads from the cache in the background.
+    if (store.helper.enabled) {
+      void import('../engine/chat/WebLlmProvider').then(async ({ helperModelIsCached }) => {
+        if (await helperModelIsCached()) void useGameStore.getState().downloadHelper();
+      });
+    }
 
     const unsubWorld = engine.world.subscribe({
       onBlockChanged: () => useGameStore.getState().markDirty(),

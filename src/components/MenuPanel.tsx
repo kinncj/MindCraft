@@ -46,6 +46,12 @@ export function MenuPanel() {
   const setAudio = useGameStore((state) => state.setAudio);
   const smartChat = useGameStore((state) => state.smartChat);
   const setSmartChat = useGameStore((state) => state.setSmartChat);
+  const helper = useGameStore((state) => state.helper);
+  const downloadHelper = useGameStore((state) => state.downloadHelper);
+  const setHelperEnabled = useGameStore((state) => state.setHelperEnabled);
+  const removeHelper = useGameStore((state) => state.removeHelper);
+  const [confirmDownload, setConfirmDownload] = useState(false);
+  const gpu = typeof navigator !== 'undefined' && 'gpu' in navigator;
   const [page, setPage] = useState<Page>('main');
   const [builtIn, setBuiltIn] = useState<boolean | null>(null);
   useEffect(() => {
@@ -180,7 +186,51 @@ export function MenuPanel() {
               </span>
             </KidButton>
           </div>
-          <p className="menu-footer">Grown-ups: an outside agent can answer chats too, through window.mindcraftChat and the WebMCP tools. Nothing here ever talks to the internet on its own.</p>
+          <h3>A smarter helper (grown-ups)</h3>
+          <div className="helper-card">
+            {helper.status === 'ready' ? (
+              <>
+                <p className="sheet-hint">A small language model lives on this device now. Villagers understand all sorts of requests.</p>
+                <div className="dialog-buttons">
+                  <KidButton tone={helper.enabled ? 'primary' : 'default'} aria-pressed={helper.enabled} onClick={() => setHelperEnabled(!helper.enabled)}>
+                    {helper.enabled ? '✨ Helper on' : '✨ Helper off'}
+                  </KidButton>
+                  <KidButton tone="danger" onClick={() => void removeHelper()} aria-label="Remove the helper from this device">
+                    🗑️ Remove helper
+                  </KidButton>
+                </div>
+              </>
+            ) : helper.status === 'downloading' ? (
+              <>
+                <p className="sheet-hint">Downloading the helper… {Math.round(helper.progress * 100)}%</p>
+                <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(helper.progress * 100)}>
+                  <div className="progress-bar" style={{ width: `${Math.round(helper.progress * 100)}%` }} />
+                </div>
+                <p className="menu-footer">{helper.text}</p>
+              </>
+            ) : confirmDownload ? (
+              <>
+                <p className="sheet-hint">
+                  This downloads a small language model (about 400 MB, once) from its host on the internet and keeps it on this device. Nothing the child types is ever sent anywhere. It needs a recent browser with WebGPU.
+                </p>
+                <div className="dialog-buttons">
+                  <KidButton tone="primary" onClick={() => { setConfirmDownload(false); void downloadHelper(); }} aria-label="Yes, download the helper">
+                    ⬇️ Yes, download (400 MB)
+                  </KidButton>
+                  <KidButton onClick={() => setConfirmDownload(false)}>Not now</KidButton>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="sheet-hint">{gpu ? 'Villagers can understand almost anything with a small language model kept on this device.' : 'This browser has no WebGPU, so the helper cannot run here.'}</p>
+                {helper.status === 'error' && <p className="menu-footer">Last try failed: {helper.text}</p>}
+                <KidButton tone="primary" disabled={!gpu} onClick={() => setConfirmDownload(true)} aria-label="Download a smarter helper">
+                  ⬇️ Download a smarter helper
+                </KidButton>
+              </>
+            )}
+          </div>
+          <p className="menu-footer">An outside agent can answer chats too, through window.mindcraftChat and the WebMCP tools. Apart from the helper download a grown-up starts, nothing here ever talks to the internet.</p>
         </div>
       )}
       {page === 'worlds' && <WorldsList />}

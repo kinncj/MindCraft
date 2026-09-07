@@ -2,7 +2,7 @@
   "name": "mindcraft",
   "private": true,
   "version": "2.0.0",
-  "description": "MindCraft \u2014 a kid-friendly creative block-building game with an infinite world, all in the browser",
+  "description": "MindCraft — a kid-friendly creative block-building game with an infinite world, all in the browser",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -21,6 +21,7 @@
     "train:brain": "node scripts/train-brain.mjs"
   },
   "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.84",
     "dexie": "^4.0.11",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
