@@ -105,7 +105,7 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 | Build tools | Tools button, `R` turns a paste | Tools button | D-pad down cycles, D-pad left turns |
 | Interact only | Tools → Interact | Tools → Interact | D-pad down to it |
 | Fly | double-tap `Space` or the 🪽 button; hold `Space` to rise, `Shift` to sink, land to stop | double-tap Jump / 🪽 | double-tap A |
-| Ride / hop off | tap a car, bike, boat, plane, or helicopter; `Space` hops off ground rides, `E` any ride (camera follows behind) | tap it again | RT, A hops off ground rides |
+| Ride / hop off | tap a ride and choose Ride it, or ask a neighbor to drive or fly it; `Space` hops off ground rides, `E` any ride (camera follows behind) | tap it again | RT, A hops off ground rides |
 | Fly a plane / helicopter | `W` throttle up, `S` down, `A D` bank or turn, `Space` climb, `Shift` dive or land | joystick + Jump | left stick, A |
 | Chat with a villager | tap them, then type or tap a chip | tap, chips | RT on them, chips |
 | Dance | `X` or the ✦ button (friends nearby join in) | ✦ button | — |
@@ -114,6 +114,13 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 | Menu | `Escape` or the Menu button | Menu button | Start |
 
 Every keyboard action also has a visible button, so a kid who can't type can still play.
+
+## Debugging the helper
+
+Open the game with `?debug=true` to get a small overlay with the helper model that
+was chosen, whether it runs in a worker or on the main thread, GPU limits, loading
+progress, thinking time, the exact prompt, the raw model output, and any error, plus
+a **Test the helper** button. `?power=high` forces the full renderer on software GL.
 
 ## Running it
 

@@ -39,6 +39,12 @@ export type Entity = {
   data?: Record<string, unknown>;
   /** Vehicles carry their own controller. */
   vehicle?: Vehicle;
+  /** Vehicles: the villager id at the wheel (autopilot), if any. */
+  driver?: string;
+  /** Vehicles: autopilot memory. */
+  auto?: { turn: number; until: number; reverseUntil: number; lastX: number; lastZ: number; stuck: number };
+  /** Villagers: the vehicle entity id they are riding. */
+  riding?: string;
   /** Robots carry their program runner. */
   robot?: RobotRunner;
   /** Blocks this villager is laying by hand, one at a time. */

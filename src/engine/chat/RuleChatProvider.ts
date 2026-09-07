@@ -137,6 +137,12 @@ export class RuleChatProvider implements ChatProvider {
     if (/\b(puppy|dog|doggy)\b/.test(text)) return say(`A puppy for you! 🐶 Take good care of it!`, [{ tool: 'pet_adopt', args: { kind: 'dog' } }]);
     if (/\b(kitty|cat|kitten)\b/.test(text)) return say(`A kitty! 🐱 So soft!`, [{ tool: 'pet_adopt', args: { kind: 'cat' } }]);
     if (/\b(bunny|rabbit)\b/.test(text)) return say(`Hop hop! 🐰 Here comes a bunny!`, [{ tool: 'entity_spawn', args: { kind: 'bunny' } }]);
+    const rideKind = /\b(plane|airplane|aeroplane|jet)\b/.test(text) ? 'plane' : /\b(helicopter|chopper|heli)\b/.test(text) ? 'helicopter' : /\b(motorbike|motorcycle|bike)\b/.test(text) ? 'motorcycle' : /\bboat\b/.test(text) ? 'boat' : /\bcar\b/.test(text) && !/\bcarpet\b/.test(text) ? 'car' : null;
+    if (/\b(hop off|get off|get out|stop (driving|flying|riding)|land)\b/.test(text)) return say(`Okay, hopping off! 🛑`, [{ tool: 'vehicle_stop', args: {} }]);
+    if (rideKind && /\b(fly|drive|ride|pilot|take|go in|get in|hop in)\b/.test(text) && /\b(that|the|this|your|my|a)\b/.test(text)) {
+      const verb = rideKind === 'plane' || rideKind === 'helicopter' ? 'fly' : 'drive';
+      return say(`Watch me ${verb} it! ${rideKind === 'plane' ? '✈️' : rideKind === 'helicopter' ? '🚁' : rideKind === 'boat' ? '⛵' : rideKind === 'motorcycle' ? '🏍️' : '🚗'} Wheee!`, [{ tool: 'vehicle_ride', args: { kind: rideKind } }]);
+    }
     if (/\b(fly|flying|wings)\b/.test(text) && !/\b(butterfly|fly (a )?(plane|kite))\b/.test(text)) {
       const off = /\b(stop|land|no more|down)\b/.test(text);
       return say(off ? `Coming in to land! 🛬` : `Up, up, and away! 🪽 Hold Jump to rise, Sneak to come down.`, [{ tool: 'player_fly', args: { on: !off } }]);

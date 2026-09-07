@@ -1,7 +1,7 @@
 import type { StoredWorld } from '../../storage/db';
 import type { InteractionMode, SaveState, TimeMode, VisualModeId, WeatherMode } from '../../types/game';
 
-export type PanelId = 'none' | 'menu' | 'container' | 'sleep' | 'palette' | 'worlds' | 'blueprints' | 'pet' | 'villager' | 'dressup' | 'crafting' | 'robot';
+export type PanelId = 'none' | 'menu' | 'container' | 'sleep' | 'palette' | 'worlds' | 'blueprints' | 'pet' | 'villager' | 'dressup' | 'crafting' | 'robot' | 'vehicle';
 export type ViewMode = 'third' | 'first';
 export type WorldPreset = 'meadow' | 'toyland' | 'town';
 

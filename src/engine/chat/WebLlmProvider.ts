@@ -33,10 +33,41 @@ export type HelperRequest = {
   response_format?: { type: 'json_object' };
 };
 
-export type HelperEngineFactory = (modelId: string, onProgress: (p: HelperProgress) => void) => Promise<HelperEngine>;
+/** What the loader decided, for the debug overlay. */
+export type HelperInfo = { model: string; runtime: 'worker' | 'main'; hasF16: boolean; maxBufferMB: number | null; adapter: string };
+
+export type HelperEngineFactory = (modelId: string, onProgress: (p: HelperProgress) => void, onInfo?: (info: HelperInfo) => void) => Promise<HelperEngine>;
+
+/** Everything the debug overlay wants to know about the helper. */
+export type HelperDiagnostics = {
+  status: string;
+  error: string;
+  info: HelperInfo | null;
+  jsonMode: boolean;
+  busySince: number | null;
+  lastPrompt: string;
+  lastRaw: string;
+  lastLatencyMs: number | null;
+  replies: number;
+};
 
 /** Room for the prompt, six turns of history, and the reply. */
 export const HELPER_CONTEXT_TOKENS = 2048;
+/** A reply slower than this falls back to the rules so the kid is never left waiting. */
+export const HELPER_TIMEOUT_MS = 25000;
+
+/** Safari (iPhone, iPad, Mac): no WebGPU in workers, and JSON-grammar decoding stalls. */
+export function isSafari(): boolean {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  return /safari/i.test(ua) && !/chrome|chromium|crios|fxios|android/i.test(ua);
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, what: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${what} took longer than ${Math.round(ms / 1000)}s`)), ms);
+    promise.then((v) => { clearTimeout(timer); resolve(v); }, (e) => { clearTimeout(timer); reject(e); });
+  });
+}
 
 /**
  * The f16 build is smaller and faster, but some GPUs (Linux Chrome, older
@@ -50,20 +81,20 @@ export function pickHelperModel(modelId: string, hasF16: boolean, maxBufferBytes
 
 type GpuProbe = { hasF16: boolean; maxBuffer: number; workerOk: boolean };
 
-async function probeGpu(): Promise<GpuProbe> {
-  const out: GpuProbe = { hasF16: false, maxBuffer: Infinity, workerOk: true };
+async function probeGpu(): Promise<GpuProbe & { adapter: string }> {
+  const out: GpuProbe & { adapter: string } = { hasF16: false, maxBuffer: Infinity, workerOk: true, adapter: 'none' };
   try {
-    type Adapter = { features: Set<string>; limits: { maxStorageBufferBindingSize?: number; maxBufferSize?: number } };
+    type Adapter = { features: Set<string>; limits: { maxStorageBufferBindingSize?: number; maxBufferSize?: number }; info?: { vendor?: string; architecture?: string; device?: string } };
     const gpu = (navigator as Navigator & { gpu?: { requestAdapter(): Promise<Adapter | null> } }).gpu;
     const adapter = await gpu?.requestAdapter();
     out.hasF16 = adapter?.features.has('shader-f16') ?? false;
     out.maxBuffer = Math.min(adapter?.limits.maxStorageBufferBindingSize ?? Infinity, adapter?.limits.maxBufferSize ?? Infinity);
+    out.adapter = adapter ? [adapter.info?.vendor, adapter.info?.architecture, adapter.info?.device].filter(Boolean).join(' ') || 'webgpu' : 'none';
   } catch {
     // No adapter: WebLLM will say so with a clearer message.
   }
   // Safari (iPhone, iPad, Mac) has no WebGPU inside workers: run the model on the main thread there.
-  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-  if (/safari/i.test(ua) && !/chrome|chromium|crios|fxios|android/i.test(ua)) out.workerOk = false;
+  if (isSafari()) out.workerOk = false;
   return out;
 }
 
@@ -74,14 +105,17 @@ export async function helperModelForDevice(modelId = DEFAULT_HELPER_MODEL): Prom
 }
 
 /** Loads WebLLM lazily (it is a big chunk) and builds a worker-backed engine. */
-export const createWebLlmEngine: HelperEngineFactory = async (modelId, onProgress) => {
+export const createWebLlmEngine: HelperEngineFactory = async (modelId, onProgress, onInfo) => {
   const webllm = await import('@mlc-ai/web-llm');
   const probe = await probeGpu();
   const model = pickHelperModel(modelId, probe.hasF16, probe.maxBuffer);
+  const info = (runtime: 'worker' | 'main'): void =>
+    onInfo?.({ model, runtime, hasF16: probe.hasF16, maxBufferMB: Number.isFinite(probe.maxBuffer) ? Math.round(probe.maxBuffer / 1048576) : null, adapter: probe.adapter });
   const progress = { initProgressCallback: (report: { progress: number; text: string }) => onProgress({ progress: report.progress, text: report.text }) };
   const config = { context_window_size: HELPER_CONTEXT_TOKENS };
   if (probe.workerOk) {
     try {
+      info('worker');
       const worker = new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' });
       const engine = await webllm.CreateWebWorkerMLCEngine(worker, model, progress, config);
       return engine as unknown as HelperEngine;
@@ -89,6 +123,7 @@ export const createWebLlmEngine: HelperEngineFactory = async (modelId, onProgres
       onProgress({ progress: 0, text: `Worker could not run the model (${error instanceof Error ? error.message : String(error)}); trying on the main thread…` });
     }
   }
+  info('main');
   const engine = await webllm.CreateMLCEngine(model, progress, config);
   return engine as unknown as HelperEngine;
 };
@@ -125,6 +160,8 @@ const TOOL_HINTS: Record<string, string> = {
   villager_dance: 'you dance {}',
   player_dance: 'the child dances {}',
   player_fly: 'the child flies {on: true|false}',
+  vehicle_ride: 'you drive or fly a ride around {kind: car|motorcycle|boat|plane|helicopter}',
+  vehicle_stop: 'you hop off your ride {}',
   time_set: 'set time {mode: day|night|sunset}',
   weather_set: 'set weather {weather: sunny|rain|snow}',
   pet_adopt: 'give a pet {kind: dog|cat|bunny}',
@@ -142,6 +179,20 @@ export class WebLlmProvider implements ChatProvider {
   onProgress: ((p: HelperProgress) => void) | null = null;
   status: 'idle' | 'loading' | 'ready' | 'error' = 'idle';
   error = '';
+  /** Ask for JSON-constrained decoding (off on Safari, where it stalls). */
+  jsonMode = !isSafari();
+  /** Reply time limit, milliseconds. */
+  timeoutMs = HELPER_TIMEOUT_MS;
+  info: HelperInfo | null = null;
+  private busySince: number | null = null;
+  private lastPrompt = '';
+  private lastRaw = '';
+  private lastLatencyMs: number | null = null;
+  private replies = 0;
+
+  diagnostics(): HelperDiagnostics {
+    return { status: this.status, error: this.error, info: this.info, jsonMode: this.jsonMode, busySince: this.busySince, lastPrompt: this.lastPrompt, lastRaw: this.lastRaw, lastLatencyMs: this.lastLatencyMs, replies: this.replies };
+  }
 
   constructor(
     private modelId: string = DEFAULT_HELPER_MODEL,
@@ -161,7 +212,7 @@ export class WebLlmProvider implements ChatProvider {
     if (this.engine) return Promise.resolve();
     if (this.loading) return this.loading;
     this.status = 'loading';
-    this.loading = this.factory(this.modelId, (p) => this.onProgress?.(p))
+    this.loading = this.factory(this.modelId, (p) => this.onProgress?.(p), (info) => { this.info = info; })
       .then((engine) => {
         this.engine = engine;
         this.status = 'ready';
@@ -210,15 +261,27 @@ export class WebLlmProvider implements ChatProvider {
     const messages: HelperRequest['messages'] = [{ role: 'system', content: this.systemPrompt(ctx) }];
     for (const turn of ctx.history.slice(-4)) messages.push({ role: turn.who === 'kid' ? 'user' : 'assistant', content: turn.text.slice(0, 160) });
     messages.push({ role: 'user', content: ctx.message });
+    this.lastPrompt = messages.map((m) => `[${m.role}]\n${m.content}`).join('\n\n');
+    this.busySince = Date.now();
     const ask = async (json: boolean): Promise<ChatReply> => {
-      const result = await this.engine!.chat.completions.create({ messages, temperature: 0.5, max_tokens: 200, ...(json ? { response_format: { type: 'json_object' as const } } : {}) });
-      return parseModelReply(result.choices[0]?.message.content ?? '');
+      const request = this.engine!.chat.completions.create({ messages, temperature: 0.5, max_tokens: 160, ...(json ? { response_format: { type: 'json_object' as const } } : {}) });
+      try {
+        const result = await withTimeout(request, this.timeoutMs, 'The helper');
+        this.lastRaw = result.choices[0]?.message.content ?? '';
+        this.lastLatencyMs = Date.now() - (this.busySince ?? Date.now());
+        this.replies += 1;
+        return parseModelReply(this.lastRaw);
+      } finally {
+        this.busySince = null;
+      }
     };
+    if (!this.jsonMode) return ask(false);
     try {
       return await ask(true);
     } catch (error) {
       // JSON mode can fail on some builds; a plain answer is usually still parseable.
       this.error = error instanceof Error ? error.message : String(error);
+      if (/took longer/.test(this.error)) throw error;
       return ask(false);
     }
   }

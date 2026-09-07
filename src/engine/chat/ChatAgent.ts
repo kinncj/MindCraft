@@ -31,6 +31,9 @@ export class ChatAgent {
   private histories = new Map<string, ChatTurn[]>();
   /** Why the last smarter provider fell back to the rules, for the UI. */
   lastError = '';
+  /** Which provider answered last, and how long it took (debug overlay). */
+  lastProvider = '';
+  lastLatencyMs = 0;
 
   constructor(
     private deps: {
@@ -101,11 +104,14 @@ export class ChatAgent {
     candidates.push(this.rules);
     reply = { say: '', actions: [] };
     this.lastError = '';
+    const started = Date.now();
     for (const p of candidates) {
       try {
         if (!(await p.available())) continue;
         reply = await p.reply(ctx);
         provider = p.name;
+        this.lastProvider = provider;
+        this.lastLatencyMs = Date.now() - started;
         break;
       } catch (error) {
         // Try the next, plainer provider, but say why in the console.
@@ -136,6 +142,7 @@ export class ChatAgent {
         } else {
           const args = { ...action.args };
           if (['villager_talk', 'villager_stay', 'villager_walk_to', 'villager_say', 'villager_dance'].includes(action.tool)) args.id = villagerId;
+          if (action.tool === 'vehicle_ride' || action.tool === 'vehicle_stop') args.villager = villagerId;
           await this.deps.tools.call(action.tool, args);
           performed.push(action.tool);
         }

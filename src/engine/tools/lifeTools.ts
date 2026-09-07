@@ -77,6 +77,39 @@ export function registerLifeTools(engine: Engine): void {
     },
   });
   tools.register({
+    name: 'vehicle_ride',
+    description: 'A villager drives or flies a ride around on its own: the nearest ride of a kind (car, motorcycle, boat, plane, helicopter), or a specific vehicle id. Spawns one if none is nearby.',
+    inputSchema: { type: 'object', properties: { villager: str, vehicle: str, kind: { type: 'string', enum: ['car', 'boat', 'motorcycle', 'plane', 'helicopter'] } }, required: ['villager'] },
+    execute: ({ villager, vehicle, kind }: { villager: string; vehicle?: string; kind?: 'car' | 'boat' | 'motorcycle' | 'plane' | 'helicopter' }) => {
+      const v = entities.byId(villager);
+      if (!v || v.kind !== 'villager') throw new Error(`no villager ${villager}`);
+      let ride = vehicle ? entities.byId(vehicle) : entities.nearestVehicle(kind, v.x, v.z);
+      if (!ride?.vehicle) {
+        if (!kind) throw new Error('no ride nearby');
+        const top = engine.world.height(Math.round(v.x) + 2, Math.round(v.z));
+        ride = entities.spawnVehicle(kind, v.x + 2, top >= 0 ? top + 0.5 : v.y, v.z);
+      }
+      if (!entities.ride(v.id, ride.id)) throw new Error('could not ride');
+      return { villager: v.id, vehicle: ride.id, kind: ride.variant };
+    },
+  });
+  tools.register({
+    name: 'vehicle_stop',
+    description: 'A villager hops off whatever it is riding.',
+    inputSchema: { type: 'object', properties: { villager: str }, required: ['villager'] },
+    execute: ({ villager }: { villager: string }) => ({ stopped: entities.stopRiding(villager) }),
+  });
+  tools.register({
+    name: 'player_ride',
+    description: 'The player hops into a vehicle by id (or the nearest one).',
+    inputSchema: { type: 'object', properties: { vehicle: str } },
+    execute: ({ vehicle }: { vehicle?: string }) => {
+      const ride = vehicle ? entities.byId(vehicle) : entities.nearestVehicle(undefined, engine.player.x, engine.player.z, 12);
+      if (!ride) throw new Error('no ride nearby');
+      return { riding: engine.rideVehicle(ride.id) };
+    },
+  });
+  tools.register({
     name: 'player_fly',
     description: 'Creative flight on or off (default: toggle). While flying, jump rises and sneak sinks.',
     inputSchema: { type: 'object', properties: { on: { type: 'boolean' } } },

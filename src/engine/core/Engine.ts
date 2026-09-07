@@ -293,10 +293,8 @@ export class Engine {
         const entity = this.entities.pick(ray);
         if (!entity) return false;
         if (entity.vehicle) {
-          this.entities.mount(entity);
-          this.audio.play('vroom');
-          const info = VEHICLE_LABELS[(entity.variant ?? 'car') as VehicleKind] ?? VEHICLE_LABELS.car;
-          bridge.toast(`${info.emoji} ${info.hint}`);
+          // Ride it yourself, or ask a friend to: the vehicle sheet decides.
+          bridge.onEntityTapped?.({ id: entity.id, kind: entity.kind, name: entity.name, variant: entity.variant });
           return true;
         }
         this.entities.pet(entity);
@@ -610,6 +608,18 @@ export class Engine {
   }
 
   /** The player dances for a few seconds; nearby friends join in. */
+  /** The player hops into a ride (from the vehicle sheet or a tool). */
+  rideVehicle(id: string): boolean {
+    const entity = this.entities.byId(id);
+    if (!entity?.vehicle) return false;
+    if (this.player.flying) this.setFlying(false);
+    if (!this.entities.mount(entity)) return false;
+    this.audio.play('vroom');
+    const info = VEHICLE_LABELS[(entity.variant ?? 'car') as VehicleKind] ?? VEHICLE_LABELS.car;
+    this.options.bridge.toast(`${info.emoji} ${info.hint}`);
+    return true;
+  }
+
   /** Creative flight on or off; kids double-tap jump or use the wing button. */
   setFlying(on: boolean): boolean {
     if (this.entities.mounted) return false;

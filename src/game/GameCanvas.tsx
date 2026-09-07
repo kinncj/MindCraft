@@ -52,7 +52,7 @@ export function GameCanvas() {
         onViewModeChange: (mode) => useGameStore.getState().setViewMode(mode),
         onPet: (kind, name) => useGameStore.getState().petAnimal(kind, name),
         onTemplateApplied: () => useGameStore.getState().markDirty(),
-        onEntityTapped: (entity) => useGameStore.getState().setOpenPanel(entity.kind === 'pet' ? 'pet' : entity.kind === 'robot' ? 'robot' : 'villager', entity),
+        onEntityTapped: (entity) => useGameStore.getState().setOpenPanel(entity.kind === 'pet' ? 'pet' : entity.kind === 'robot' ? 'robot' : entity.kind === 'vehicle' ? 'vehicle' : 'villager', entity),
         onCrafted: (blockId, label, count) => useGameStore.getState().receiveCrafted(blockId, label, count),
         onGift: (blockId, label) => useGameStore.getState().receiveGift(blockId, label),
         onVillagerSay: (id, text) => useGameStore.getState().pushVillagerLine(id, 'villager', text),

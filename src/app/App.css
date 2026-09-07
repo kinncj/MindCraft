@@ -2248,3 +2248,88 @@ h3 {
   background: var(--grad-primary);
   transition: width 0.2s ease;
 }
+
+/* --- ?debug=true overlay ------------------------------------------------ */
+
+.debug-overlay {
+  position: absolute;
+  left: 0.5rem;
+  top: calc(8.5rem + var(--safe-top));
+  z-index: 30;
+  width: min(92vw, 520px);
+  max-height: 42vh;
+  overflow: auto;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.82);
+  color: #e6edf3;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-shadow: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.debug-overlay dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.15rem 0.6rem;
+  margin: 0.3rem 0;
+}
+
+.debug-overlay dt {
+  color: #9fb3c8;
+}
+
+.debug-overlay dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.debug-overlay pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 30vh;
+  overflow: auto;
+  margin: 0.3rem 0;
+  padding: 0.4rem;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.debug-overlay button,
+.debug-toggle {
+  font: inherit;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+
+.debug-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.debug-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0.3rem 0;
+}
+
+.debug-error {
+  color: #ffb4a8;
+}
+
+.debug-toggle {
+  position: absolute;
+  left: 0.5rem;
+  top: calc(8.5rem + var(--safe-top));
+  z-index: 30;
+  font-size: 18px;
+}

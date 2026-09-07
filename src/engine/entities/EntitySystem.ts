@@ -166,6 +166,11 @@ export class EntitySystem implements System {
     return true;
   }
 
+  /** Every entity, read-only (panels list the neighbors). */
+  all(): readonly Entity[] {
+    return this.entities;
+  }
+
   byId(id: string): Entity | undefined {
     return this.entities.find((e) => e.id === id);
   }
@@ -190,8 +195,96 @@ export class EntitySystem implements System {
 
   // --- riding ---------------------------------------------------------------
 
+  /** A villager takes a ride and drives or flies it around on autopilot. */
+  ride(villagerId: string, vehicleId: string): boolean {
+    const villager = this.byId(villagerId);
+    const vehicle = this.byId(vehicleId);
+    if (!villager || villager.kind !== 'villager' || !vehicle?.vehicle) return false;
+    if (this.mounted === vehicle) return false;
+    if (vehicle.driver && vehicle.driver !== villagerId) this.stopRiding(vehicle.driver);
+    if (villager.riding) this.stopRiding(villagerId);
+    villager.riding = vehicleId;
+    villager.work = undefined;
+    villager.danceUntil = undefined;
+    villager.mood = 'excited';
+    vehicle.driver = villagerId;
+    vehicle.auto = { turn: 0, until: 0, reverseUntil: 0, lastX: vehicle.x, lastZ: vehicle.z, stuck: 0 };
+    return true;
+  }
+
+  /** The villager hops off beside the ride; a plane or helicopter glides down on its own. */
+  stopRiding(villagerId: string): boolean {
+    const villager = this.byId(villagerId);
+    if (!villager?.riding) return false;
+    const vehicle = this.byId(villager.riding);
+    villager.riding = undefined;
+    if (vehicle) {
+      vehicle.driver = undefined;
+      const yaw = vehicle.vehicle?.yaw ?? 0;
+      const x = vehicle.x + Math.cos(yaw + Math.PI / 2) * 1.6;
+      const z = vehicle.z - Math.sin(yaw + Math.PI / 2) * 1.6;
+      villager.x = x;
+      villager.z = z;
+      villager.y = this.groundY(x, z);
+      villager.targetX = x;
+      villager.targetZ = z;
+    }
+    villager.mood = 'happy';
+    return true;
+  }
+
+  /** Who is riding what, for panels. */
+  driverOf(vehicleId: string): Entity | null {
+    const id = this.byId(vehicleId)?.driver;
+    return id ? (this.byId(id) ?? null) : null;
+  }
+
+  /** Nearest ride of a kind to a point, if any within `range`. */
+  nearestVehicle(kind: string | undefined, x: number, z: number, range = 48): Entity | null {
+    let best: Entity | null = null;
+    let bestD = range;
+    for (const e of this.entities) {
+      if (!e.vehicle || (kind && e.variant !== kind) || e === this.mounted) continue;
+      const d = Math.hypot(e.x - x, e.z - z);
+      if (d < bestD) {
+        bestD = d;
+        best = e;
+      }
+    }
+    return best;
+  }
+
+  /** What a villager at the wheel does: cruise, turn now and then, back out of corners, keep aircraft up. */
+  private autopilot(vehicle: Entity, dt: number, elapsed: number): DriveInput {
+    const v = vehicle.vehicle!;
+    const a = (vehicle.auto ??= { turn: 0, until: 0, reverseUntil: 0, lastX: vehicle.x, lastZ: vehicle.z, stuck: 0 });
+    const ground = this.groundY(vehicle.x, vehicle.z);
+    if (elapsed > a.until) {
+      const r = Math.random();
+      a.turn = r < 0.45 ? 0 : r < 0.72 ? 1 : -1;
+      a.until = elapsed + 1.5 + Math.random() * 3;
+    }
+    if (v.flies) {
+      const target = v.kind === 'plane' ? 16 : 9;
+      const altitude = vehicle.y - ground;
+      return { forward: true, back: false, left: a.turn > 0, right: a.turn < 0, up: altitude < target, down: v.kind === 'helicopter' && altitude > target + 4 };
+    }
+    const moved = Math.hypot(vehicle.x - a.lastX, vehicle.z - a.lastZ);
+    a.lastX = vehicle.x;
+    a.lastZ = vehicle.z;
+    if (elapsed < a.reverseUntil) return { forward: false, back: true, left: a.turn > 0, right: a.turn < 0 };
+    a.stuck = moved < dt * 0.5 ? a.stuck + dt : 0;
+    if (a.stuck > 0.6) {
+      a.stuck = 0;
+      a.reverseUntil = elapsed + 1.2;
+      a.turn = Math.random() < 0.5 ? 1 : -1;
+    }
+    return { forward: true, back: false, left: a.turn > 0, right: a.turn < 0 };
+  }
+
   mount(entity: Entity): boolean {
     if (!entity.vehicle || this.mounted) return false;
+    if (entity.driver) this.stopRiding(entity.driver);
     this.mounted = entity;
     this.player.mounted = true;
     return true;
@@ -233,6 +326,7 @@ export class EntitySystem implements System {
 
   /** Give a villager a list of blocks to lay by hand. Queues behind current work. */
   assignWork(villagerId: string, label: string, edits: BlockEdit[]): boolean {
+    if (this.byId(villagerId)?.riding) this.stopRiding(villagerId);
     const entity = this.byId(villagerId);
     if (!entity || entity.kind !== 'villager' || edits.length === 0) return false;
     if (entity.work) {
@@ -432,7 +526,23 @@ export class EntitySystem implements System {
 
   update(dt: number, elapsed: number): void {
     this.elapsed = elapsed;
+    // Rides move first so their riders (player or villager) sit exactly in the seat this frame.
     for (const entity of this.entities) {
+      if (!entity.vehicle || !this.world.isLoaded(Math.round(entity.x), Math.round(entity.z))) continue;
+      const riding = this.mounted === entity;
+      const input = riding ? this.driveInput : entity.driver ? this.autopilot(entity, dt, elapsed) : null;
+      entity.vehicle.update(dt, input, elapsed);
+      entity.x = entity.vehicle.x;
+      entity.y = entity.vehicle.y;
+      entity.z = entity.vehicle.z;
+      if (riding) {
+        const seat = entity.vehicle.seat();
+        this.player.teleport(seat.x, seat.y, seat.z);
+        this.player.facing = entity.vehicle.yaw + Math.PI / 2;
+      }
+    }
+    for (const entity of this.entities) {
+      if (entity.vehicle) continue;
       if (!this.world.isLoaded(Math.round(entity.x), Math.round(entity.z))) continue;
 
       if (entity.robot) {
@@ -446,20 +556,20 @@ export class EntitySystem implements System {
         entity.group.rotation.y = r.yaw;
         continue;
       }
-      if (entity.vehicle) {
-        const riding = this.mounted === entity;
-        entity.vehicle.update(dt, riding ? this.driveInput : null, elapsed);
-        entity.x = entity.vehicle.x;
-        entity.y = entity.vehicle.y;
-        entity.z = entity.vehicle.z;
-        if (riding) {
-          const seat = entity.vehicle.seat();
-          this.player.teleport(seat.x, seat.y, seat.z);
-          this.player.facing = entity.vehicle.yaw + Math.PI / 2;
+      if (entity.riding) {
+        const ride = this.byId(entity.riding);
+        if (!ride?.vehicle || ride.driver !== entity.id) {
+          entity.riding = undefined;
+        } else {
+          const seat = ride.vehicle.seat();
+          entity.x = seat.x;
+          entity.y = seat.y;
+          entity.z = seat.z;
+          entity.group.position.set(seat.x, seat.y, seat.z);
+          entity.group.rotation.y = ride.vehicle.yaw + Math.PI / 2;
+          continue;
         }
-        continue;
       }
-
       if (entity.work) {
         this.updateWork(entity, dt);
         continue;

@@ -335,7 +335,8 @@ export class Vehicle {
     const t = TUNING.helicopter;
     const ground = this.surfaceUnder(this.x, this.z);
     const onGround = ground !== null && this.y <= ground + 0.05;
-    const wantVy = input?.up ? t.lift : input?.down ? -t.lift : 0;
+    // Nobody at the controls: sink gently until the skids touch down.
+    const wantVy = input ? (input.up ? t.lift : input.down ? -t.lift : 0) : this.airborne ? -1.5 : 0;
     this.vy += (wantVy - this.vy) * Math.min(1, dt * 6);
     if (onGround && !input?.up) {
       this.vy = 0;

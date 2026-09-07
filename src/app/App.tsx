@@ -15,6 +15,8 @@ import { SleepPanel } from '../components/SleepPanel';
 import { Toast } from '../components/Toast';
 import { ToolsDrawer } from '../components/ToolsDrawer';
 import { VillagerPanel } from '../components/VillagerPanel';
+import { VehiclePanel } from '../components/VehiclePanel';
+import { DebugOverlay, debugEnabled } from '../components/DebugOverlay';
 import { VirtualControls } from '../components/VirtualControls';
 import { WelcomePanel } from '../components/WelcomePanel';
 import { IconButton } from '../components/ui/IconButton';
@@ -117,6 +119,8 @@ export function App() {
       <BlockPalette />
       <BlueprintsPanel />
       <PetPanel />
+      <VehiclePanel />
+      {debugEnabled() && <DebugOverlay />}
       <CraftingPanel />
       <RobotPanel />
       <VillagerPanel />
