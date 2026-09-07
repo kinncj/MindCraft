@@ -5,6 +5,7 @@ import { SHAPES } from '../blocks/shapes';
 import type { Chunk } from '../world/Chunk';
 import { CHUNK_SIZE, DIRECTIONS, WORLD_HEIGHT, localIndex, oppositeDirection } from '../world/coords';
 import type { VoxelWorld } from '../world/VoxelWorld';
+import { SmoothMesher, type SmoothMeshes } from './SmoothMesher';
 import type { TextureAtlas } from './TextureAtlas';
 
 /** Raw geometry for one bucket, ready to become a BufferGeometry. */
@@ -17,7 +18,7 @@ export type MeshData = {
   indices: Uint32Array;
 };
 
-export type ChunkMeshes = Record<RenderBucket, MeshData | null>;
+export type ChunkMeshes = Record<RenderBucket, MeshData | null> & { smooth?: SmoothMeshes };
 
 type Buffers = {
   positions: number[];
@@ -37,11 +38,17 @@ const BUCKETS: RenderBucket[] = ['opaque', 'water', 'alpha', 'glow'];
  * mesher runs (and is tested) without WebGL.
  */
 export class ChunkMesher {
+  /** Cinema's round world: natural blocks leave the cube mesh and become smooth surfaces. */
+  smooth = false;
+  private smoothMesher: SmoothMesher;
+
   constructor(
     private world: VoxelWorld,
     private registry: BlockRegistry,
     private atlas: TextureAtlas,
-  ) {}
+  ) {
+    this.smoothMesher = new SmoothMesher(world, registry, atlas);
+  }
 
   build(chunk: Chunk): ChunkMeshes {
     const buffers: Record<RenderBucket, Buffers> = {
@@ -62,6 +69,7 @@ export class ChunkMesher {
           if (id === 0) continue;
           const def = this.registry.get(id);
           if (!def) continue;
+          if (this.smooth && def.smooth) continue;
           const state = chunk.states[index];
           const shape = SHAPES[def.shape];
           const x = baseX + lx;
@@ -110,6 +118,7 @@ export class ChunkMesher {
     }
 
     const out = {} as ChunkMeshes;
+    if (this.smooth) out.smooth = this.smoothMesher.build(chunk);
     for (const bucket of BUCKETS) {
       const b = buffers[bucket];
       out[bucket] =

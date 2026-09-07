@@ -41,6 +41,8 @@ export type VisualModeDefinition = {
     hiRes: boolean;
     /** Post-processing (ambient occlusion, bloom, vignette). */
     postFx: boolean;
+    /** Natural terrain, tree canopies, and water drawn as smooth rounded surfaces. */
+    smooth: boolean;
     /** Sun shadow map size. */
     shadowMap: number;
     /** Extra chunks of draw distance. */
@@ -48,7 +50,7 @@ export type VisualModeDefinition = {
   };
 };
 
-const FLAT_RENDERING: VisualModeDefinition['rendering'] = { pbr: false, envMap: false, hiRes: false, postFx: false, shadowMap: 2048, viewRadiusBonus: 0 };
+const FLAT_RENDERING: VisualModeDefinition['rendering'] = { pbr: false, envMap: false, hiRes: false, postFx: false, smooth: false, shadowMap: 2048, viewRadiusBonus: 0 };
 
 export const VISUAL_MODES: Record<VisualModeId, VisualModeDefinition> = {
   classic: {
@@ -129,7 +131,7 @@ export const VISUAL_MODES: Record<VisualModeId, VisualModeDefinition> = {
     exposure: 0.95,
     fog: { near: 110, far: 260 },
     effects: { sparkles: false },
-    rendering: { pbr: true, envMap: true, hiRes: true, postFx: true, shadowMap: 4096, viewRadiusBonus: 2 },
+    rendering: { pbr: true, envMap: true, hiRes: true, postFx: true, smooth: true, shadowMap: 4096, viewRadiusBonus: 2 },
   },
 };
 

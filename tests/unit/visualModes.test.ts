@@ -6,6 +6,8 @@ describe('visual modes', () => {
     expect([...VISUAL_MODE_IDS].sort()).toEqual(['cinema', 'classic', 'claudeDream', 'ultraRealistic']);
     expect(VISUAL_MODES.cinema.rendering.pbr).toBe(true);
     expect(VISUAL_MODES.cinema.rendering.envMap).toBe(true);
+    expect(VISUAL_MODES.cinema.rendering.smooth).toBe(true);
+    expect(VISUAL_MODES.claudeDream.rendering.smooth).toBe(false);
     expect(VISUAL_MODES.classic.rendering.pbr).toBe(false);
     expect(VISUAL_MODES.ultraRealistic.rendering.envMap).toBe(false);
   });

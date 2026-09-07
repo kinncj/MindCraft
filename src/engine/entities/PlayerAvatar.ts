@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { bodyGeometry, bodyStyle } from './bodies';
 import type { System } from '../core/System';
 import type { PlayerController } from '../physics/PlayerController';
 import { box, disposeGroup } from './bodies';
@@ -122,7 +123,11 @@ export class PlayerAvatar implements System {
     this.rebuild();
   }
 
+  /** Built with rounded parts (Cinema)? */
+  rounded = false;
+
   private rebuild(): void {
+    this.rounded = bodyStyle().rounded;
     for (const child of [...this.group.children]) this.group.remove(child);
     for (const child of [...this.firstPersonArm.children]) this.firstPersonArm.remove(child);
     const colors = this.look;
@@ -133,9 +138,9 @@ export class PlayerAvatar implements System {
     this.legLeft = parts.legLeft;
     this.legRight = parts.legRight;
 
-    const sleeve = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.4), new THREE.MeshBasicMaterial({ color: colors.shirt }));
+    const sleeve = new THREE.Mesh(bodyGeometry(0.14, 0.14, 0.4), new THREE.MeshBasicMaterial({ color: colors.shirt }));
     sleeve.position.z = 0.14;
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.13, 0.14), new THREE.MeshBasicMaterial({ color: colors.skin }));
+    const hand = new THREE.Mesh(bodyGeometry(0.13, 0.13, 0.14), new THREE.MeshBasicMaterial({ color: colors.skin }));
     hand.position.z = -0.13;
     this.firstPersonArm.add(sleeve, hand);
   }

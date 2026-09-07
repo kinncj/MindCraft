@@ -175,17 +175,17 @@ const bedBehavior: BlockBehavior = {
 
 const DEFINITIONS: BlockDefinitionInput[] = [
   // Ground 1..19
-  { id: 'grass', numericId: 1, label: 'Grass', category: 'ground', emoji: '🌱', color: '#67c23a', accentColor: '#8ed75f', textures: { top: 'grass_top', side: 'grass_side', bottom: 'dirt' } },
-  { id: 'dirt', numericId: 2, label: 'Dirt', category: 'ground', emoji: '🟫', color: '#a0703c', accentColor: '#b8854e' },
-  { id: 'stone', numericId: 3, label: 'Stone', category: 'ground', emoji: '🪨', color: '#9aa2ab', accentColor: '#b4bcc4' },
+  { id: 'grass', smooth: 'terrain', numericId: 1, label: 'Grass', category: 'ground', emoji: '🌱', color: '#67c23a', accentColor: '#8ed75f', textures: { top: 'grass_top', side: 'grass_side', bottom: 'dirt' } },
+  { id: 'dirt', smooth: 'terrain', numericId: 2, label: 'Dirt', category: 'ground', emoji: '🟫', color: '#a0703c', accentColor: '#b8854e' },
+  { id: 'stone', smooth: 'terrain', numericId: 3, label: 'Stone', category: 'ground', emoji: '🪨', color: '#9aa2ab', accentColor: '#b4bcc4' },
   { id: 'cobblestone', numericId: 4, label: 'Cobble', category: 'building', emoji: '🪨', color: '#848b93', accentColor: '#a0a7af' },
-  { id: 'sand', numericId: 5, label: 'Sand', category: 'ground', emoji: '🏖️', color: '#ecd9a3', accentColor: '#f5e6b8' },
-  { id: 'gravel', numericId: 6, label: 'Gravel', category: 'ground', emoji: '⚪', color: '#a8a39c' },
-  { id: 'snow', numericId: 7, label: 'Snow', category: 'ground', emoji: '❄️', color: '#f4f7fb', accentColor: '#ffffff', textures: { top: 'snow', side: 'snow_side', bottom: 'dirt' } },
+  { id: 'sand', smooth: 'terrain', numericId: 5, label: 'Sand', category: 'ground', emoji: '🏖️', color: '#ecd9a3', accentColor: '#f5e6b8' },
+  { id: 'gravel', smooth: 'terrain', numericId: 6, label: 'Gravel', category: 'ground', emoji: '⚪', color: '#a8a39c' },
+  { id: 'snow', smooth: 'terrain', numericId: 7, label: 'Snow', category: 'ground', emoji: '❄️', color: '#f4f7fb', accentColor: '#ffffff', textures: { top: 'snow', side: 'snow_side', bottom: 'dirt' } },
   { id: 'ice', numericId: 8, label: 'Ice', category: 'ground', emoji: '🧊', color: '#bfe0f5', accentColor: '#e0f2fd', transparent: true, opacity: 0.85, bucket: 'alpha' },
-  { id: 'clay', numericId: 9, label: 'Clay', category: 'ground', emoji: '🩶', color: '#a9a5b8' },
-  { id: 'moss', numericId: 10, label: 'Moss', category: 'ground', emoji: '🟩', color: '#4f8f3a' },
-  { id: 'deep_stone', numericId: 11, label: 'Deep Stone', category: 'ground', emoji: '⬛', color: '#6f7680', inPalette: false, immovable: true },
+  { id: 'clay', smooth: 'terrain', numericId: 9, label: 'Clay', category: 'ground', emoji: '🩶', color: '#a9a5b8' },
+  { id: 'moss', smooth: 'terrain', numericId: 10, label: 'Moss', category: 'ground', emoji: '🟩', color: '#4f8f3a' },
+  { id: 'deep_stone', smooth: 'terrain', numericId: 11, label: 'Deep Stone', category: 'ground', emoji: '⬛', color: '#6f7680', inPalette: false, immovable: true },
   { id: 'sandstone', numericId: 12, label: 'Sandstone', category: 'building', emoji: '🟨', color: '#e2cf96', textures: { top: 'sandstone_top', side: 'sandstone', bottom: 'sandstone_top' } },
   { id: 'hay', numericId: 13, label: 'Hay', category: 'nature', emoji: '🌾', color: '#d9b53c', textures: { top: 'hay_top', side: 'hay', bottom: 'hay_top' } },
 
@@ -210,9 +210,9 @@ const DEFINITIONS: BlockDefinitionInput[] = [
   { id: 'roof_stairs', numericId: 35, label: 'Roof Stairs', category: 'building', emoji: '🏠', color: '#c85a47', shape: 'stairs', facesPlayer: true, textures: { top: 'roof_tiles', side: 'roof_tiles', bottom: 'roof_tiles' }, behavior: stairsBehavior },
 
   // Nature 60..79
-  { id: 'leaves', numericId: 60, label: 'Leaves', category: 'nature', emoji: '🍃', color: '#3faf5c', accentColor: '#5cc878' },
-  { id: 'birch_leaves', numericId: 61, label: 'Bright Leaves', category: 'nature', emoji: '🍃', color: '#7fcf5c' },
-  { id: 'pink_leaves', numericId: 62, label: 'Blossoms', category: 'nature', emoji: '🌸', color: '#f4a6c8' },
+  { id: 'leaves', smooth: 'foliage', numericId: 60, label: 'Leaves', category: 'nature', emoji: '🍃', color: '#3faf5c', accentColor: '#5cc878' },
+  { id: 'birch_leaves', smooth: 'foliage', numericId: 61, label: 'Bright Leaves', category: 'nature', emoji: '🍃', color: '#7fcf5c' },
+  { id: 'pink_leaves', smooth: 'foliage', numericId: 62, label: 'Blossoms', category: 'nature', emoji: '🌸', color: '#f4a6c8' },
   { id: 'flower_pink', replaceable: true, numericId: 63, label: 'Pink Flower', category: 'nature', emoji: '🌸', color: '#f291bb', shape: 'cross', collision: 'none', bucket: 'alpha' },
   { id: 'flower_yellow', replaceable: true, numericId: 64, label: 'Yellow Flower', category: 'nature', emoji: '🌼', color: '#ffd94a', shape: 'cross', collision: 'none', bucket: 'alpha' },
   { id: 'flower_blue', replaceable: true, numericId: 65, label: 'Blue Flower', category: 'nature', emoji: '💠', color: '#6aa8f0', shape: 'cross', collision: 'none', bucket: 'alpha' },
@@ -221,7 +221,7 @@ const DEFINITIONS: BlockDefinitionInput[] = [
   { id: 'mushroom', replaceable: true, numericId: 68, label: 'Mushroom', category: 'nature', emoji: '🍄', color: '#e8574f', shape: 'cross', collision: 'none', bucket: 'alpha' },
   { id: 'cactus', numericId: 69, label: 'Cactus', category: 'nature', emoji: '🌵', color: '#4f9c3a', textures: { top: 'cactus_top', side: 'cactus_side', bottom: 'cactus_top' } },
   { id: 'pumpkin', numericId: 70, label: 'Pumpkin', category: 'nature', emoji: '🎃', color: '#f2903c', facesPlayer: true, textures: { top: 'pumpkin_top', side: 'pumpkin_side', bottom: 'pumpkin_side' }, behavior: facingBehavior },
-  { id: 'water', numericId: 71, label: 'Water', category: 'nature', emoji: '💧', color: '#4fa8e8', accentColor: '#7cc2f2', transparent: true, opacity: 0.75, bucket: 'water', collision: 'fluid' },
+  { id: 'water', smooth: 'water', numericId: 71, label: 'Water', category: 'nature', emoji: '💧', color: '#4fa8e8', accentColor: '#7cc2f2', transparent: true, opacity: 0.75, bucket: 'water', collision: 'fluid' },
   { id: 'cloud', numericId: 72, label: 'Cloud', category: 'nature', emoji: '☁️', color: '#f4f8fc', accentColor: '#ffffff', transparent: true, opacity: 0.9, bucket: 'alpha', collision: 'none' },
   { id: 'rainbow', numericId: 73, label: 'Rainbow', category: 'decoration', emoji: '🌈', color: '#e85fa8', accentColor: '#ffd166' },
   { id: 'star', numericId: 74, label: 'Star', category: 'light', emoji: '⭐', color: '#ffd94a', accentColor: '#fff3b0', lightLevel: 9 },

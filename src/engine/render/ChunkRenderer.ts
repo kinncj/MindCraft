@@ -3,8 +3,11 @@ import type { RenderBucket } from '../blocks/BlockDefinition';
 import type { Chunk } from '../world/Chunk';
 import { chunkKey } from '../world/coords';
 import type { ChunkMeshes, MeshData } from './ChunkMesher';
+import { SMOOTH_KINDS, type SmoothMeshData } from './SmoothMesher';
+import { createSmoothMaterials } from './smoothMaterial';
 import type { TextureAtlas } from './TextureAtlas';
 import { createBucketMaterials } from './voxelMaterial';
+import type { SmoothKind } from '../blocks/BlockDefinition';
 
 const BUCKETS: RenderBucket[] = ['opaque', 'water', 'alpha', 'glow'];
 
@@ -12,7 +15,8 @@ const BUCKETS: RenderBucket[] = ['opaque', 'water', 'alpha', 'glow'];
 export class ChunkRenderer {
   readonly group = new THREE.Group();
   materials: Record<RenderBucket, THREE.Material>;
-  private meshes = new Map<string, Partial<Record<RenderBucket, THREE.Mesh>>>();
+  smoothMaterials: Record<SmoothKind, THREE.Material> | null = null;
+  private meshes = new Map<string, Partial<Record<RenderBucket, THREE.Mesh>> & { smooth?: Partial<Record<SmoothKind, THREE.Mesh>> }>();
   private pbr = false;
 
   constructor(
@@ -37,6 +41,7 @@ export class ChunkRenderer {
       }
     }
     for (const material of Object.values(old)) material.dispose();
+    if (pbr && !this.smoothMaterials) this.smoothMaterials = createSmoothMaterials(this.atlas, this.dayLight);
   }
 
   get isPbr(): boolean {
@@ -75,12 +80,39 @@ export class ChunkRenderer {
         entry[bucket] = mesh;
       }
     }
+    // Smooth surfaces (Cinema only).
+    entry.smooth ??= {};
+    for (const kind of SMOOTH_KINDS) {
+      const existing = entry.smooth[kind];
+      const next = data.smooth?.[kind];
+      if (!next || !this.smoothMaterials) {
+        if (existing) {
+          this.group.remove(existing);
+          existing.geometry.dispose();
+          delete entry.smooth[kind];
+        }
+        continue;
+      }
+      const geometry = toSmoothGeometry(next);
+      if (existing) {
+        existing.geometry.dispose();
+        existing.geometry = geometry;
+      } else {
+        const mesh = new THREE.Mesh(geometry, this.smoothMaterials[kind]);
+        mesh.castShadow = this.shadows && kind !== 'water';
+        mesh.receiveShadow = this.shadows;
+        mesh.name = `${key}:smooth-${kind}`;
+        this.group.add(mesh);
+        entry.smooth[kind] = mesh;
+      }
+    }
   }
 
   removeChunk(key: string): void {
     const entry = this.meshes.get(key);
     if (!entry) return;
-    for (const mesh of Object.values(entry)) {
+    const { smooth, ...buckets } = entry;
+    for (const mesh of [...Object.values(buckets), ...Object.values(smooth ?? {})]) {
       if (!mesh) continue;
       this.group.remove(mesh);
       mesh.geometry.dispose();
@@ -90,13 +122,17 @@ export class ChunkRenderer {
 
   get meshCount(): number {
     let n = 0;
-    for (const entry of this.meshes.values()) n += Object.keys(entry).length;
+    for (const entry of this.meshes.values()) {
+      const { smooth, ...buckets } = entry;
+      n += Object.keys(buckets).length + Object.keys(smooth ?? {}).length;
+    }
     return n;
   }
 
   dispose(): void {
     for (const key of [...this.meshes.keys()]) this.removeChunk(key);
     for (const material of Object.values(this.materials)) material.dispose();
+    for (const material of Object.values(this.smoothMaterials ?? {})) material.dispose();
   }
 }
 
@@ -107,6 +143,20 @@ function toGeometry(data: MeshData): THREE.BufferGeometry {
   geometry.setAttribute('uv', new THREE.BufferAttribute(data.uvs, 2));
   geometry.setAttribute('skylight', new THREE.BufferAttribute(data.skylight, 1));
   geometry.setAttribute('blocklight', new THREE.BufferAttribute(data.blocklight, 1));
+  geometry.setIndex(new THREE.BufferAttribute(data.indices, 1));
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+function toSmoothGeometry(data: SmoothMeshData): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
+  geometry.setAttribute('normal', new THREE.BufferAttribute(data.normals, 3));
+  geometry.setAttribute('uv', new THREE.BufferAttribute(data.uvs, 2));
+  geometry.setAttribute('skylight', new THREE.BufferAttribute(data.skylight, 1));
+  geometry.setAttribute('blocklight', new THREE.BufferAttribute(data.blocklight, 1));
+  geometry.setAttribute('tileTop', new THREE.BufferAttribute(data.tileTop, 4));
+  geometry.setAttribute('tileSide', new THREE.BufferAttribute(data.tileSide, 4));
   geometry.setIndex(new THREE.BufferAttribute(data.indices, 1));
   geometry.computeBoundingSphere();
   return geometry;

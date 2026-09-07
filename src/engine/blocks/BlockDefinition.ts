@@ -93,6 +93,9 @@ export type BlockBehavior = {
   onRemove?(ctx: { world: BlockAccess; position: Vec3i; state: BlockStateByte }): void;
 };
 
+/** Which smooth surface a natural block joins in Cinema mode. */
+export type SmoothKind = 'terrain' | 'foliage' | 'water';
+
 export type BlockDefinition = {
   /** Human-stable string id used in files and code. */
   id: string;
@@ -130,6 +133,8 @@ export type BlockDefinition = {
   replaceable: boolean;
   /** The player can climb while inside this block (ladders, vines). */
   climbable: boolean;
+  /** Natural stuff Cinema mode draws as a smooth, rounded surface instead of cubes. */
+  smooth?: SmoothKind;
   behavior?: BlockBehavior;
 };
 

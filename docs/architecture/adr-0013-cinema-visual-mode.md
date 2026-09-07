@@ -53,7 +53,28 @@ deep-blue background and a short fog.
 - The 64px atlases cost a few hundred milliseconds once, on first switch.
 - Saves, exports, and the mesher are unaffected: a world looks the same in
   every mode, only the rendering differs.
-- Later phases add: ambient occlusion, bloom, and vignette (`postFx`),
-  an animated water surface with Fresnel and foam, wind on grass and
-  leaves, a rounder look for creatures, trees, and natural terrain, and a
-  terrain generator v2 for new worlds.
+## Phase 2: the round world
+
+`rendering.smooth` (Cinema only) sends natural blocks through a second
+mesher. Blocks tagged `smooth: 'terrain' | 'foliage' | 'water'` on their
+definition (grass, dirt, stone, sand, snow, leaves, water, ...) leave the
+cube mesh and become one smooth surface per kind and chunk:
+`SmoothMesher` samples each block as density 1 at its center, blurs the
+field softly (self 0.5, face neighbors 0.3, edge neighbors 0.2), and runs
+naive surface nets at iso 0.45, so hills roll, cliffs round off, canopies
+become blobs, and ponds get soft banks. Every vertex carries the atlas
+rects of its block's top and side tiles; `smoothMaterial.ts` textures the
+surface triplanarly (world position projected along three axes, blended
+by the normal, `textureGrad` to keep mipmaps seamless) with the same
+color, normal, and roughness atlases. Edges are owned by the chunk that
+holds their first sample, so neighboring chunks share vertices exactly and
+nothing is drawn twice. Physics and picking stay voxel: the surface hugs
+the blocks closely enough that feet never float visibly.
+
+Creature and avatar bodies use `RoundedBoxGeometry` with a matte PBR
+finish while the style is on (`bodies.setBodyStyle`); creatures already
+in the world round off when they next appear.
+
+Still to come: ambient occlusion, bloom, and vignette (`postFx`), an
+animated water surface with Fresnel and foam, wind on grass and leaves,
+and a terrain generator v2 for new worlds.

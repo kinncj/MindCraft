@@ -36,7 +36,8 @@ import { CHUNK_SIZE, toChunkCoord, toLocal } from '../world/coords';
 import { createGenerator } from '../world/generation/createGenerator';
 import type { GeneratorConfig, WorldGenerator } from '../world/generation/Generator';
 import { VoxelWorld } from '../world/VoxelWorld';
-import { VISUAL_MODES } from '../../shaders/visualModes';
+import { VISUAL_MODES, type VisualModeDefinition } from '../../shaders/visualModes';
+import { setBodyStyle } from '../entities/bodies';
 import type { TimeMode, VisualModeId, WeatherMode } from '../../types/game';
 import { GameLoop } from './GameLoop';
 import type { Chunk } from '../world/Chunk';
@@ -125,6 +126,7 @@ export class Engine {
   readonly generator: WorldGenerator;
   readonly player: PlayerController;
   readonly camera: CameraSystem;
+  private mesher: ChunkMesher;
   readonly environment: EnvironmentSystem;
   readonly entities: EntitySystem;
   readonly chunks: ChunkManager;
@@ -173,6 +175,7 @@ export class Engine {
     const lighting = new LightEngine(this.world, registry);
     this.atlas = new TextureAtlas();
     const mesher = new ChunkMesher(this.world, registry, this.atlas);
+    this.mesher = mesher;
 
     this.environment = new EnvironmentSystem(this.scene, this.renderer, VISUAL_MODES[options.settings.visualMode], !this.lowPower);
     this.environment.setTimeMode(options.settings.timeMode);
@@ -180,7 +183,6 @@ export class Engine {
     if (options.settings.timeOfDay !== undefined) this.environment.setTime(options.settings.timeOfDay);
 
     this.chunkRenderer = new ChunkRenderer(this.atlas, this.environment.dayLight, !this.lowPower);
-    if (VISUAL_MODES[options.settings.visualMode].rendering.pbr && !this.lowPower) this.chunkRenderer.setPbr(true);
     this.scene.add(this.chunkRenderer.group);
 
     const start = options.player ?? options.spawn;
@@ -239,6 +241,7 @@ export class Engine {
     this.chunks.onChunkRemoved((key) => this.chunkRenderer.removeChunk(key));
     this.setTemplate(options.template ?? []);
     this.chunks.onFirstGenerate((chunk) => this.applyTemplate(chunk));
+    this.applyRendering(VISUAL_MODES[options.settings.visualMode]);
 
     // Edits relight and remesh around the change.
     this.world.subscribe({
@@ -662,8 +665,21 @@ export class Engine {
   setVisualMode(mode: VisualModeId): void {
     const def = VISUAL_MODES[mode];
     this.environment.applyVisualMode(def);
-    this.chunkRenderer.setPbr(def.rendering.pbr && !this.lowPower);
+    this.applyRendering(def);
+  }
+
+  /** Materials, smooth surfaces, rounded bodies, and draw distance for a mode. */
+  private applyRendering(def: VisualModeDefinition): void {
+    const pbr = def.rendering.pbr && !this.lowPower;
+    this.chunkRenderer.setPbr(pbr);
     this.chunks.options.viewRadius = (this.lowPower ? 4 : 7) + def.rendering.viewRadiusBonus;
+    const smooth = pbr && def.rendering.smooth;
+    setBodyStyle({ rounded: smooth });
+    if (this.mesher.smooth !== smooth) {
+      this.mesher.smooth = smooth;
+      for (const chunk of this.world.allChunks()) chunk.setDirty();
+    }
+    if (this.avatar && this.avatar.rounded !== smooth) this.avatar.setLook({});
   }
 
   setTimeMode(mode: TimeMode): void {

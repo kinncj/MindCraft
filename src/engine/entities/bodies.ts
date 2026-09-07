@@ -1,9 +1,30 @@
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 /** Little block bodies for the creatures. All original, all friendly. */
 
+const style = { rounded: false };
+
+/** Cinema mode rounds every body part and gives it a soft PBR finish. */
+export function setBodyStyle(next: { rounded: boolean }): void {
+  style.rounded = next.rounded;
+}
+
+export function bodyStyle(): { rounded: boolean } {
+  return { ...style };
+}
+
+export function bodyGeometry(w: number, h: number, d: number): THREE.BufferGeometry {
+  if (!style.rounded) return new THREE.BoxGeometry(w, h, d);
+  return new RoundedBoxGeometry(w, h, d, 3, Math.min(w, h, d) * 0.3);
+}
+
+export function bodyMaterial(color: string): THREE.Material {
+  return style.rounded ? new THREE.MeshStandardMaterial({ color, roughness: 0.65, metalness: 0 }) : new THREE.MeshLambertMaterial({ color });
+}
+
 export function box(w: number, h: number, d: number, color: string): THREE.Mesh {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
+  const mesh = new THREE.Mesh(bodyGeometry(w, h, d), bodyMaterial(color));
   mesh.castShadow = true;
   return mesh;
 }
