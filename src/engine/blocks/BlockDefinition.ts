@@ -17,7 +17,8 @@ export type BlockShapeId =
   | 'door'
   | 'carpet'
   | 'torch'
-  | 'flat';
+  | 'flat'
+  | 'fluid';
 
 export type BlockCategory =
   | 'friends'
@@ -172,7 +173,7 @@ export function defineBlock(input: BlockDefinitionInput): BlockDefinition {
   };
   if (def.lightLevel > 0 && input.bucket === undefined) def.bucket = 'glow';
   if (def.shape !== 'cube' && input.transparent === undefined) def.transparent = true;
-  if (input.seeThrough === undefined && (def.bucket === 'alpha' || def.bucket === 'water') && def.shape === 'cube') {
+  if (input.seeThrough === undefined && (def.bucket === 'alpha' || def.bucket === 'water') && (def.shape === 'cube' || def.shape === 'fluid')) {
     def.seeThrough = true;
   }
   return def;

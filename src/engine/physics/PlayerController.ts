@@ -19,6 +19,7 @@ export const EYE_HEIGHT = 1.62;
 
 const WALK_SPEED = 4.4;
 const SPRINT_SPEED = 6.5;
+const CURRENT_SPEED = 1.8;
 const SWIM_SPEED = 2.8;
 const GRAVITY = -24;
 const WATER_GRAVITY = -3;
@@ -42,6 +43,8 @@ export class PlayerController {
   vz = 0;
   onGround = false;
   inWater = false;
+  /** Which way the water here flows, set by the engine (FluidSystem). */
+  current: ((x: number, y: number, z: number) => { x: number; z: number }) | null = null;
   onLadder = false;
   /** Sitting on a chair: frozen until the player moves. */
   seated: { x: number; y: number; z: number } | null = null;
@@ -143,6 +146,11 @@ export class PlayerController {
     } else {
       this.vx = 0;
       this.vz = 0;
+    }
+    if ((this.inWater || feetInWater) && this.current) {
+      const c = this.current(Math.round(this.x), Math.round(this.y + 0.3), Math.round(this.z));
+      this.vx += c.x * CURRENT_SPEED;
+      this.vz += c.z * CURRENT_SPEED;
     }
 
     // Vertical.

@@ -161,7 +161,7 @@ export class WebLlmProvider implements ChatProvider {
     const tools = CHAT_TOOL_ALLOWLIST.filter((name) => available.size === 0 || available.has(name));
     const time = ctx.world.timeOfDay > 0.55 || ctx.world.timeOfDay < 0.05 ? 'night' : ctx.world.timeOfDay > 0.45 ? 'sunset' : 'day';
     return [
-      `You are ${v.name}, a cheerful ${v.jobLabel} in a friendly block-building game for a six-year-old child.`,
+      `You are ${v.name}, a cheerful ${v.jobLabel} in a friendly block-building game for small kids.`,
       `It is ${time}, the weather is ${ctx.world.weather}, we are in a ${ctx.world.biome} in the world "${ctx.world.worldName}".`,
       'Reply with ONE JSON object: {"say": "...", "actions": []}.',
       '"say": one or two short, kind, simple sentences with an emoji. Never scary, never mean, no links.',

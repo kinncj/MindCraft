@@ -1,5 +1,6 @@
 import type { SmoothKind } from '../blocks/BlockDefinition';
 import type { BlockRegistry } from '../blocks/registry';
+import { fluidHeight } from '../blocks/shapes';
 import type { Chunk } from '../world/Chunk';
 import { CHUNK_SIZE, WORLD_HEIGHT } from '../world/coords';
 import type { VoxelWorld } from '../world/VoxelWorld';
@@ -63,6 +64,7 @@ export class SmoothMesher {
     const top = Math.min(WORLD_HEIGHT - 1, this.regionTop(chunk) + 2);
     const ny = top + 2; // samples 0..top+1
     const ids = new Uint16Array(SIZE * ny * SIZE);
+    const heights = new Float32Array(SIZE * ny * SIZE);
     const at = (x: number, y: number, z: number): number => (z * ny + y) * SIZE + x;
     const present = new Set<SmoothKind>();
     for (let z = 0; z < SIZE; z++) {
@@ -73,6 +75,7 @@ export class SmoothMesher {
           const kind = this.registry.get(id)?.smooth;
           if (!kind) continue;
           ids[at(x, y, z)] = id;
+          heights[at(x, y, z)] = kind === 'water' ? fluidHeight(this.world.getState(baseX + x, y, baseZ + z)) : 1;
           present.add(kind);
         }
       }
@@ -80,7 +83,7 @@ export class SmoothMesher {
     const out: SmoothMeshes = {};
     for (const kind of SMOOTH_KINDS) {
       if (!present.has(kind)) continue;
-      const data = this.surface(kind, ids, ny, baseX, baseZ, at);
+      const data = this.surface(kind, ids, heights, ny, baseX, baseZ, at);
       if (data) out[kind] = data;
     }
     return out;
@@ -99,12 +102,12 @@ export class SmoothMesher {
     return top;
   }
 
-  private surface(kind: SmoothKind, ids: Uint16Array, ny: number, baseX: number, baseZ: number, at: (x: number, y: number, z: number) => number): SmoothMeshData | null {
+  private surface(kind: SmoothKind, ids: Uint16Array, heights: Float32Array, ny: number, baseX: number, baseZ: number, at: (x: number, y: number, z: number) => number): SmoothMeshData | null {
     const count = SIZE * ny * SIZE;
     const raw = new Float32Array(count);
     for (let i = 0; i < count; i++) {
       const id = ids[i];
-      if (id !== 0 && this.registry.get(id)?.smooth === kind) raw[i] = 1;
+      if (id !== 0 && this.registry.get(id)?.smooth === kind) raw[i] = heights[i];
     }
     // Soft blur: self 0.5, face neighbors 0.3, edge neighbors 0.2 (out of range = self).
     const field = new Float32Array(count);
@@ -186,7 +189,7 @@ export class SmoothMesher {
             const sy = y + ((c >> 1) & 1);
             const sz = z + ((c >> 2) & 1);
             const id = ids[at(sx, sy, sz)];
-            if (raw[at(sx, sy, sz)] === 1) {
+            if (raw[at(sx, sy, sz)] > 0) {
               // Prefer the highest solid block (grass over dirt on a hill top).
               const score = sy;
               if (score > bestScore) {

@@ -20,6 +20,7 @@ import { InteractionSystem, type InteractionMode } from '../input/InteractionSys
 import { LightEngine } from '../lighting/LightEngine';
 import { PlayerController } from '../physics/PlayerController';
 import { isFluidAt } from '../physics/collision';
+import { FluidSystem } from '../world/FluidSystem';
 import { ChunkMesher } from '../render/ChunkMesher';
 import { ChunkRenderer } from '../render/ChunkRenderer';
 import { CloudLayer } from '../render/CloudLayer';
@@ -127,6 +128,7 @@ export class Engine {
   readonly player: PlayerController;
   readonly camera: CameraSystem;
   private mesher: ChunkMesher;
+  readonly fluids: FluidSystem;
   readonly environment: EnvironmentSystem;
   readonly entities: EntitySystem;
   readonly chunks: ChunkManager;
@@ -172,6 +174,7 @@ export class Engine {
     this.build = new BuildTools(this.world, registry, this.history);
     this.build.onHint = (message) => bridge.toast(message);
     this.logic = new LogicSystem(this.world, registry);
+    this.fluids = new FluidSystem(this.world, registry);
     const lighting = new LightEngine(this.world, registry);
     this.atlas = new TextureAtlas();
     const mesher = new ChunkMesher(this.world, registry, this.atlas);
@@ -189,6 +192,7 @@ export class Engine {
     this.player = new PlayerController(this.world, registry, start);
     this.input = new InputSystem(this.renderer.domElement);
     this.camera = new CameraSystem(this.player, this.input.frame, this.world, registry);
+    this.player.current = (x, y, z) => this.fluids.current(x, y, z);
     if (options.player?.yaw !== undefined) this.camera.yaw = options.player.yaw;
     if (options.player?.pitch !== undefined) this.camera.pitch = options.player.pitch;
     this.camera.onViewModeChange((mode) => {
@@ -307,6 +311,7 @@ export class Engine {
       .add({ name: 'settle', update: () => this.settleWhenReady() })
       .add(this.interaction)
       .add(this.logic)
+      .add(this.fluids)
       .add(this.ghost)
       .add(this.entities)
       .add(this.avatar)

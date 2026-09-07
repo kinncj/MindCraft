@@ -5,7 +5,7 @@
 ## Context
 
 The game ships no assets and makes no network requests. Sound had to follow the
-same rule, and a six-year-old's game must never blare.
+same rule, and a small kid's game must never blare.
 
 ## Decision
 

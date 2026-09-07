@@ -1,4 +1,4 @@
-import { BlockState } from '../BlockState';
+import { BlockState, type BlockStateByte } from '../BlockState';
 import {
   DIR_NX,
   DIR_NY,
@@ -228,8 +228,29 @@ const ladder: ShapeDefinition = {
   occludes: () => false,
 };
 
+/** Fluid state: variant 0 = source, 1..7 = flowing (1 highest), 8 = falling. */
+export const FLUID_SOURCE = 0;
+export const FLUID_FALLING = 8;
+export const FLUID_MAX_LEVEL = 7;
+
+/** Visual height of a fluid block, 0..1, from its state. */
+export function fluidHeight(state: BlockStateByte): number {
+  const level = BlockState.variant(state);
+  if (level === FLUID_SOURCE || level >= FLUID_FALLING) return 1;
+  return (8 - level) / 8;
+}
+
+/** Water: a box as tall as its level; sides always meet their neighbors. */
+const fluid: ShapeDefinition = {
+  id: 'fluid',
+  quads: (state) => boxQuads(box(0, 0, 0, 1, fluidHeight(state), 1)),
+  boxes: () => [],
+  occludes: (face, state) => (face === DIR_PY ? fluidHeight(state) === 1 : true),
+};
+
 export const SHAPES: Record<BlockShapeId, ShapeDefinition> = {
   cube,
+  fluid,
   ladder,
   slab,
   stairs,

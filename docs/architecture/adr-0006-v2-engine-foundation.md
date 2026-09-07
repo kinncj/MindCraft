@@ -13,7 +13,7 @@ spread across five files.
 The v2 goal is a Minecraft-feel world (infinite terrain, biomes, caves, block shapes,
 dozens more blocks) with a Brookhaven-style life layer (furniture, doors, vehicles, pets,
 villagers, dress-up), Sims-style build tools (room tool, paint, stamps, undo), and
-generated music through Tone.js — still creative-only and built for a six-year-old.
+generated music through Tone.js — still creative-only and built for small kids.
 None of that fits on the v1 skeleton.
 
 ## Decision

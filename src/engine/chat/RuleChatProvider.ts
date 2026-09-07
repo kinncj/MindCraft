@@ -1,7 +1,7 @@
 import type { ChatAction, ChatContext, ChatProvider, ChatReply } from './types';
 
 /**
- * Works everywhere, understands the things a six-year-old actually asks
+ * Works everywhere, understands the things small kids actually ask
  * for, and never says anything it was not written to say. Also the
  * fallback when a smarter provider fails.
  */

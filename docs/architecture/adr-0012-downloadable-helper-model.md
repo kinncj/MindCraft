@@ -4,7 +4,7 @@
 
 ## Context
 
-Rule-based chat understands the requests a six-year-old makes most often, but
+Rule-based chat understands the requests small kids make most often, but
 not free-form phrasing ("a little pink cottage by the water"). The browser's
 built-in model (ADR-0011) only exists in some Chromium builds. The user asked
 for a real small LLM behind a download button.

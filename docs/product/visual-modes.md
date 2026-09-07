@@ -6,7 +6,7 @@ the browser and travels with exported worlds.
 ## Classic
 
 The default. Bright blue sky, clean colors, chunky pixels, soft shadows. Built to be
-instantly readable for a six-year-old and fast on any machine.
+instantly readable for small kids and fast on any machine.
 
 ## Ultra
 

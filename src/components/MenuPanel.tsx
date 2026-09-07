@@ -252,7 +252,7 @@ export function MenuPanel() {
       {page === 'about' && (
         <div className="menu-list about">
           <p>
-            <strong>MindCraft 2.0</strong> is a creative block game made for a six-year-old. No accounts, no ads, no internet needed — everything stays on this device.
+            <strong>MindCraft 2.0</strong> is a creative block game for small kids: craft what you have in mind. No accounts, no ads, no internet needed — everything stays on this device.
           </p>
           <p>No monsters, no health, no failing. Just building, animals, friends, and cozy nights.</p>
           <p>Original code and art, MIT licensed. Not affiliated with Minecraft, Mojang, Microsoft, Roblox, or The Sims.</p>

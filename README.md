@@ -2,10 +2,10 @@
 
 A kid-friendly, creative-mode voxel building game that runs entirely in your browser.
 
-The name comes from a 6-year-old who calls Minecraft "MindCraft". This is a game built
-for that kid: a familiar block-world feel with original code, original art, and none of
-the scary parts. No monsters, no health, no failure — just an endless world of blocks,
-animals, weather, a day/night cycle, and a Magic Delivery Box to keep treasures in.
+MindCraft is for small kids: craft whatever you have in mind. A familiar block-world
+feel with original code, original art, and none of the scary parts. No monsters, no
+health, no failure — just an endless world of blocks, animals, weather, a day/night
+cycle, and a Magic Delivery Box to keep treasures in.
 
 Everything stays on your computer. There is no server, no account, no ads, no tracking.
 

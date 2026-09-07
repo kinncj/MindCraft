@@ -6,7 +6,7 @@
 
 The user asked for "a super tiny web AI model" driving animals, pets, and
 villagers. A language model in the browser means a large download from a third
-party, slow first load, and unmoderated output for a six-year-old — rejected
+party, slow first load, and unmoderated output for small kids — rejected
 earlier (ADR-0006). But a *tiny* model that decides behavior, not text, fits.
 
 ## Decision

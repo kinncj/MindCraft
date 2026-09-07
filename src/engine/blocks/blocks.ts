@@ -221,7 +221,7 @@ const DEFINITIONS: BlockDefinitionInput[] = [
   { id: 'mushroom', replaceable: true, numericId: 68, label: 'Mushroom', category: 'nature', emoji: '🍄', color: '#e8574f', shape: 'cross', collision: 'none', bucket: 'alpha' },
   { id: 'cactus', numericId: 69, label: 'Cactus', category: 'nature', emoji: '🌵', color: '#4f9c3a', textures: { top: 'cactus_top', side: 'cactus_side', bottom: 'cactus_top' } },
   { id: 'pumpkin', numericId: 70, label: 'Pumpkin', category: 'nature', emoji: '🎃', color: '#f2903c', facesPlayer: true, textures: { top: 'pumpkin_top', side: 'pumpkin_side', bottom: 'pumpkin_side' }, behavior: facingBehavior },
-  { id: 'water', smooth: 'water', numericId: 71, label: 'Water', category: 'nature', emoji: '💧', color: '#4fa8e8', accentColor: '#7cc2f2', transparent: true, opacity: 0.75, bucket: 'water', collision: 'fluid' },
+  { id: 'water', smooth: 'water', shape: 'fluid', numericId: 71, label: 'Water', category: 'nature', emoji: '💧', color: '#4fa8e8', accentColor: '#7cc2f2', transparent: true, opacity: 0.75, bucket: 'water', collision: 'fluid' },
   { id: 'cloud', numericId: 72, label: 'Cloud', category: 'nature', emoji: '☁️', color: '#f4f8fc', accentColor: '#ffffff', transparent: true, opacity: 0.9, bucket: 'alpha', collision: 'none' },
   { id: 'rainbow', numericId: 73, label: 'Rainbow', category: 'decoration', emoji: '🌈', color: '#e85fa8', accentColor: '#ffd166' },
   { id: 'star', numericId: 74, label: 'Star', category: 'light', emoji: '⭐', color: '#ffd94a', accentColor: '#fff3b0', lightLevel: 9 },

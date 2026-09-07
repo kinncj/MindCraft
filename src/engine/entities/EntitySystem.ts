@@ -57,6 +57,13 @@ export class EntitySystem implements System {
     return top >= 0 ? top + 0.5 : this.player.y;
   }
 
+  /** Is the top block here water? Creatures swim in it instead of walking on it. */
+  private waterAt(x: number, z: number): boolean {
+    const top = this.world.height(Math.round(x), Math.round(z));
+    if (top < 0) return false;
+    return this.registry.get(this.world.getBlock(Math.round(x), top, Math.round(z)))?.collision === 'fluid';
+  }
+
   private add(entity: Entity): Entity {
     this.scene.add(entity.group);
     this.entities.push(entity);
@@ -493,7 +500,7 @@ export class EntitySystem implements System {
           if (intent.celebrate) entity.happyTimer = 0.7;
         }
       } else {
-        const step = Math.min(distance, entity.speed * dt);
+        const step = Math.min(distance, entity.speed * dt * (entity.swimming ? 0.5 : 1));
         const nx = entity.x + (dx / distance) * step;
         const nz = entity.z + (dz / distance) * step;
         if (!entity.flies && this.groundY(nx, nz) > entity.y + 1.1) {
@@ -506,8 +513,10 @@ export class EntitySystem implements System {
         entity.group.rotation.y = Math.atan2(dz, dx) * -1 + Math.PI / 2;
       }
 
-      const groundY = this.groundY(entity.x, entity.z);
-      entity.y += (groundY - entity.y) * Math.min(1, dt * 10);
+      entity.swimming = !entity.flies && this.waterAt(entity.x, entity.z);
+      // Swimmers float with their body in the water, not on top of it.
+      const groundY = this.groundY(entity.x, entity.z) - (entity.swimming ? 0.45 : 0);
+      entity.y += (groundY - entity.y) * Math.min(1, dt * (entity.swimming ? 4 : 10));
       if (entity.flies) {
         entity.group.position.set(entity.x, entity.y + 1.1 + Math.sin(elapsed * 2 + entity.phase) * 0.25, entity.z);
         const flap = Math.sin(elapsed * 14 + entity.phase) * 0.9;
@@ -517,7 +526,11 @@ export class EntitySystem implements System {
         }
       } else {
         const moving = distance >= 0.1;
-        const hop = moving && entity.kind !== 'villager' ? Math.abs(Math.sin(elapsed * 7 + entity.phase)) * 0.18 : 0;
+        const hop = entity.swimming
+          ? Math.sin(elapsed * 3 + entity.phase) * 0.06
+          : moving && entity.kind !== 'villager'
+            ? Math.abs(Math.sin(elapsed * 7 + entity.phase)) * 0.18
+            : 0;
         entity.group.position.set(entity.x, entity.y + hop, entity.z);
       }
     }

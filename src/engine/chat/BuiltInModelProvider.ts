@@ -45,7 +45,7 @@ export class BuiltInModelProvider implements ChatProvider {
   private systemPrompt(ctx: ChatContext): string {
     const v = ctx.villager;
     return [
-      `You are ${v.name}, a friendly ${v.jobLabel} villager in a block-building game played by a six-year-old.`,
+      `You are ${v.name}, a friendly ${v.jobLabel} villager in a block-building game played by small kids.`,
       'Reply ONLY with JSON: {"say": string, "actions": [{"tool": string, "args": object}]}.',
       '"say" is one or two short, cheerful sentences with an emoji. Never scary, never rude, no links, no numbers longer than 3 digits.',
       'Use actions only when the child asks you to do something. Allowed tools:',

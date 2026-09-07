@@ -20,6 +20,8 @@ export type Entity = {
   speed: number;
   /** Flies (butterflies) instead of hopping on the ground. */
   flies: boolean;
+  /** In water right now (floats and moves slowly). */
+  swimming?: boolean;
   restTimer: number;
   happyTimer: number;
   phase: number;
