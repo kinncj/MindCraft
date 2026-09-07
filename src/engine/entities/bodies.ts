@@ -178,6 +178,23 @@ export function buildRobot(): THREE.Group {
   return group;
 }
 
+/** An elevator platform: a 2×2 deck with a railing on three sides. */
+export function buildLift(): THREE.Group {
+  const group = new THREE.Group();
+  const deck = box(1.9, 0.25, 1.9, '#d3a35e');
+  deck.position.y = 0.125;
+  group.add(deck);
+  for (const [dx, dz, w, d] of [[0, -0.9, 1.9, 0.08], [-0.9, 0, 0.08, 1.9], [0.9, 0, 0.08, 1.9]] as const) {
+    const rail = box(w, 0.9, d, '#8a6238');
+    rail.position.set(dx, 0.7, dz);
+    group.add(rail);
+  }
+  const light = box(0.2, 0.2, 0.2, '#fff3b0');
+  light.position.set(0, 0.35, -0.8);
+  group.add(light);
+  return group;
+}
+
 export function disposeGroup(group: THREE.Group): void {
   group.traverse((child) => {
     if (child instanceof THREE.Mesh) {

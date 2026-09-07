@@ -9,6 +9,7 @@ import type { ToolRegistry } from '../tools/ToolRegistry';
 import { BuiltInModelProvider } from './BuiltInModelProvider';
 import { RuleChatProvider, rotationFromYaw } from './RuleChatProvider';
 import { houseOptions } from '../build/buildingKit';
+import { houseLayout } from '../build/BuildTools';
 import { buildActionsFor, parseBuildRequest } from './buildRequest';
 import type { WebLlmProvider } from './WebLlmProvider';
 import { sharedHelper } from './helperSingleton';
@@ -220,7 +221,14 @@ export class ChatAgent {
           flag: str(a.flag) ?? null,
           roomPlan: Array.isArray(a.roomPlan) ? (a.roomPlan as Array<{ purpose: string; count: number }>).filter((r) => r && typeof r.purpose === 'string' && typeof r.count === 'number') : undefined,
           features: Array.isArray(a.features) ? (a.features as unknown[]).filter((f): f is string => typeof f === 'string') : undefined,
+          doorWidth: typeof a.doorWidth === 'number' ? a.doorWidth : undefined,
+          doorHeight: typeof a.doorHeight === 'number' ? a.doorHeight : undefined,
+          automaticDoor: a.automaticDoor === true,
+          elevator: a.elevator === true,
         });
+        const site = { x: num(a.x, ctx.site.x), y: num(a.y, ctx.site.y), z: num(a.z, ctx.site.z) };
+        const layout = houseLayout(site.x, site.y, site.z, opts);
+        if (layout.shaft) this.deps.entities.spawnLift(layout.shaft.x + 0.5, layout.stops[0], layout.shaft.z + 0.5, layout.stops);
         const what = str(a.type) ?? (opts.castle ? 'castle' : 'house');
         return { label: `Build a ${what}`, edits: this.deps.build.planHouse(num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), opts) };
       }

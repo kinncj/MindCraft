@@ -6,7 +6,7 @@ import type { Ray } from '../physics/raycast';
 import type { VoxelWorld } from '../world/VoxelWorld';
 import { FollowBrain, WanderBrain, createBrain, type Brain, type BrainSense } from './Brain';
 import { NeuralBrain } from '../ai/NeuralBrain';
-import { buildBunny, buildButterfly, buildCat, buildChick, buildDog, buildRobot, buildVillager, disposeGroup } from './bodies';
+import { buildBunny, buildButterfly, buildCat, buildChick, buildDog, buildLift, buildRobot, buildVillager, disposeGroup } from './bodies';
 import { RobotRunner, validateProgram, type RobotProgram } from './robot';
 import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
 import { StayBrain } from './Brain';
@@ -27,6 +27,10 @@ export class EntitySystem implements System {
   /** The vehicle the player is riding, if any. */
   mounted: Entity | null = null;
   driveInput: DriveInput | null = null;
+  /** Up or down one floor, pressed this frame, while standing on a lift. */
+  liftInput: { up: boolean; down: boolean } = { up: false, down: false };
+  /** The lift the player is standing on right now. */
+  ridingLift: Entity | null = null;
   private raycaster = new THREE.Raycaster();
   private spawnedAround: string | null = null;
   private elapsed = 0;
@@ -141,6 +145,46 @@ export class EntitySystem implements System {
     entity.persistent = true;
     entity.data = { color: vehicle.color };
     return this.add(entity);
+  }
+
+  /** An elevator platform that stops at the given heights (its top surface). */
+  spawnLift(x: number, y: number, z: number, stops: number[]): Entity {
+    const sorted = [...new Set(stops)].sort((a, b) => a - b);
+    const entity = this.base('lift', buildLift(), x, z, new WanderBrain(0), 0);
+    entity.y = sorted[0] ?? y;
+    entity.variant = 'lift';
+    entity.persistent = true;
+    entity.lift = { stops: sorted, target: 0 };
+    entity.data = { stops: sorted };
+    entity.group.position.set(x, entity.y - 0.25, z);
+    return this.add(entity);
+  }
+
+  private updateLift(entity: Entity, dt: number): void {
+    const lift = entity.lift!;
+    const p = this.player;
+    const top = entity.y;
+    const onIt = Math.abs(p.x - entity.x) <= 1.05 && Math.abs(p.z - entity.z) <= 1.05 && p.y >= top - 0.35 && p.y <= top + 0.6 && !p.mounted;
+    if (onIt) {
+      if (this.liftInput.up && lift.target < lift.stops.length - 1) lift.target += 1;
+      if (this.liftInput.down && lift.target > 0) lift.target -= 1;
+    }
+    const goal = lift.stops[lift.target] ?? entity.y;
+    const speed = 2.5;
+    const dy = goal - entity.y;
+    const step = Math.sign(dy) * Math.min(Math.abs(dy), speed * dt);
+    entity.y += step;
+    if (onIt) {
+      p.teleport(p.x, entity.y, p.z);
+      p.vy = 0;
+      p.onGround = true;
+      p.onLift = true;
+      this.ridingLift = entity;
+    } else if (this.ridingLift === entity) {
+      this.ridingLift = null;
+      p.onLift = false;
+    }
+    entity.group.position.set(entity.x, entity.y - 0.25, entity.z);
   }
 
   spawnRobot(x: number, y: number, z: number, name = 'Beep', program: RobotProgram = [], blockId = 0): Entity {
@@ -463,6 +507,9 @@ export class EntitySystem implements System {
         entity = this.spawnVillager(s.variant ?? 'random', s.x, s.z, s.name, s.home);
       } else if (s.kind === 'vehicle' && (VEHICLE_KINDS as string[]).includes(s.variant ?? '')) {
         entity = this.spawnVehicle(s.variant as VehicleKind, s.x, s.y, s.z, typeof s.data?.color === 'string' ? (s.data.color as string) : undefined);
+      } else if (s.kind === 'lift') {
+        const stops = Array.isArray(s.data?.stops) ? (s.data!.stops as unknown[]).filter((v): v is number => typeof v === 'number') : [s.y];
+        entity = this.spawnLift(s.x, s.y, s.z, stops.length ? stops : [s.y]);
       } else if (s.kind === 'robot') {
         const program = validateProgram(s.data?.program) ?? [];
         const blockId = typeof s.data?.blockId === 'number' ? (s.data.blockId as number) : 0;
@@ -549,6 +596,10 @@ export class EntitySystem implements System {
       if (entity.vehicle) continue;
       if (!this.world.isLoaded(Math.round(entity.x), Math.round(entity.z))) continue;
 
+      if (entity.lift) {
+        this.updateLift(entity, dt);
+        continue;
+      }
       if (entity.robot) {
         const r = entity.robot;
         r.update(dt);

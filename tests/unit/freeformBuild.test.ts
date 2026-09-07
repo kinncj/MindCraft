@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { B, blocks } from '../../src/engine/blocks/blocks';
-import { BuildTools } from '../../src/engine/build/BuildTools';
+import { BuildTools, houseLayout } from '../../src/engine/build/BuildTools';
 import { ChatAgent } from '../../src/engine/chat/ChatAgent';
 import { RuleChatProvider } from '../../src/engine/chat/RuleChatProvider';
 import { WebLlmProvider } from '../../src/engine/chat/WebLlmProvider';
@@ -162,6 +162,62 @@ describe('a whole campus from one sentence', () => {
     expect(count('ladder')).toBeGreaterThanOrEqual(4); // the climbing frame
     expect(count('sand')).toBeGreaterThan(60); // the playground sandpit
     expect(count('fence')).toBeGreaterThan(20); // goals, swings, rims
-    expect(count('planks_stairs')).toBeGreaterThanOrEqual(4 + 4); // the slide and the staircase
+    expect(count('planks_stairs') + count('stone_stairs')).toBeGreaterThanOrEqual(4 + 8); // the slide and the two-wide staircase
+  });
+});
+
+describe('doors, stairs, and elevators the way the kid asked', () => {
+  it('reads wide, tall, and automatic doors and an elevator from the words', () => {
+    expect(parseBuildRequest('a big house with wide doors')).toMatchObject({ doorWidth: 2, doorHeight: 2 });
+    expect(parseBuildRequest('a castle with a giant door')).toMatchObject({ doorWidth: 2, doorHeight: 3 });
+    expect(parseBuildRequest('a shop with automatic doors')).toMatchObject({ automaticDoor: true });
+    expect(parseBuildRequest('a hotel with an elevator')).toMatchObject({ elevator: true });
+    expect(parseBuildRequest('a house with a lift')).toMatchObject({ elevator: true, floors: 2 });
+  });
+
+  it('builds a double door with plates, two-wide railed stairs, and a lift shaft', () => {
+    const world = flat();
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    const opts = houseOptions(blocks, { type: 'hotel', width: 15, depth: 13, floors: 3, wall: 'stone_bricks', doorWidth: 2, automaticDoor: true, elevator: true });
+    const edits = build.planHouse(8, 3, 8, opts);
+    const at = (x: number, y: number, z: number) => edits.find((e) => e.x === x && e.y === y && e.z === z)?.id;
+    // Two door blocks side by side at ground level, plates in front and behind.
+    expect(at(8, 3, 2)).toBe(blocks.numericOf('door'));
+    expect(at(9, 3, 2)).toBe(blocks.numericOf('door'));
+    expect(at(8, 3, 1)).toBe(blocks.numericOf('pressure_plate'));
+    expect(at(8, 3, 3)).toBe(blocks.numericOf('pressure_plate'));
+    // Stone stairs for a stone building, two wide, with a fence railing.
+    const stairs = edits.filter((e) => e.id === blocks.numericOf('stone_stairs'));
+    expect(stairs.length).toBeGreaterThanOrEqual(16);
+    expect(edits.some((e) => e.id === blocks.numericOf('fence'))).toBe(true);
+    // The lift shaft: a 2×2 hole in every upper floor slab.
+    const layout = houseLayout(8, 3, 8, opts);
+    expect(layout.shaft).not.toBeNull();
+    expect(layout.stops).toEqual([3, 7, 11]);
+    expect(at(layout.shaft!.x, 2 + 4, layout.shaft!.z)).toBe(0);
+    expect(at(layout.shaft!.x + 1, 2 + 8, layout.shaft!.z + 1)).toBe(0);
+  });
+
+  it('a lift carries the player up a floor on Jump and back down on Sneak', () => {
+    const world = flat();
+    const player = new PlayerController(world, blocks, { x: 8, y: 3, z: 8 });
+    const entities = new EntitySystem(new THREE.Scene(), world, blocks, player);
+    const lift = entities.spawnLift(8, 3, 8, [3, 7, 11]);
+    const idle = { forward: false, back: false, left: false, right: false, jump: false, sprint: false, sneak: false } as Parameters<PlayerController['update']>[1];
+    for (let i = 0; i < 10; i++) { entities.update(1 / 60, i / 60); player.update(1 / 60, idle, 0); }
+    expect(entities.ridingLift?.id).toBe(lift.id);
+    entities.liftInput = { up: true, down: false };
+    entities.update(1 / 60, 1);
+    entities.liftInput = { up: false, down: false };
+    for (let i = 0; i < 60 * 3; i++) { entities.update(1 / 60, 2 + i / 60); player.update(1 / 60, idle, 0); }
+    expect(lift.y).toBeCloseTo(7, 1);
+    expect(player.y).toBeCloseTo(7, 1);
+    entities.liftInput = { up: false, down: true };
+    entities.update(1 / 60, 6);
+    entities.liftInput = { up: false, down: false };
+    for (let i = 0; i < 60 * 3; i++) { entities.update(1 / 60, 7 + i / 60); player.update(1 / 60, idle, 0); }
+    expect(player.y).toBeCloseTo(3, 1);
+    const stored = entities.serialize().find((e) => e.kind === 'lift');
+    expect(stored?.data?.stops).toEqual([3, 7, 11]);
   });
 });

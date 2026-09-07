@@ -49,6 +49,8 @@ export type HouseOptions = {
   stairRotation: number;
   lamp: number | null;
   lantern: number | null;
+  /** Railing for stairs and the lift shaft (a fence), if the block exists. */
+  rail: number | null;
   pole: number;
   signBlock: number;
   trim: number | null;
@@ -72,8 +74,30 @@ export type HouseOptions = {
   /** Outdoor features placed around the building. */
   features: FeatureKind[];
   kit: FeatureKit;
+  /** Doorway width in blocks (1 = one door, 2 = double doors) and height (2 or 3). */
+  doorWidth: number;
+  doorHeight: number;
+  /** Pressure plates on both sides open the door on the power system. */
+  automaticDoor: boolean;
+  plate: number | null;
+  /** An elevator shaft through every floor, with a lift entity spawned by the caller. */
+  elevator: boolean;
   /** Colour blocks for pillars and roof when colourful. */
   palette: number[];
+}
+
+/** Where the lift goes and which floor heights it stops at, so callers can spawn it. */
+export function houseLayout(x: number, y: number, z: number, opts: Pick<HouseOptions, 'width' | 'depth' | 'floors' | 'castle' | 'elevator'>): { shaft: { x: number; z: number } | null; stops: number[] } {
+  const width = Math.max(5, Math.min(25, opts.width | 1));
+  const depth = Math.max(5, Math.min(25, opts.depth | 1));
+  const floors = Math.max(1, Math.min(10, opts.floors));
+  const storey = opts.castle ? 5 : 4;
+  const groundY = y - 1;
+  const x1 = x - Math.floor(width / 2) + width - 1;
+  const z1 = z - Math.floor(depth / 2) + depth - 1;
+  const stops: number[] = [];
+  for (let f = 0; f < floors; f++) stops.push(groundY + f * storey + 1);
+  return { shaft: opts.elevator && floors > 1 ? { x: x1 - 2, z: z1 - 2 } : null, stops };
 }
 import type { CommandHistory } from '../commands/CommandHistory';
 import type { BlockHit } from '../physics/raycast';
@@ -299,7 +323,7 @@ export class BuildTools {
             }
             const corner = onX && onZ;
             const along = onZ ? px - x0 : pz - z0;
-            const window = !corner && (h === 2 || h === 3) && along % 2 === 0 && along > 0 && !(f === 0 && pz === z0 && Math.abs(px - doorX) <= 1);
+            const window = !corner && (h === 2 || h === 3) && along % 2 === 0 && along > 0 && !(f === 0 && pz === z0 && Math.abs(px - doorX) <= 2);
             let id = opts.wall;
             if (corner) id = trimOrWall(f);
             if (window) id = opts.glass;
@@ -308,12 +332,25 @@ export class BuildTools {
         }
       }
     }
-    // The front door: a real door block on the ground, headroom above, lanterns either side.
-    put(doorX, groundY + 1, z0, opts.door, opts.doorState);
-    put(doorX, groundY + 2, z0, air);
+    // The front door: real door blocks on the ground (one or two wide), headroom above, lanterns either side.
+    const doorW = Math.max(1, Math.min(3, opts.doorWidth));
+    const doorH = Math.max(2, Math.min(3, opts.doorHeight));
+    const doorCells: number[] = [];
+    for (let i = 0; i < doorW; i++) doorCells.push(doorX - Math.floor((doorW - 1) / 2) + i);
+    for (const dx of doorCells) {
+      put(dx, groundY + 1, z0, opts.door, opts.doorState);
+      for (let h = 2; h <= doorH; h++) put(dx, groundY + h, z0, air);
+    }
     if (opts.lantern) {
-      put(doorX - 1, groundY + 3, z0 - 1, opts.lantern);
-      put(doorX + 1, groundY + 3, z0 - 1, opts.lantern);
+      put(doorCells[0] - 1, groundY + 3, z0 - 1, opts.lantern);
+      put(doorCells[doorCells.length - 1] + 1, groundY + 3, z0 - 1, opts.lantern);
+    }
+    // Automatic door: pressure plates on both sides power the door blocks next to them.
+    if (opts.automaticDoor && opts.plate) {
+      for (const dx of doorCells) {
+        put(dx, groundY + 1, z0 - 1, opts.plate);
+        put(dx, groundY + 1, z0 + 1, opts.plate);
+      }
     }
     // Lamps along the inside walls of every floor.
     if (opts.lamp) {
@@ -370,13 +407,33 @@ export class BuildTools {
       for (let i = 0; i < storey; i++) {
         const px = sx + i;
         const py = base + 1 + i;
-        put(px, py, sz, opts.stairs, stairRotation);
-        for (let below = base + 1; below < py; below++) put(px, below, sz, opts.floor);
-        // Headroom over each step.
-        put(px, py + 1, sz, air);
-        put(px, py + 2, sz, air);
+        // Two blocks wide, filled in underneath, a railing on the open side.
+        for (const pz of [sz, sz + 1]) {
+          put(px, py, pz, opts.stairs, stairRotation);
+          for (let below = base + 1; below < py; below++) put(px, below, pz, opts.floor);
+          put(px, py + 1, pz, air);
+          put(px, py + 2, pz, air);
+        }
+        if (opts.rail && py + 1 < base + storey) put(px, py + 1, sz - 1, opts.rail);
       }
       // The top step sits in the slab; the headroom cuts carve the way up onto the next floor.
+    }
+    // Elevator shaft: a 2×2 opening through every floor slab at the back-right corner, railed.
+    const layout = houseLayout(x, y, z, opts);
+    if (layout.shaft) {
+      const { x: lx, z: lz } = layout.shaft;
+      for (let f = 1; f < floors; f++) {
+        const py = groundY + f * storey;
+        for (let dx = 0; dx <= 1; dx++) for (let dz = 0; dz <= 1; dz++) put(lx + dx, py, lz + dz, air);
+        if (opts.rail) {
+          for (let dx = -1; dx <= 2; dx++) put(lx + dx, py + 1, lz + 2, opts.rail);
+          for (let dz = -1; dz <= 1; dz++) put(lx - 1, py + 1, lz + dz, opts.rail);
+        }
+      }
+      for (let f = 0; f < floors; f++) {
+        const base = groundY + f * storey;
+        for (let h = 1; h < storey; h++) for (let dx = 0; dx <= 1; dx++) for (let dz = 0; dz <= 1; dz++) put(lx + dx, base + h, lz + dz, air);
+      }
     }
     // Furniture: each room by its purpose when there is a plan, otherwise along the walls.
     if (opts.furnish && roomRects.length > 0) {
@@ -390,6 +447,7 @@ export class BuildTools {
         for (let pz = room.z0; pz <= room.z1; pz += 2) {
           for (let px = room.x0; px <= room.x1; px += 2) {
             if (px === Math.floor((room.x0 + room.x1) / 2) && (pz === room.z0 || pz === room.z1)) continue; // leave the doorway free
+            if (layout.shaft && Math.abs(px - layout.shaft.x - 0.5) < 2 && Math.abs(pz - layout.shaft.z - 0.5) < 2) continue; // and the lift
             const item = set[n++ % set.length];
             put(px, room.base + 1, pz, item.id, item.state ?? 0);
             if (item.on !== undefined) put(px, room.base + 2, pz, item.on);

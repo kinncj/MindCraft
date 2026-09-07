@@ -28,6 +28,10 @@ export type BuildingArgs = {
   flatRoof?: boolean;
   roomPlan?: Array<{ purpose: string; count: number }>;
   features?: string[];
+  doorWidth?: number;
+  doorHeight?: number;
+  automaticDoor?: boolean;
+  elevator?: boolean;
 };
 
 const FURNITURE: Record<string, string[]> = {
@@ -145,10 +149,16 @@ export function houseOptions(registry: BlockRegistry, a: BuildingArgs): HouseOpt
     chimney: registry.numericOf('brick'),
     door: id('door', 'planks'),
     doorState: 0,
-    stairs: id('planks_stairs', 'planks'),
+    stairs: /stone|brick|cobble/.test(a.wall ?? '') ? id('stone_stairs', 'planks_stairs') : id('planks_stairs', 'planks'),
     stairRotation: stairRotationTowardPlusX(),
     lamp: maybe('lamp'),
     lantern: maybe('lantern'),
+    rail: maybe('fence'),
+    doorWidth: a.doorWidth ?? 1,
+    doorHeight: a.doorHeight ?? 2,
+    automaticDoor: a.automaticDoor === true,
+    plate: maybe('pressure_plate'),
+    elevator: a.elevator === true,
     pole: id('fence', 'wood'),
     signBlock: registry.numericOf('color_red'),
     trim: a.trim ? id(a.trim, 'planks') : null,

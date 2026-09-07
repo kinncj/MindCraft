@@ -2,6 +2,7 @@ import { blueprintById, BLUEPRINTS } from '../build/blueprints';
 import type { Engine } from '../core/Engine';
 import { resolveBlockId } from '../blocks/blocks';
 import { houseOptions, type BuildingArgs } from '../build/buildingKit';
+import { houseLayout } from '../build/BuildTools';
 
 /** build_* tools: the same room/fill/paint/copy/paste/mirror the UI has. */
 export function registerBuildTools(engine: Engine): void {
@@ -54,10 +55,14 @@ export function registerBuildTools(engine: Engine): void {
   tools.register({
     name: 'build_house',
     description: 'Build any building at (x, z) with its floor at y: type (house, hospital, school, shop, skyscraper, hotel, barn, library, restaurant, firestation, castle), width and depth 5-25, floors 1-10, wall/roof/trim block ids, colorful, furnish (beds, tables, lamps...), sign "cross", flag (canada, brazil, usa, uk, france, italy, germany, japan, portugal, spain, mexico, ireland, rainbow). Doors, stairs between floors, windows, and lamps are always included.',
-    inputSchema: { type: 'object', properties: { x: int, y: int, z: int, type: { type: 'string' }, width: int, depth: int, floors: int, wall: { type: 'string' }, roof: { type: 'string' }, trim: { type: 'string' }, colorful: { type: 'boolean' }, castle: { type: 'boolean' }, furnish: { type: 'boolean' }, sign: { type: 'string' }, flag: { type: 'string' }, roomPlan: { type: 'array', items: { type: 'object', properties: { purpose: { type: 'string' }, count: int } } }, features: { type: 'array', items: { type: 'string', enum: ['court', 'playground', 'pool', 'garden', 'parking', 'fountain', 'fence'] } } }, required: ['x', 'y', 'z'] },
+    inputSchema: { type: 'object', properties: { x: int, y: int, z: int, type: { type: 'string' }, width: int, depth: int, floors: int, wall: { type: 'string' }, roof: { type: 'string' }, trim: { type: 'string' }, colorful: { type: 'boolean' }, castle: { type: 'boolean' }, furnish: { type: 'boolean' }, sign: { type: 'string' }, flag: { type: 'string' }, doorWidth: int, doorHeight: int, automaticDoor: { type: 'boolean' }, elevator: { type: 'boolean' }, roomPlan: { type: 'array', items: { type: 'object', properties: { purpose: { type: 'string' }, count: int } } }, features: { type: 'array', items: { type: 'string', enum: ['court', 'playground', 'pool', 'garden', 'parking', 'fountain', 'fence'] } } }, required: ['x', 'y', 'z'] },
     execute: (a: { x: number; y: number; z: number } & BuildingArgs) => {
-      const edits = build.planHouse(a.x, a.y, a.z, houseOptions(engine.registry, a));
-      return { blocks: build.run(`Build a ${a.type ?? (a.castle ? 'castle' : 'house')}`, edits) };
+      const opts = houseOptions(engine.registry, a);
+      const edits = build.planHouse(a.x, a.y, a.z, opts);
+      const blocks = build.run(`Build a ${a.type ?? (a.castle ? 'castle' : 'house')}`, edits);
+      const layout = houseLayout(a.x, a.y, a.z, opts);
+      if (layout.shaft) engine.entities.spawnLift(layout.shaft.x + 0.5, layout.stops[0], layout.shaft.z + 0.5, layout.stops);
+      return { blocks, elevator: layout.shaft !== null };
     },
   });
   tools.register({

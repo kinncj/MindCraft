@@ -3,7 +3,7 @@ import type { Brain } from './Brain';
 import type { Vehicle } from './vehicles';
 import type { RobotRunner } from './robot';
 
-export type EntityKind = 'bunny' | 'chick' | 'butterfly' | 'pet' | 'villager' | 'vehicle' | 'robot';
+export type EntityKind = 'bunny' | 'chick' | 'butterfly' | 'pet' | 'villager' | 'vehicle' | 'robot' | 'lift';
 
 /** A living thing in the world: a body (Three.js group) plus a brain. */
 export type Entity = {
@@ -45,6 +45,8 @@ export type Entity = {
   auto?: { turn: number; until: number; reverseUntil: number; lastX: number; lastZ: number; stuck: number };
   /** Villagers: the vehicle entity id they are riding. */
   riding?: string;
+  /** Lifts: the floor heights they stop at (the platform's top surface) and where they are going. */
+  lift?: { stops: number[]; target: number };
   /** Robots carry their program runner. */
   robot?: RobotRunner;
   /** Blocks this villager is laying by hand, one at a time. */

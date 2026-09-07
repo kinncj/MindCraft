@@ -110,6 +110,12 @@ export function registerLifeTools(engine: Engine): void {
     },
   });
   tools.register({
+    name: 'elevator_spawn',
+    description: 'An elevator platform at (x, z) that stops at the given heights (block tops). Stand on it: Jump goes up a floor, Sneak goes down.',
+    inputSchema: { type: 'object', properties: { x: num, z: num, stops: { type: 'array', items: num } }, required: ['x', 'z', 'stops'] },
+    execute: ({ x, z, stops }: { x: number; z: number; stops: number[] }) => describe(entities.spawnLift(x, stops[0] ?? engine.player.y, z, stops)),
+  });
+  tools.register({
     name: 'player_fly',
     description: 'Creative flight on or off (default: toggle). While flying, jump rises and sneak sinks.',
     inputSchema: { type: 'object', properties: { on: { type: 'boolean' } } },

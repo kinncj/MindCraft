@@ -55,6 +55,8 @@ export class PlayerController {
   mounted = false;
   /** Creative flight: no gravity, jump rises, sneak sinks, landing ends it. */
   flying = false;
+  /** Standing on an elevator: it carries the player; jump and sneak pick floors instead. */
+  onLift = false;
 
   setFlying(on: boolean): void {
     if (on === this.flying) return;
@@ -165,6 +167,13 @@ export class PlayerController {
       this.vz += c.z * CURRENT_SPEED;
     }
 
+    // On a lift the platform owns the vertical axis; walk on it, do not jump off by accident.
+    if (this.onLift && !this.flying) {
+      this.vy = 0;
+      this.moveBy(this.vx * dt, 0, this.vz * dt);
+      this.onGround = true;
+      return;
+    }
     // Flying: steady speed in every direction, no gravity; touching down lands.
     if (this.flying) {
       const speed = input.sprint ? FLY_SPRINT : FLY_SPEED;

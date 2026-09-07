@@ -140,6 +140,8 @@ export class Engine {
   readonly player: PlayerController;
   readonly camera: CameraSystem;
   private mesher: ChunkMesher;
+  private jumpHeld = false;
+  private sneakHeld = false;
   readonly fluids: FluidSystem;
   private postFx: PostFx;
   readonly environment: EnvironmentSystem;
@@ -522,6 +524,12 @@ export class Engine {
       return;
     }
     this.entities.driveInput = null;
+    // Standing on a lift: a Jump or Sneak press picks the next floor (edges, not holds).
+    const upPressed = f.jump && !this.jumpHeld;
+    const downPressed = f.sneak && !this.sneakHeld;
+    this.jumpHeld = f.jump;
+    this.sneakHeld = f.sneak;
+    this.entities.liftInput = { up: upPressed && this.entities.ridingLift !== null, down: downPressed && this.entities.ridingLift !== null };
     const wasFlying = this.player.flying;
     this.player.update(dt, f, this.camera.yaw);
     if (wasFlying && !this.player.flying) this.options.bridge.onFlyChanged?.(false);

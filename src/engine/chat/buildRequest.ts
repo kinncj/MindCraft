@@ -29,6 +29,10 @@ export type BuildSpec = {
   rooms: Array<{ purpose: string; count: number }>;
   /** Outdoor features around the building. */
   features: string[];
+  doorWidth: number;
+  doorHeight: number;
+  automaticDoor: boolean;
+  elevator: boolean;
   /** Words for the reply. */
   label: string;
 };
@@ -219,6 +223,12 @@ export function parseBuildRequest(raw: string): BuildSpec | null {
     while (perFloor(width) * floors < wanted && width < 25) width += 4;
     while (perFloor(width) * floors < wanted && floors < 10) floors += 1;
   }
+  // Doors and vertical transport.
+  const doorWidth = /\b(wide|double|big|large|huge|giant|grand|massive) (front )?doors?\b|\bdouble doors?\b|\bwide entrance\b/.test(text) ? 2 : 1;
+  const doorHeight = /\b(tall|high|giant|huge|massive) (front )?doors?\b/.test(text) ? 3 : 2;
+  const automaticDoor = /\b(automatic|auto|sliding|magic|sensor|pressure plate|piston) doors?\b|\bdoors? that opens? (by (itself|themselves)|automatically|when)\b/.test(text);
+  const elevator = /\b(elevators?|lifts?)\b/.test(text);
+  if (elevator && floors < 2) floors = 2;
   let flag: string | null = null;
   if (/\bflag\b/.test(text)) {
     for (const [pattern, name] of FLAGS) if (pattern.test(text)) flag = name;
@@ -228,7 +238,7 @@ export function parseBuildRequest(raw: string): BuildSpec | null {
   const sizeWord = huge ? 'massive' : big ? 'big' : small ? 'little' : '';
   const noun = type === 'house' ? (/\bmansion\b/.test(text) ? 'mansion' : /\bpalace\b/.test(text) ? 'palace' : /\bcottage\b/.test(text) ? 'cottage' : 'house') : type === 'firestation' ? 'fire station' : type;
   const label = [sizeWord, colorful ? 'colourful' : '', materialWord, noun].filter(Boolean).join(' ');
-  return { kind: type === 'castle' ? 'castle' : 'house', type, width, depth, floors, wall, roof, trim, colorful, furnish: furnish || rooms.length > 0, sign: d.sign, flag, people, rooms, features, label };
+  return { kind: type === 'castle' ? 'castle' : 'house', type, width, depth, floors, wall, roof, trim, colorful, furnish: furnish || rooms.length > 0, sign: d.sign, flag, people, rooms, features, doorWidth, doorHeight, automaticDoor, elevator, label };
 }
 
 import type { ChatAction, ChatContext } from './types';
@@ -245,6 +255,7 @@ export function buildActionsFor(spec: BuildSpec, ctx: ChatContext): ChatAction[]
         wall: spec.wall, roof: spec.roof, trim: spec.trim, colorful: spec.colorful, castle: spec.kind === 'castle',
         furnish: spec.furnish, sign: spec.sign, flag: spec.flag,
         roomPlan: spec.rooms, features: spec.features,
+        doorWidth: spec.doorWidth, doorHeight: spec.doorHeight, automaticDoor: spec.automaticDoor, elevator: spec.elevator,
       },
     },
   ];
