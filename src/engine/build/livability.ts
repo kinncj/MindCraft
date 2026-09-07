@@ -68,13 +68,10 @@ export function ensureLivable(cells: Cells, layout: BuildingLayout, door: number
       if (g && g.id === layout.air) put(dx, layout.groundY, layout.doorZ + layout.outward * step, layout.wall);
     }
   }
-  // 2. Headroom over every step (both columns of the flight) and a solid, clear landing.
+  // 2. Three blocks of clearance over every step (both columns) and a solid, clear landing.
   for (const flight of layout.stairs) {
     for (const step of flight.steps) {
-      for (const dz of [0, 1]) {
-        put(step.x, step.y + 1, step.z + dz, layout.air);
-        put(step.x, step.y + 2, step.z + dz, layout.air);
-      }
+      for (const dz of [0, 1]) for (let h = 1; h <= 3; h++) put(step.x, step.y + h, step.z + dz, layout.air);
     }
     for (const lx of [flight.landing.x, flight.landing.x + flight.dir]) {
       for (const dz of [0, 1]) {
@@ -146,7 +143,7 @@ export function checkLivability(edits: BlockEdit[], layout: BuildingLayout, door
   for (const flight of layout.stairs) {
     for (const step of flight.steps) {
       for (const dz of [0, 1]) {
-        if (!isAir(cells, step.x, step.y + 1, step.z + dz, layout) || !isAir(cells, step.x, step.y + 2, step.z + dz, layout)) out.push({ rule: 'headroom over stairs', at: { x: step.x, y: step.y, z: step.z + dz } });
+        for (let h = 1; h <= 3; h++) if (!isAir(cells, step.x, step.y + h, step.z + dz, layout)) out.push({ rule: 'headroom over stairs', at: { x: step.x, y: step.y + h, z: step.z + dz } });
       }
     }
     const top = flight.steps[flight.steps.length - 1];

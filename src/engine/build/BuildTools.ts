@@ -520,10 +520,11 @@ export class BuildTools {
         steps.push({ x: px, y: py, z: sz });
         for (const pz of [sz, sz + 1]) {
           put(px, py, pz, opts.stairs, dir === 1 ? stairRotation : (stairRotation + 2) % 4);
-          put(px, py + 1, pz, air);
-          put(px, py + 2, pz, air);
-          if (py + 1 === top) put(px, top, pz, air); // the slab opening, where a head would hit
-          if (py + 2 === top) put(px, top, pz, air);
+          // Three blocks of clearance: the character lifts its whole body a block to climb a step.
+          for (let h = 1; h <= 3; h++) {
+            if (py + h > top + 1 || py + h !== top) put(px, py + h, pz, air);
+            if (py + h === top) put(px, top, pz, air); // the slab opening
+          }
         }
         if (opts.rail && py + 1 < top) put(px, py + 1, sz - 1, opts.rail);
       }
@@ -531,7 +532,7 @@ export class BuildTools {
       for (const pz of [sz, sz + 1]) {
         put(landing.x, top, pz, opts.floor);
         put(landing.x + dir, top, pz, opts.floor);
-        for (let h = 1; h <= 2; h++) {
+        for (let h = 1; h <= 3; h++) {
           put(landing.x, top + h, pz, air);
           put(landing.x + dir, top + h, pz, air);
         }

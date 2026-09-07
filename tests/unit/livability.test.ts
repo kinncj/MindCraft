@@ -6,6 +6,7 @@ import { BLUEPRINTS } from '../../src/engine/build/blueprints';
 import { checkLivability } from '../../src/engine/build/livability';
 import { parseEarthwork } from '../../src/engine/chat/buildRequest';
 import { CommandHistory } from '../../src/engine/commands/CommandHistory';
+import { PlayerController } from '../../src/engine/physics/PlayerController';
 import { Chunk } from '../../src/engine/world/Chunk';
 import { VoxelWorld } from '../../src/engine/world/VoxelWorld';
 
@@ -111,5 +112,47 @@ describe('the bunker entrance fits the character', () => {
     // The hatch at the surface is open two wide and three high.
     const startX = x0 - (groundY - floorY - 1) - 1;
     for (const dx of [-1, 0]) for (const pz of [8, 9]) for (let h = 1; h <= 3; h++) expect(at(startX + dx, groundY + h, pz)).toBe(0);
+  });
+});
+
+describe('the character really climbs', () => {
+  function tallFlat(): VoxelWorld {
+    const world = new VoxelWorld(blocks);
+    for (let cx = -2; cx <= 2; cx++) for (let cz = -2; cz <= 2; cz++) {
+      const chunk = new Chunk(cx, cz);
+      for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) for (let y = 0; y <= 4; y++) chunk.set(x, y, z, B.grass);
+      world.addChunk(chunk);
+    }
+    return world;
+  }
+  const HOLD_FORWARD = { forward: true, back: false, left: false, right: false, jump: false, sprint: false, sneak: false } as Parameters<PlayerController['update']>[1];
+  const HOLD_JUMP = { ...HOLD_FORWARD, forward: false, jump: true } as Parameters<PlayerController['update']>[1];
+
+  it('walks up every flight of a three-floor house by holding forward, and lands on the floor above', () => {
+    const world = tallFlat();
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    const out: BuildingLayoutOut = {};
+    build.run('house', build.planHouse(8, 5, 8, houseOptions(blocks, { type: 'house', width: 15, depth: 13, floors: 3, wall: 'brick', furnish: true }), out));
+    expect(out.layout!.stairs.length).toBe(2);
+    for (const flight of out.layout!.stairs) {
+      const first = flight.steps[0];
+      const player = new PlayerController(world, blocks, { x: first.x - flight.dir * 1.2, y: first.y, z: first.z + 0.5 });
+      const yaw = flight.dir === 1 ? -Math.PI / 2 : Math.PI / 2; // forward = +x or -x
+      for (let i = 0; i < 60 * 8; i++) player.update(1 / 60, HOLD_FORWARD, yaw);
+      // Standing on the landing slab (block y) puts the feet at y + 0.5.
+      expect(player.y, `flight from ${first.x},${first.y}: stuck at ${player.x.toFixed(2)},${player.y.toFixed(2)}`).toBeGreaterThanOrEqual(flight.landing.y + 0.4);
+    }
+  });
+
+  it('climbs the ladder of a narrow house and steps off on the floor above', () => {
+    const world = tallFlat();
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    const out: BuildingLayoutOut = {};
+    build.run('house', build.planHouse(8, 5, 8, houseOptions(blocks, { type: 'house', width: 7, depth: 7, floors: 2, wall: 'planks' }), out));
+    expect(out.layout!.ladders.length).toBe(1);
+    const ladder = out.layout!.ladders[0];
+    const player = new PlayerController(world, blocks, { x: ladder.x + 0.2, y: ladder.bottom, z: ladder.z - 0.2 }); // inside the ladder's cell
+    for (let i = 0; i < 60 * 6; i++) player.update(1 / 60, HOLD_JUMP, 0);
+    expect(player.y, `ladder: at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThanOrEqual(ladder.top - 0.2);
   });
 });
