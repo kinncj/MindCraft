@@ -1,0 +1,15 @@
+---
+description: Rules for the voxel engine (src/engine)
+globs: src/engine/**/*.ts
+---
+
+`src/engine/` never imports React or the store. Systems are small and single-purpose;
+`core/Engine.ts` composes them on one game loop, each with its own try/catch so one
+failing system cannot freeze the game.
+
+Blocks: behaviour, shape, light, collision and textures live on the `BlockDefinition`
+(`blocks/blocks.ts`). Never compare a block id to a string. Numeric ids are permanent.
+
+World edits: always through a `Command` (`commands/`), so Undo removes them.
+
+Playbooks: `docs/contributing/add-a-block.md`, `add-a-building.md`, `add-a-tool.md`.

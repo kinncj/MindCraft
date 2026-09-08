@@ -1,0 +1,15 @@
+---
+description: Rules for villager chat and the in-bundle sentence model
+globs: src/engine/chat/**/*.ts,scripts/train-intent.ts
+---
+
+Three layers, in this order: the written word lists win; the small trained model in
+the bundle fills the gaps; the optional downloaded helper only adds conversation.
+Whatever a model answers, a building request is rebuilt from the child's own words.
+
+Adding something kids can ask for: label in `intentFeatures.ts`, words in
+`intentCorpus.ts`, an exact pattern in `buildRequest.ts`, then `npm run train:intent`.
+Add negatives to `CHIT_CHAT` and add the sentence to `tests/unit/intent.test.ts` —
+the tests are the contract, not the accuracy number.
+
+Full playbook: `docs/contributing/teach-the-model.md`.

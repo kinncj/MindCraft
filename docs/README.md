@@ -13,6 +13,12 @@ agent — are in [`CLAUDE.md`](../CLAUDE.md) at the root.
 | [kid-friendly-design-principles.md](product/kid-friendly-design-principles.md) | The rules every feature is held to |
 | [visual-modes.md](product/visual-modes.md) | Classic, Ultra and Cinema, and what each is for |
 
+## Contributing
+
+| Doc | What it covers |
+|---|---|
+| [contributing/README.md](contributing/README.md) | Playbooks for adding blocks, characters, scenarios, tools, buildings, and training the sentence model — plus the assistant configs for Claude Code, Cursor, Copilot, Kiro, Qwen, opencode and anything that reads `AGENTS.md` |
+
 ## How things work
 
 | Doc | What it covers |

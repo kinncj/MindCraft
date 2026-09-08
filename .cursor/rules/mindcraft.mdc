@@ -1,0 +1,14 @@
+---
+description: MindCraft project rules — kid-safe browser voxel game, no backend, data-driven blocks
+alwaysApply: true
+---
+
+Read `AGENTS.md` at the repo root: it holds the rules and links every playbook.
+
+Never negotiable: kid-safe (no damage, monsters, weapons, failure); no network at
+runtime, no accounts, no tracking; blocks are data and their numeric ids are permanent;
+every world edit goes through a `Command` so Undo works; every capability is a tool
+(`domain_verb`) in the one registry; keyboard, touch and gamepad all work; old saves
+keep loading; anything a kid can ask for in words works with no model downloaded.
+
+`npm run lint` is the typecheck — a bare `npx tsc --noEmit` checks nothing here.

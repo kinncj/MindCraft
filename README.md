@@ -1,5 +1,8 @@
 # MindCraft 🧱
 
+[![Tests](https://github.com/kinncj/MindCraft/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/kinncj/MindCraft/actions/workflows/test.yml)
+[![Deploy](https://github.com/kinncj/MindCraft/actions/workflows/deploy-github-pages.yml/badge.svg?branch=main)](https://github.com/kinncj/MindCraft/actions/workflows/deploy-github-pages.yml)
+
 A kid-friendly, creative-mode voxel building game that runs entirely in your browser.
 
 MindCraft is for small kids: craft whatever you have in mind. A familiar block-world
@@ -11,6 +14,10 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 
 **Repo:** https://github.com/kinncj/MindCraft — deployable to GitHub Pages as a static SPA.
 **Docs:** everything written down about the game is indexed in [`docs/README.md`](docs/README.md).
+**Contributing (human or AI):** [`AGENTS.md`](AGENTS.md) and the playbooks in
+[`docs/contributing/`](docs/contributing/) — adding blocks, characters, scenarios, tools,
+buildings, or teaching the sentence model. Ready-made setups for Claude Code, Cursor,
+Copilot, Kiro, Qwen Code and opencode are in the repo.
 
 ## What's in the game (2.0)
 
