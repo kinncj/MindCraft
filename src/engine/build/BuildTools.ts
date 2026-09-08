@@ -196,6 +196,9 @@ export class BuildTools {
         const def = this.registry.get(id);
         return def ? def.collision !== 'none' : true;
       },
+      // The terrain generator lays only 'ground' blocks on the surface, so anything
+      // else on top — planks, bricks, paint, a road — was put there by somebody.
+      natural: (x, y, z) => this.registry.get(this.world.getBlock(x, y, z))?.category === 'ground',
     };
   }
 

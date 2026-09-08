@@ -11,8 +11,8 @@ import { ToolRegistry } from '../../src/engine/tools/ToolRegistry';
 import { Chunk } from '../../src/engine/world/Chunk';
 import { VoxelWorld } from '../../src/engine/world/VoxelWorld';
 
-/** A make-believe world: flat at y = 4, with hills and buildings where you put them. */
-function ground(options: { hills?: Array<{ x: number; z: number; r: number }>; walls?: Array<{ x: number; z: number; r: number }> } = {}): Ground {
+/** A make-believe world: flat at y = 4, with hills, buildings and paved squares where you put them. */
+function ground(options: { hills?: Array<{ x: number; z: number; r: number }>; walls?: Array<{ x: number; z: number; r: number }>; paved?: Array<{ x: number; z: number; r: number }> } = {}): Ground {
   return {
     height: (x, z) => {
       if (Math.abs(x) > 200 || Math.abs(z) > 200) return -1; // outside the loaded world
@@ -22,6 +22,7 @@ function ground(options: { hills?: Array<{ x: number; z: number; r: number }>; w
       return Math.round(top);
     },
     blocked: (x, y, z) => (options.walls ?? []).some((w) => Math.hypot(w.x - x, w.z - z) <= w.r) && y <= 8,
+    natural: (x, _y, z) => !(options.paved ?? []).some((p) => Math.hypot(p.x - x, p.z - z) <= p.r),
   };
 }
 
@@ -58,6 +59,12 @@ describe('finding somewhere to build', () => {
     expect(high - low, `ground under the site rises ${high - low} blocks`).toBeLessThanOrEqual(2);
   });
 
+  it('keeps off a road, a plaza or a sports court, flat and empty as they look', () => {
+    const planner = new SitePlanner(ground({ paved: [{ x: 0, z: 0, r: 14 }] }));
+    const site = planner.place({ width: 9, depth: 9 }, { x: 0, z: 0 });
+    expect(Math.hypot(site.x, site.z), 'built on the paving').toBeGreaterThan(14);
+  });
+
   it('never builds into a part of the world that is not there', () => {
     const planner = new SitePlanner(ground());
     const site = planner.place({ width: 9, depth: 9 }, { x: 199, z: 199 });
@@ -65,7 +72,7 @@ describe('finding somewhere to build', () => {
   });
 
   it('still gives the kid a building when nowhere is good enough', () => {
-    const planner = new SitePlanner({ height: () => 4, blocked: () => true });
+    const planner = new SitePlanner({ height: () => 4, blocked: () => true, natural: () => true });
     expect(planner.place({ width: 9, depth: 9 }, { x: 7, z: 7 })).toEqual({ x: 7, y: 5, z: 7 });
   });
 });
@@ -87,7 +94,12 @@ describe('a villager builds beside what it just built', () => {
       player: () => ({ x: 8, y: 5.5, z: 8, yaw: 0 }), surface: (x, z) => world.height(x, z), say: () => undefined,
     });
     const villager = entities.spawnVillager('builder', 5, 5, 'Ben');
-    return { world, entities, agent, villager };
+    /** Another agent over the same world, as if the game had been reloaded. */
+    const make = (): ChatAgent => new ChatAgent({
+      tools: new ToolRegistry(), entities, build, registry: blocks,
+      player: () => ({ x: 8, y: 5.5, z: 8, yaw: 0 }), surface: (x, z) => world.height(x, z), say: () => undefined,
+    });
+    return { world, entities, agent, villager, make };
   }
 
   it('two houses in a row stand side by side, not one inside the other', async () => {
@@ -123,6 +135,22 @@ describe('a villager builds beside what it just built', () => {
     }
     const keys = new Set(spots.map((s) => `${s.x},${s.z}`));
     expect(keys.size, `landed on the same ground: ${JSON.stringify(spots)}`).toBe(spots.length);
+  });
+
+  it('after a reload, with no memory of what it built, it still keeps off the old house', async () => {
+    const { world, entities, agent, villager, make } = rig();
+    const first = await agent.send(villager.id, 'build a house');
+    const firstAt = first?.actions.find((a) => a.tool === 'build_house')?.args as { x: number; z: number };
+    for (let i = 0; i < 60 * 90 && villager.work; i++) entities.update(1 / 60, i / 60);
+    expect(villager.work).toBeUndefined();
+    // A brand new agent: it remembers nothing, and has to read the ground instead.
+    const fresh = make();
+    const second = await fresh.send(villager.id, 'build a house');
+    const secondAt = second?.actions.find((a) => a.tool === 'build_house')?.args as { x: number; z: number };
+    const apart = Math.max(Math.abs(firstAt.x - secondAt.x), Math.abs(firstAt.z - secondAt.z));
+    expect(apart, `second house at ${secondAt.x},${secondAt.z} on top of the first at ${firstAt.x},${firstAt.z}`).toBeGreaterThanOrEqual(9);
+    // And the ground it chose really is untouched land.
+    expect(blocks.get(world.getBlock(secondAt.x, world.height(secondAt.x, secondAt.z), secondAt.z))?.category).toBe('ground');
   });
 
   it('a school, a lake and an airport in one sentence each get their own ground', async () => {

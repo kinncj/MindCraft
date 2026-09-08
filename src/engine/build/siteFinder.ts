@@ -18,6 +18,12 @@ export type Ground = {
   height(x: number, z: number): number;
   /** Is this block something a builder would have to knock down (a tree, a wall, a roof)? */
   blocked(x: number, y: number, z: number): boolean;
+  /**
+   * Is this block plain land — grass, dirt, sand, stone, snow — rather than
+   * something somebody laid down? A road, a plaza or a sports court is flat
+   * and has nothing standing on it, and building on it is still wrong.
+   */
+  natural(x: number, y: number, z: number): boolean;
 };
 
 /** Blocks of margin kept clear around everything that goes up. */
@@ -25,7 +31,7 @@ const MARGIN = 2;
 /** How much the ground may rise and fall across a footprint before it counts as a hill. */
 const MAX_SLOPE = 2;
 /** How far out to look before giving up and building where the child stands. */
-const MAX_RADIUS = 96;
+const MAX_RADIUS = 128;
 
 export class SitePlanner {
   /** Everything this session has already promised to build. */
@@ -74,6 +80,7 @@ export class SitePlanner {
       for (const pz of steps(rect.z0, rect.z1)) {
         const top = this.ground.height(px, pz);
         if (top < 0) return null; // not loaded: do not build into the unknown
+        if (!this.ground.natural(px, top, pz)) return null; // a path, a floor, a courtyard: someone's work
         low = Math.min(low, top);
         high = Math.max(high, top);
         if (high - low > MAX_SLOPE) return null;

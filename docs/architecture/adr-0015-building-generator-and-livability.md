@@ -79,7 +79,13 @@ sentence asking for three things stacked them on top of each other. A
 `SitePlanner` (`build/siteFinder.ts`) now hands out ground: it spirals outward
 from where the child is standing and takes the first patch that is level
 (no more than two blocks of rise across the whole plot), clear of anything
-standing on it, inside loaded chunks, and not already claimed. Every plot it
+standing on it, inside loaded chunks, not already claimed, and — the part that
+matters most in a town — still plain land. The terrain generator lays only
+`category: 'ground'` blocks on the surface (grass, dirt, sand, gravel, stone,
+snow, clay, moss, ice), so anything else underfoot is a road, a plaza, a sports
+court or somebody's floor, and the planner keeps off it. That also means a
+reloaded game, which remembers no claims at all, still reads the ground and
+builds beside the old house rather than through it. Every plot it
 gives out is remembered for the session, so the next request goes next door
 rather than on top. Buildings, digs, features and plain shapes all ask for their
 own plot, sized to what they are; when the world really has nowhere to put it
