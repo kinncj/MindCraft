@@ -32,9 +32,10 @@ function coarsePrimary(): boolean {
   return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
 }
 
-let pointerKind: PointerKind = coarsePrimary() ? 'touch' : 'mouse';
+// Start from what the device has, so a tablet gets its joystick on the very
+// first frame; the first mouse click takes it away again.
+let pointerKind: PointerKind = hasTouchScreen() ? 'touch' : 'mouse';
 const watchers = new Set<(kind: PointerKind) => void>();
-let listening = false;
 
 /** What the last real pointer event came from. */
 export function currentPointerKind(): PointerKind {
@@ -55,25 +56,29 @@ function onPointerDown(event: PointerEvent): void {
   notePointerKind(event.pointerType === 'touch' || event.pointerType === 'pen' ? 'touch' : 'mouse');
 }
 
+// Listening from the moment the page loads, not from when the controls mount:
+// the click that starts the game is a mouse click, and it should already have
+// put the joystick away before the HUD appears.
+if (typeof window !== 'undefined') {
+  window.addEventListener('pointerdown', onPointerDown, { capture: true, passive: true });
+}
+
 /** Tells you when the child switches between a mouse and a finger. */
 export function watchPointerKind(watch: (kind: PointerKind) => void): () => void {
   watchers.add(watch);
-  if (!listening && typeof window !== 'undefined') {
-    listening = true;
-    window.addEventListener('pointerdown', onPointerDown, { capture: true, passive: true });
-  }
   return () => {
     watchers.delete(watch);
-    if (watchers.size === 0 && listening && typeof window !== 'undefined') {
-      listening = false;
-      window.removeEventListener('pointerdown', onPointerDown, { capture: true });
-    }
   };
 }
 
-/** Test seam: forget what was seen and start again from the device's primary pointer. */
+/** Test seam: forget what was seen and start again from what the device has. */
 export function resetPointerKind(): void {
-  pointerKind = coarsePrimary() ? 'touch' : 'mouse';
+  pointerKind = hasTouchScreen() ? 'touch' : 'mouse';
+}
+
+function hasTouchScreen(): boolean {
+  if (typeof window === 'undefined') return false;
+  return navigator.maxTouchPoints > 0 || coarsePrimary();
 }
 
 /**
@@ -81,7 +86,4 @@ export function resetPointerKind(): void {
  * safe on a hybrid laptop (a sheet swallowing a ghost tap). To decide what to
  * draw, use `currentPointerKind`.
  */
-export function isTouchDevice(): boolean {
-  if (typeof window === 'undefined') return false;
-  return navigator.maxTouchPoints > 0 || coarsePrimary();
-}
+export const isTouchDevice = hasTouchScreen;

@@ -46,6 +46,36 @@ export async function startGame(page: Page, options: { mouse?: 'tap' | 'game' } 
   await waitForGround(page);
 }
 
+/**
+ * Starts the game the way a child on a tablet does: with a finger. Real touch
+ * events, not a mouse pretending — the game shows its on-screen joystick only
+ * while a finger is the thing being used.
+ */
+export async function startGameByTouch(page: Page): Promise<void> {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Let's build!/ }).tap();
+  await waitForGround(page);
+}
+
+/** A finger pressing, dragging and lifting, through Chrome's own touch input. */
+export async function touchDrag(page: Page, from: { x: number; y: number }, to: { x: number; y: number }, holdMs = 0): Promise<void> {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from.x, y: from.y }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: to.x, y: to.y }] });
+  if (holdMs > 0) await page.waitForTimeout(holdMs);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await cdp.detach();
+}
+
+/** A finger held down on one spot, then lifted. */
+export async function touchHold(page: Page, at: { x: number; y: number }, holdMs: number): Promise<void> {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: at.x, y: at.y }] });
+  await page.waitForTimeout(holdMs);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await cdp.detach();
+}
+
 /** The chunks around the player are generated, lit, and the player stands. */
 export async function waitForGround(page: Page): Promise<void> {
   await page.waitForFunction(() => window.mindcraftDebug?.isReady() === true, undefined, { timeout: 45_000 });
