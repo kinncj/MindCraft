@@ -7,9 +7,14 @@ MindCraft is a static site. GitHub Pages hosts it for free with no server to mai
 1. The repository lives at https://github.com/kinncj/MindCraft
 2. In the repository: **Settings → Pages → Build and deployment → Source: GitHub Actions**
 
-That's it. Every push to `main` runs `.github/workflows/deploy-github-pages.yml`, which
-builds the app and publishes `dist/` to Pages. The site appears at
-`https://kinncj.github.io/MindCraft/`.
+That's it. Every push to `main` runs the **Tests** workflow (unit tests, then the
+browser tests). Only when that goes green does `.github/workflows/deploy-github-pages.yml`
+run: it checks out the exact commit the tests passed on, builds it, and publishes
+`dist/` to Pages. The site appears at `https://kinncj.github.io/MindCraft/`.
+
+A red suite therefore never reaches a child. To publish anyway — a docs-only change,
+or a deliberate hotfix — run the deploy workflow by hand (**Actions → Deploy to GitHub
+Pages → Run workflow**), which builds whatever is on `main` without waiting for tests.
 
 ## How the base path works
 

@@ -1,7 +1,12 @@
 name: Deploy to GitHub Pages
 
+# Only ever publishes a commit whose tests passed: the run is triggered by the
+# Tests workflow finishing on main, and builds that exact commit. Kids play what
+# CI proved, not whatever landed last.
 on:
-  push:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -16,9 +21,14 @@ concurrency:
 
 jobs:
   build:
+    # A manual run publishes whatever is on main; an automatic one only follows a green suite.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The commit the tests actually ran against.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
       - uses: actions/setup-node@v5
         with:
           node-version: 22
