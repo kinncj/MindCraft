@@ -22,13 +22,19 @@ function draw(m: MonumentDraw): void {
   const top = m.g + 30;
   const half = Math.floor(m.w / 2) - 2;
   for (let dx = -half; dx <= half; dx++) {
-    // The famous S: the plan curves twice across its length.
-    const wave = Math.round(Math.sin((dx / half) * Math.PI) * 2.5);
+    // The famous S: the plan sweeps one way then the other across its length,
+    // which is what makes it read as Copan and not just a slab.
+    const wave = Math.round(Math.sin((dx / half) * Math.PI) * 3.5);
     const x = m.cx + dx;
     for (let y = m.g + 1; y <= top; y++) {
+      // Every floor wears its horizontal brise-soleil; the glass sits behind.
       const brise = (y - m.g) % 2 === 0;
-      for (let dz = -1; dz <= 1; dz++) {
+      for (let dz = -2; dz <= 2; dz++) {
         const z = m.cz + wave + dz;
+        if (Math.abs(dz) === 2) {
+          m.put(x, y, z, brise ? band : 0); // the fins stand proud of the face
+          continue;
+        }
         m.put(x, y, z, brise ? band : dz === 0 ? glass : white);
       }
     }

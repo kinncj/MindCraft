@@ -10,7 +10,7 @@ export const masp: Monument = {
   place: 'São Paulo, Brazil',
   width: 23,
   depth: 15,
-  height: 15,
+  height: 11,
   blurb: 'A museum hanging from four big red beams — walk underneath!',
   draw,
 };

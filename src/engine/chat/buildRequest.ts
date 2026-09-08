@@ -169,6 +169,7 @@ const VOCABULARY = [
   'airport', 'airfield', 'runway', 'airstrip', 'tarmac', 'airplane', 'airplanes', 'aeroplane', 'helicopter', 'hangar', 'terminal',
   'eiffel', 'niagara', 'iguacu', 'iguazu', 'toronto', 'ottawa', 'curitiba', 'paris', 'rideau', 'copan', 'masp', 'ibirapuera',
   'tokyo', 'vancouver', 'skytree', 'sensoji', 'asakusa', 'kaminarimon', 'pagoda', 'geodesic',
+  'redeemer', 'corcovado', 'sugarloaf', 'statue', 'mountain',
   'niemeyer', 'botanical', 'opera', 'parliament', 'stadium', 'museum', 'canal', 'waterfall', 'waterfalls', 'monument', 'tower',
   'colourful', 'colorful', 'rainbow', 'beautiful', 'yellow', 'purple', 'orange', 'green', 'brown', 'white', 'black', 'brick', 'stone', 'wooden',
   'glass', 'furnished', 'furniture', 'automatic', 'piston', 'flag', 'canada', 'brazil', 'america', 'france', 'italy', 'germany', 'japan',
@@ -584,6 +585,8 @@ const MONUMENT_WORDS: Array<[RegExp, MonumentKind]> = [
   [/\b(canada place|the sails)\b/, 'canada_place'],
   [/\b(science world|geodesic|silver ball)\b/, 'science_world'],
   [/\b(lions gate|lion'?s gate)\b/, 'lions_gate'],
+  [/\b(christ the redeemer|cristo redentor|corcovado|redeemer)\b/, 'christ_redeemer'],
+  [/\b(sugar ?loaf|pao de acucar|p[aã]o de a[cç][uú]car)\b/, 'sugarloaf'],
   [/\b(big letters|block letters|giant letters|a sign that says|sign saying|letters that say)\b/, 'sign'],
 ];
 
@@ -620,6 +623,7 @@ export function parseMonument(raw: string): MonumentSpec | null {
 export type CitySpec = { city: CityName; label: string; monuments: MonumentKind[]; sign: string };
 
 const CITY_WORDS: Array<[RegExp, CityName]> = [
+  [/\b(rio de janeiro|rio)\b/, 'rio'],
   [/\btokyo\b/, 'tokyo'],
   [/\bvancouver\b/, 'vancouver'],
   [/\bcuritiba\b/, 'curitiba'],

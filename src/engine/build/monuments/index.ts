@@ -13,6 +13,7 @@
 
 import { botanicalGarden } from './botanicalGarden';
 import { canadaPlace } from './canadaPlace';
+import { christRedeemer } from './christRedeemer';
 import { cnTower } from './cnTower';
 import { copan } from './copan';
 import { eiffel } from './eiffel';
@@ -28,6 +29,7 @@ import { rogersDome } from './rogersDome';
 import { scienceWorld } from './scienceWorld';
 import { sensoji } from './sensoji';
 import { skytree } from './skytree';
+import { sugarloaf } from './sugarloaf';
 import { tokyoTower } from './tokyoTower';
 import { sign } from './sign';
 import { wireOpera } from './wireOpera';
@@ -50,6 +52,8 @@ export const MONUMENT_LIST = [
   canadaPlace,
   scienceWorld,
   lionsGate,
+  christRedeemer,
+  sugarloaf,
   niemeyerEye,
   wireOpera,
   botanicalGarden,

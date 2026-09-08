@@ -99,11 +99,11 @@ interesting work went.
 Current shape (from the generated header of `src/engine/chat/intentWeights.ts`):
 
 ```
-8192 hashed feature buckets × 78 labels
+8192 hashed feature buckets × 81 labels
 one byte per weight, 90% of them pruned to zero
-134,841 generated training sentences
-held-out accuracy 97.8%
-126 KB gzipped — 832 KB of base64 in the source
+141,657 generated training sentences
+held-out accuracy 98.1%
+131 KB gzipped — 864 KB of base64 in the source
 ```
 
 Two numbers get quoted for size, and they measure different things: **41.5 KB**
@@ -202,7 +202,7 @@ TypeScript run by Node's built-in type stripping — no training framework, no
 Python, no dependencies at all.
 
 ```
-134841 sentences, 78 labels, 8192 buckets
+141657 sentences, 81 labels, 8192 buckets
 epoch 5:  loss 0.1051
 epoch 10: loss 0.0673
 epoch 20: loss 0.0458
@@ -233,7 +233,7 @@ better, because a run of zeros is nearly free in gzip:
 | 4096 | 90% | 98.0% | 57.2 KB | fine until the labels grew |
 | 4096 | 93% | 97.3% | 44.4 KB | small, but real sentences started failing |
 | 8192 | 80% | 98.1% | 173.5 KB | best of all, and not worth the bytes |
-| **8192** | **90%** | **97.8%** | **126.2 KB** | **what ships** |
+| **8192** | **90%** | **98.1%** | **131.4 KB** | **what ships** |
 | 8192 | 97% | 97.0% | 46.3 KB | squeezed; one or two sentences slip |
 | 8192 | 98% | 96.7% | 40.2 KB | "can we have a storm" → a shop |
 

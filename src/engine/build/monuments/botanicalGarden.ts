@@ -1,4 +1,9 @@
-/** Three glass vaults on a plinth, with flower beds in front. */
+/**
+ * The Botanical Garden of Curitiba: an Art Nouveau greenhouse of metal and
+ * glass in three domed naves — the middle one tall, the wings lower — after
+ * London's Crystal Palace, standing at the head of French formal gardens
+ * whose beds are laid out in symmetrical parterres around a fountain.
+ */
 
 import { disc, plaza } from './shapes';
 import type { Monument, MonumentDraw } from './types';
@@ -8,44 +13,63 @@ export const botanicalGarden: Monument = {
   label: 'Botanical Garden',
   emoji: '🌷',
   place: 'Curitiba, Brazil',
-  width: 21,
-  depth: 17,
-  height: 13,
-  blurb: 'A glass greenhouse with flower beds in front!',
+  width: 25,
+  depth: 23,
+  height: 12,
+  blurb: 'A glass palace with three domes, and flower beds in patterns!',
   draw,
 };
 
 function draw(m: MonumentDraw): void {
-  const { glass, white, flowers, water } = m.kit;
-  plaza(m, m.kit.cobble);
-  const naveZ = m.cz - 2;
-  const vaults: Array<[number, number, number]> = [
-    [m.cx, 7, 6],
-    [m.cx - 8, 5, 4],
-    [m.cx + 8, 5, 4],
+  const frame = m.ctx.color ?? m.kit.white;
+  const { glass, flowers, water, grass, cobble } = m.kit;
+  plaza(m, cobble);
+  const houseZ = m.z0 + 5;
+
+  // Three glass naves: a tall domed middle and two lower wings beside it.
+  const naves: Array<{ x: number; radius: number; height: number }> = [
+    { x: m.cx, radius: 4, height: 11 },
+    { x: m.cx - 7, radius: 3, height: 7 },
+    { x: m.cx + 7, radius: 3, height: 7 },
   ];
-  for (const [x, height, half] of vaults) {
-    for (let z = naveZ - half; z <= naveZ + half; z++) {
-      for (let dx = -3; dx <= 3; dx++) {
-        const frameCol = Math.abs(dx) === 3 || z === naveZ - half || z === naveZ + half;
-        const arch = Math.round(Math.sqrt(Math.max(0, 1 - (dx / 3) ** 2)) * height);
-        for (let y = 1; y <= arch; y++) {
-          const shell = y === arch || Math.abs(dx) === 3;
-          if (shell) m.put(x + dx, m.g + y, z, frameCol || y === arch ? (y % 3 === 0 ? white : glass) : glass);
-          else m.put(x + dx, m.g + y, z, 0);
+  for (const nave of naves) {
+    for (let dz = -nave.radius; dz <= nave.radius; dz++) {
+      for (let dx = -nave.radius; dx <= nave.radius; dx++) {
+        // A dome: the shell follows a quarter circle in both directions.
+        const away = Math.sqrt(dx * dx + dz * dz) / nave.radius;
+        if (away > 1.05) continue;
+        const roof = Math.round(Math.cos((Math.PI / 2) * Math.min(1, away)) * nave.height);
+        const x = nave.x + dx;
+        const z = houseZ + dz;
+        m.put(x, m.g, z, frame);
+        for (let y = 1; y <= roof; y++) {
+          const shell = y === roof || away > 0.8;
+          // Ribs of white metal every few blocks, glass in between.
+          const rib = (x + z) % 4 === 0 || y === roof;
+          m.put(x, m.g + y, z, shell ? (rib ? frame : glass) : 0);
         }
-        m.put(x + dx, m.g, z, white);
       }
     }
+    // A doorway into each nave, facing the gardens.
+    for (let h = 1; h <= 2; h++) m.put(nave.x, m.g + h, houseZ + nave.radius, 0);
   }
-  // Formal beds and a little fountain out front.
-  for (let x = m.x0 + 2; x <= m.x1 - 2; x++) {
-    for (let z = naveZ + 8; z <= m.z1 - 1; z++) {
-      const bed = (x + z) % 2 === 0;
-      m.put(m.cx === x ? x : x, m.g, z, bed ? m.kit.grass : m.kit.cobble);
-      if (bed && flowers.length > 0) m.put(x, m.g + 1, z, flowers[(x + z) % flowers.length]);
+
+  // French parterres: four beds around a fountain, with paths between them.
+  const gardenZ0 = houseZ + 6;
+  for (let x = m.x0 + 1; x <= m.x1 - 1; x++) {
+    for (let z = gardenZ0; z <= m.z1 - 1; z++) {
+      const path = x === m.cx || z === gardenZ0 + 4 || Math.abs(x - m.cx) === 6;
+      m.put(x, m.g, z, path ? cobble : grass);
+      if (path || flowers.length === 0) continue;
+      // Each bed is one colour, edged in another: a pattern from above.
+      const bed = Math.abs(x - m.cx) < 6 ? 0 : 1;
+      const edge = Math.abs(x - m.cx) === 5 || Math.abs(x - m.cx) === 7 || z === gardenZ0 + 1 || z === m.z1 - 2;
+      m.put(x, m.g + 1, z, flowers[(bed + (edge ? 2 : 0)) % flowers.length]);
     }
   }
-  disc(m, m.cx, m.g, m.z1 - 3, 2, water);
-  m.put(m.cx, m.g + 1, m.z1 - 3, water);
+  // The fountain on the middle of the axis.
+  disc(m, m.cx, m.g, gardenZ0 + 4, 2, frame);
+  disc(m, m.cx, m.g, gardenZ0 + 4, 1, water);
+  m.put(m.cx, m.g + 1, gardenZ0 + 4, water);
+  m.put(m.cx, m.g + 2, gardenZ0 + 4, water);
 }

@@ -113,6 +113,20 @@ describe('famous places', () => {
     }
   });
 
+  it('every monument is about as tall as it says it is', () => {
+    // The site planner reserves ground from these numbers and the villager
+    // quotes them; a monument that builds half its stated height is a bug in
+    // the spec, not in the drawing.
+    const wrong: string[] = [];
+    for (const kind of MONUMENT_KINDS) {
+      const { edits } = build(kind, 'HI');
+      const built = Math.max(...edits.filter((e) => e.id !== 0).map((e) => e.y)) - GROUND;
+      const stated = MONUMENTS[kind].height;
+      if (built < stated - 3 || built > stated + 2) wrong.push(`${kind}: says ${stated}, builds ${built}`);
+    }
+    expect(wrong, wrong.join('; ')).toEqual([]);
+  });
+
   it('the registry and the files agree', () => {
     expect(MONUMENT_LIST.length).toBe(MONUMENT_KINDS.length);
     expect(new Set(MONUMENT_KINDS).size, 'two monuments share an id').toBe(MONUMENT_KINDS.length);

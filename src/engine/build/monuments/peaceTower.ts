@@ -8,8 +8,8 @@ export const peaceTower: Monument = {
   label: 'Peace Tower',
   emoji: '🕰️',
   place: 'Ottawa, Canada',
-  width: 15,
-  depth: 15,
+  width: 27,
+  depth: 17,
   height: 32,
   blurb: 'A clock tower with a green copper roof!',
   draw,
@@ -42,6 +42,26 @@ function draw(m: MonumentDraw): void {
     }
     m.put(m.cx + dx, top - 4, m.cz + dz, black);
   }
+  // The Centre Block: gothic wings running out either side of the tower,
+  // with pointed windows and a green copper roof of their own.
+  for (const side of [-1, 1]) {
+    for (let i = 4; i <= Math.floor(m.w / 2) - 1; i++) {
+      const x = m.cx + side * i;
+      for (let dz = -2; dz <= 2; dz++) {
+        for (let y = m.g + 1; y <= m.g + 7; y++) {
+          const edge = Math.abs(dz) === 2;
+          const window = edge && y > m.g + 2 && y < m.g + 6 && i % 2 === 0;
+          m.put(x, y, m.cz + dz, edge ? (window ? glass : stone) : 0);
+        }
+        m.put(x, m.g, m.cz + dz, stone);
+        m.put(x, m.g + 8, m.cz + dz, green);
+        if (Math.abs(dz) < 2) m.put(x, m.g + 9, m.cz + dz, green);
+      }
+      // A pinnacle every few bays, the way the real roofline breaks up.
+      if (i % 3 === 0) for (let h = 10; h <= 11; h++) m.put(x, m.g + h, m.cz, stone);
+    }
+  }
+
   // A copper roof that steps to a point, and the flag pole.
   for (let i = 0; i <= 4; i++) {
     const r = 3 - i;

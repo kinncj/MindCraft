@@ -86,7 +86,9 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
   **Copan** and **Ibirapuera Auditorium**, **Tokyo Tower**, the **Skytree** and
   **Sensoji**'s pagoda, Vancouver's **Canada Place** sails, **Science World** ball and
   **Lions Gate Bridge**, or **Niagara** and **Iguaçu Falls** — with water that really
-  falls. Their proportions come from the real things: the Eiffel Tower's floors sit at
+  falls — Niagara really is three falls with Goat Island between them, and a boat in the
+  mist below. Rio's **Christ the Redeemer** stands on Corcovado with **Sugarloaf** across
+  the bay. Their proportions come from the real things: the Eiffel Tower's floors sit at
   17% and 35% of its height because that is where 57 m and 115 m fall on 330 m. Ask for a whole city ("build Curitiba") and its landmarks go
   up side by side with the name in giant letters. A sign can spell anything: "a sign
   that says KINN". They are original block sculptures, one file each in

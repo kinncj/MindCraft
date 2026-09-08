@@ -9,7 +9,7 @@ export const rideauCanal: Monument = {
   place: 'Ottawa, Canada',
   width: 33,
   depth: 13,
-  height: 5,
+  height: 4,
   blurb: 'The longest skating rink in the world!',
   draw,
 };
@@ -34,7 +34,15 @@ function draw(m: MonumentDraw): void {
             m.put(x, m.g + 2, z, fence);
             m.put(x, m.g + 3, z, lamp);
           } else if ((x - m.x0) % 6 === 3) {
-            m.put(x, m.g + 1, z, m.kit.slab);
+            m.put(x, m.g + 1, z, m.kit.slab); // a bench to do up your skates on
+          } else if ((x - m.x0) % 12 === 6) {
+            // A warming hut: the little wooden shelters along the skateway.
+            for (let h = 1; h <= 3; h++) {
+              for (let dx = 0; dx <= 2; dx++) {
+                const wall = h < 3 && (dx === 0 || dx === 2);
+                m.put(x + dx, m.g + h, z, h === 3 ? m.kit.red : wall ? m.kit.planks : 0);
+              }
+            }
           }
         }
       }
