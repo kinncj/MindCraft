@@ -1,5 +1,5 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { isTouchDevice, touchInput } from '../engine/input/touchInput';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { currentPointerKind, touchInput, watchPointerKind } from '../engine/input/touchInput';
 
 const JOYSTICK_RADIUS = 52; // px the thumb can travel from center
 
@@ -16,7 +16,11 @@ type VirtualControlsProps = {
  * world itself; these cover what a keyboard would do.
  */
 export function VirtualControls({ forceVisible = false }: VirtualControlsProps) {
-  const [visible] = useState(() => forceVisible || isTouchDevice());
+  // Follows the pointer in use, not the hardware: a touchscreen laptop played
+  // with a mouse gets no joystick, and the first tap brings it back.
+  const [touching, setTouching] = useState(() => currentPointerKind() === 'touch');
+  useEffect(() => watchPointerKind((kind) => setTouching(kind === 'touch')), []);
+  const visible = forceVisible || touching;
   const [thumb, setThumb] = useState({ x: 0, y: 0 });
   const [base, setBase] = useState<{ x: number; y: number } | null>(null);
   const [jumping, setJumping] = useState(false);

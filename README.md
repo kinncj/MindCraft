@@ -135,7 +135,7 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
 
 | Action | Keyboard / mouse | Touch | Gamepad |
 |---|---|---|---|
-| Walk / run / sneak | `W A S D` or arrows / `Ctrl` / `Shift` | touch anywhere in the lower-left and drag (the joystick appears under your finger) | left stick / L3 / R3 |
+| Walk / run / sneak | `W A S D` or arrows / `Ctrl` / `Shift` | touch anywhere in the lower-left and drag (the joystick appears under your finger, and only while a finger is in use) | left stick / L3 / R3 |
 | Jump / swim up | `Space` | Jump button | A |
 | Look around | click the world once to grab the mouse, then move it (`Esc` lets go); trackpads can still drag | drag the world | right stick |
 | Zoom | wheel or the ➕ ➖ buttons (all the way in = first person) | pinch or ➕ ➖ | D-pad right cycles |
