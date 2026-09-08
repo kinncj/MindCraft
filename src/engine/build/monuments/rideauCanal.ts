@@ -11,6 +11,13 @@ export const rideauCanal: Monument = {
   depth: 13,
   height: 4,
   blurb: 'The longest skating rink in the world!',
+  real: {
+    height: 8,
+    width: 200,
+    depth: 60,
+    landscape: true,
+    source: 'Rideau Canal Skateway: 7.8 km of ice between stone banks',
+  },
   draw,
 };
 

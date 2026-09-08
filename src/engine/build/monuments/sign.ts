@@ -15,6 +15,12 @@ export const sign: Monument = {
   blurb: 'Big blocky letters you can read from far away!',
   // As wide as the word: "HI" needs far less ground than "SAO PAULO".
   footprint: (ctx: { text?: string }) => ({ width: Math.max(9, textWidth(ctx.text ?? 'HELLO') + 4), depth: 5 }),
+  real: {
+    height: 6,
+    width: 20,
+    depth: 2,
+    source: 'Letters about as tall as a house',
+  },
   draw,
 };
 

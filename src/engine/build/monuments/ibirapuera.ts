@@ -12,6 +12,12 @@ export const ibirapuera: Monument = {
   depth: 17,
   height: 13,
   blurb: 'A white wedge with a big red tongue!',
+  real: {
+    height: 25,
+    width: 45,
+    depth: 40,
+    source: 'Ibirapuera Auditorium: a white wedge with its red marquee',
+  },
   draw,
 };
 

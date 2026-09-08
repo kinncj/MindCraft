@@ -33,14 +33,24 @@ test('the jump button makes the player jump', async ({ page }) => {
   const box = await jump.boundingBox();
   if (!box) throw new Error('jump button has no size');
   const ground = (await playerPos(page)).y;
-  const held = touchHold(page, { x: box.x + box.width / 2, y: box.y + box.height / 2 }, 700);
-  let peak = 0;
-  for (let i = 0; i < 12; i++) {
-    await page.waitForTimeout(60);
-    peak = Math.max(peak, (await playerPos(page)).y);
-  }
-  await held;
-  expect(peak).toBeGreaterThan(ground + 0.8);
+  // Watch for the top of the jump inside the page: polling across the wire is
+  // slow enough on a loaded machine to step right over the apex.
+  const watching = page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        let peak = 0;
+        const until = performance.now() + 1400;
+        const look = (): void => {
+          peak = Math.max(peak, window.mindcraftDebug!.playerPosition().y);
+          if (performance.now() < until) requestAnimationFrame(look);
+          else resolve(peak);
+        };
+        requestAnimationFrame(look);
+      }),
+  );
+  await touchHold(page, { x: box.x + box.width / 2, y: box.y + box.height / 2 }, 900);
+  const peak = await watching;
+  expect(peak, `jumped from ${ground.toFixed(2)} to ${peak.toFixed(2)}`).toBeGreaterThan(ground + 0.8);
 });
 
 test('tapping the world still places blocks on touch screens', async ({ page }) => {

@@ -12,26 +12,33 @@ export const eiffel: Monument = {
   depth: 17,
   height: 38,
   blurb: 'Four big iron legs that meet in the sky!',
+  real: {
+    height: 330,
+    width: 125,
+    depth: 125,
+    levels: { floor1: 57, floor2: 115, floor3: 276 },
+    source: 'Eiffel Tower: 330 m, 125 m square base, floors at 57/115/276 m',
+  },
   draw,
 };
 
 function draw(m: MonumentDraw): void {
   const { iron, lamp } = m.kit;
   plaza(m, m.kit.cobble);
-  const top = m.g + 38;
-  const base = Math.floor(Math.min(m.w, m.d) / 2) - 1;
-  // The real tower is 330 m with its floors at 57 m and 115 m and the top at
-  // 276 m — 17%, 35% and 84% of the way up. Those ratios are the silhouette.
-  const deck1 = m.g + Math.round(38 * 0.17);
-  const deck2 = m.g + Math.round(38 * 0.35);
-  const topDeck = m.g + Math.round(38 * 0.84);
+  // Every height here is the real one, scaled: 330 m tall, floors at 57 m,
+  // 115 m and 276 m, on a 125 m square base.
+  const top = m.g + m.up(330);
+  const base = Math.min(Math.floor(Math.min(m.w, m.d) / 2) - 1, Math.round(m.across(125) / 2));
+  const deck1 = m.g + m.up(57);
+  const deck2 = m.g + m.up(115);
+  const topDeck = m.g + m.up(276);
   const legRadius = (y: number): number => {
-    const t = (y - m.g) / (top - m.g);
-    // Steep curve under the first floor, nearly straight above the second,
-    // a single mast above the top floor.
-    if (t >= 0.84) return 0;
-    if (t >= 0.35) return Math.max(1, Math.round(2 - (t - 0.35) * 2));
-    return Math.max(2, Math.round(base * (1 - t / 0.35) ** 1.4 + 2));
+    const metres = (y - m.g) / m.scale;
+    // Steep curve under the first floor, nearly straight above the second, a
+    // single mast above the top floor: the real profile, read in metres.
+    if (metres >= 276) return 0;
+    if (metres >= 115) return Math.max(1, Math.round(2 - (metres - 115) / 160));
+    return Math.max(2, Math.round(base * (1 - metres / 115) ** 1.4 + 2));
   };
   for (let y = m.g + 1; y <= topDeck - 1; y++) {
     const r = legRadius(y);

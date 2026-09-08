@@ -13,10 +13,17 @@ export const tokyoTower: Monument = {
   label: 'Tokyo Tower',
   emoji: '🗼',
   place: 'Tokyo, Japan',
-  width: 17,
-  depth: 17,
+  width: 13,
+  depth: 13,
   height: 40,
   blurb: 'Orange and white all the way up, with two decks to look out of!',
+  real: {
+    height: 333,
+    width: 89,
+    depth: 89,
+    levels: { mainDeck: 150, topDeck: 250 },
+    source: 'Tokyo Tower: 333 m, decks at 150 m and 250 m, 89 m square base',
+  },
   draw,
 };
 
@@ -24,14 +31,14 @@ function draw(m: MonumentDraw): void {
   const orange = m.ctx.color ?? m.kit.red;
   const white = m.kit.white;
   plaza(m, m.kit.cobble);
-  const top = m.g + 40;
-  const mainDeck = m.g + 18; // 150 of 333
-  const topDeck = m.g + 30; // 250 of 333
+  const top = m.g + m.up(333);
+  const mainDeck = m.g + m.up(150);
+  const topDeck = m.g + m.up(250);
   const base = Math.floor(Math.min(m.w, m.d) / 2) - 1;
   const legRadius = (y: number): number => {
-    const t = (y - m.g) / (top - m.g);
-    if (t >= 0.75) return 1;
-    return Math.max(1, Math.round(base * (1 - t / 0.75) ** 1.3 + 1));
+    const metres = (y - m.g) / m.scale;
+    if (metres >= 250) return 1;
+    return Math.max(1, Math.round(base * (1 - metres / 250) ** 1.3 + 1));
   };
   // Four legs, banded orange and white as they climb.
   for (let y = m.g + 1; y <= top - 4; y++) {

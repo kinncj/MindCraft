@@ -8,10 +8,16 @@ export const copan: Monument = {
   label: 'Copan Building',
   emoji: '🌊',
   place: 'São Paulo, Brazil',
-  width: 27,
+  width: 39,
   depth: 13,
-  height: 30,
+  height: 24,
   blurb: 'A building that waves like the sea!',
+  real: {
+    height: 140,
+    width: 250,
+    depth: 20,
+    source: 'Edificio Copan: 140 m and 32 floors along a 250 m S-curved facade',
+  },
   draw,
 };
 
@@ -19,7 +25,7 @@ function draw(m: MonumentDraw): void {
   const { white, glass } = m.kit;
   const band = m.ctx.color ?? white;
   plaza(m, m.kit.cobble);
-  const top = m.g + 30;
+  const top = m.g + m.up(140); // 140 m and thirty-two floors
   const half = Math.floor(m.w / 2) - 2;
   for (let dx = -half; dx <= half; dx++) {
     // The famous S: the plan sweeps one way then the other across its length,

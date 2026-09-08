@@ -67,6 +67,11 @@ export const LABEL_WORDS: Record<IntentLabel, string[]> = {
   m_lions_gate: ['lions gate bridge', 'lions gate', 'the green bridge in vancouver', 'the big suspension bridge in vancouver'],
   m_christ_redeemer: ['christ the redeemer', 'cristo redentor', 'the statue in rio', 'the big statue with the arms out', 'jesus statue on the mountain', 'corcovado'],
   m_sugarloaf: ['sugarloaf', 'sugar loaf mountain', 'pao de acucar', 'the round mountain in rio', 'the mountain with the cable car'],
+  m_arena_baixada: [
+    'arena da baixada', 'baixada', 'athletico paranaense stadium', 'atletico paranaense stadium',
+    'the stadium in curitiba', 'ligga arena', 'the red and black stadium', 'furacao stadium',
+    'the stadium with the roof that opens',
+  ],
   city_curitiba: ['curitiba', 'curitiba brazil', 'the city of curitiba'],
   city_saopaulo: ['sao paulo', 'são paulo', 'sao paulo brazil', 'the city of sao paulo'],
   city_ottawa: ['ottawa', 'ottawa canada', 'the capital of canada'],

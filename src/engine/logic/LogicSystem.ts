@@ -7,7 +7,7 @@ import { CHUNK_SIZE, DIRECTIONS, WORLD_HEIGHT, localIndex, positionKey } from '.
 import type { BlockChange, VoxelWorld } from '../world/VoxelWorld';
 import { extendPiston, pistonDirection, retractPiston } from './pistons';
 
-export type LogicRole = 'source' | 'wire' | 'consumer';
+export type LogicRole = 'source' | 'wire' | 'consumer' | 'repeater';
 
 const TICK = 0.1;
 const BUTTON_SECONDS = 1.5;
@@ -156,11 +156,13 @@ export class LogicSystem implements System {
         const role = this.role(nid);
         if (!role) continue;
         const nkey = positionKey(nx, ny, nz);
-        const nlevel = role === 'wire' ? level - 1 : level;
+        // Wire fades one step a block; a repeater hears any power at all and
+        // starts again at full strength, so long runs keep going.
+        const nlevel = role === 'wire' ? level - 1 : role === 'repeater' ? MAX_WIRE : level;
         if (nlevel <= 0) continue;
         if ((next.get(nkey) ?? 0) >= nlevel) continue;
         next.set(nkey, nlevel);
-        if (role === 'wire') queue.push([nx, ny, nz, nlevel]);
+        if (role === 'wire' || role === 'repeater') queue.push([nx, ny, nz, nlevel]);
       }
       // Wire climbs: dust on a step connects to dust one block up or down next to it.
       if (this.role(this.world.getBlock(x, y, z)) !== 'wire') continue;
@@ -192,7 +194,7 @@ export class LogicSystem implements System {
       const id = this.world.getBlock(cell.x, cell.y, cell.z);
       const def = this.registry.get(id);
       if (!def) continue;
-      if (def.logic?.role === 'wire') {
+      if (def.logic?.role === 'wire' || def.logic?.role === 'repeater') {
         const state = this.world.getState(cell.x, cell.y, cell.z);
         const lit = BlockState.variant(state) === 1;
         if (lit !== now) this.world.setBlock(cell.x, cell.y, cell.z, id, BlockState.withVariant(state, now ? 1 : 0));

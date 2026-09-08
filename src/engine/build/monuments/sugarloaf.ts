@@ -15,6 +15,13 @@ export const sugarloaf: Monument = {
   depth: 21,
   height: 20,
   blurb: 'A big round rock out of the sea, with a cable car up the side!',
+  real: {
+    height: 396,
+    width: 600,
+    depth: 500,
+    landscape: true,
+    source: 'Sugarloaf Mountain: 396 m of granite above the bay',
+  },
   draw,
 };
 

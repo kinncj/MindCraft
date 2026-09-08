@@ -1,6 +1,7 @@
 /** A white dome over a green field, with seats around it. */
 
 import { circle, disc } from './shapes';
+import { slidingRoof } from './automation';
 import type { Monument, MonumentDraw } from './types';
 
 export const rogersDome: Monument = {
@@ -10,8 +11,14 @@ export const rogersDome: Monument = {
   place: 'Toronto, Canada',
   width: 23,
   depth: 23,
-  height: 15,
+  height: 11,
   blurb: 'A round white roof over a green field!',
+  real: {
+    height: 86,
+    width: 205,
+    depth: 205,
+    source: 'Rogers Centre: a retractable roof 86 m high over a 205 m bowl',
+  },
   draw,
 };
 
@@ -27,9 +34,10 @@ function draw(m: MonumentDraw): void {
   }
   // Two rings of seats.
   for (let y = 1; y <= 2; y++) circle(m, m.cx, m.g + y, m.cz, radius - y + 1, blue);
-  // The roof: four panels that slide over each other, so it reads as the
-  // retractable one it is rather than a smooth shell. The seams run across.
-  const height = 15 - 3;
+  // The roof really opens: two panels ride in on sticky pistons from the rims,
+  // worked by a lever on the concourse. The fixed sections stay put, the way
+  // the real one keeps one panel fixed over the north stand.
+  const height = Math.max(3, m.up(86) - 5); // the shell, with room for the roof gear on top
   for (let y = 0; y <= height; y++) {
     const r = Math.round(radius * Math.cos((Math.PI / 2) * (y / (height + 1))));
     if (r <= 0) break;
@@ -42,6 +50,20 @@ function draw(m: MonumentDraw): void {
         m.put(m.cx + dx, m.g + 3 + y, m.cz + dz, seam ? m.kit.stone : white);
       }
     }
-    if (y === height) disc(m, m.cx, m.g + 4 + y, m.cz, r - 1 > 0 ? r - 1 : 1, white);
+    if (y === height) {
+      const cap = Math.max(1, r - 1);
+      slidingRoof(m, {
+        x0: m.cx - cap,
+        x1: m.cx + cap,
+        zNorth: m.cz - cap - 1,
+        zSouth: m.cz + cap + 1,
+        y: m.g + 4 + y,
+        reach: cap,
+        panel: white,
+        groundY: m.g,
+        minZ: m.z0,
+        step: m.kit.stone,
+      });
+    }
   }
 }

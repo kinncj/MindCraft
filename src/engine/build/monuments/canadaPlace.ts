@@ -11,10 +11,16 @@ export const canadaPlace: Monument = {
   label: 'Canada Place',
   emoji: '⛵',
   place: 'Vancouver, Canada',
-  width: 25,
+  width: 37,
   depth: 15,
-  height: 16,
+  height: 11,
   blurb: 'Five white sails on the water, like a ship that never leaves!',
+  real: {
+    height: 40,
+    width: 220,
+    depth: 100,
+    source: 'Canada Place: five fabric sails over a pier about 220 m long',
+  },
   draw,
 };
 
@@ -47,8 +53,9 @@ function draw(m: MonumentDraw): void {
   // Five sails in a row, each a peaked triangle of white.
   for (let s = 0; s < 5; s++) {
     const sx = px0 + 2 + s * Math.floor((px1 - px0 - 3) / 4);
+    const peak = Math.max(3, m.up(40) - 6); // 40 m to the top of the sails
     for (let dz = -4; dz <= 4; dz++) {
-      const height = Math.max(0, 9 - Math.abs(dz) * 2);
+      const height = Math.max(0, peak - Math.abs(dz) * 2);
       for (let h = 1; h <= height; h++) {
         m.put(sx, m.g + 5 + h, m.cz + dz, sail);
         if (h === height && height > 2) m.put(sx + 1, m.g + 5 + h, m.cz + dz, sail);

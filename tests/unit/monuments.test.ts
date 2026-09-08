@@ -127,6 +127,43 @@ describe('famous places', () => {
     expect(wrong, wrong.join('; ')).toEqual([]);
   });
 
+  it('keeps the proportions of the real place, not just its name', () => {
+    // Every monument says what the real thing measures. A building whose block
+    // footprint does not carry those proportions is the wrong shape, however
+    // pretty it is — so this compares width against height, in both worlds.
+    const wrong: string[] = [];
+    for (const monument of MONUMENT_LIST) {
+      const real = monument.real;
+      expect(real.source, `${monument.id} should say where its numbers came from`).toBeTruthy();
+      if (real.landscape) continue; // a waterfall has no facade to compare
+      const realRatio = real.width / real.height;
+      const blockRatio = monument.width / monument.height;
+      const off = Math.abs(blockRatio - realRatio) / realRatio;
+      // Half again either way: a tower needs somewhere to stand and a pier
+      // cannot be 220 blocks long, but nothing may be the wrong shape.
+      if (off > 0.5) wrong.push(`${monument.id}: real is ${realRatio.toFixed(2)} wide per tall, blocks are ${blockRatio.toFixed(2)}`);
+    }
+    expect(wrong, wrong.join('; ')).toEqual([]);
+  });
+
+  it('puts the decks and floors where the metres say', () => {
+    // The drawing asks for heights in metres and the engine scales them. This
+    // is that arithmetic: the Eiffel Tower's first floor really is at 57 m.
+    const eiffel = MONUMENTS.eiffel;
+    const scale = eiffel.height / eiffel.real.height;
+    // Rounding to whole blocks is the only error allowed: within half a block.
+    expect(Math.abs(Math.round(57 * scale) - (57 / 330) * eiffel.height)).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(Math.round(115 * scale) - (115 / 330) * eiffel.height)).toBeLessThanOrEqual(0.5);
+    const cn = MONUMENTS.cn_tower;
+    expect(Math.abs(Math.round(346 * (cn.height / cn.real.height)) - (346 / 553) * cn.height)).toBeLessThanOrEqual(0.5);
+    // And every monument with named levels keeps them inside its own height.
+    for (const monument of MONUMENT_LIST) {
+      for (const [name, metres] of Object.entries(monument.real.levels ?? {})) {
+        expect(metres, `${monument.id}.${name} is taller than the whole thing`).toBeLessThanOrEqual(monument.real.height);
+      }
+    }
+  });
+
   it('the registry and the files agree', () => {
     expect(MONUMENT_LIST.length).toBe(MONUMENT_KINDS.length);
     expect(new Set(MONUMENT_KINDS).size, 'two monuments share an id').toBe(MONUMENT_KINDS.length);
@@ -134,6 +171,51 @@ describe('famous places', () => {
       expect(monument.label.length, `${monument.id} needs a label`).toBeGreaterThan(2);
       expect(monument.blurb.length, `${monument.id} needs a line to say`).toBeGreaterThan(10);
       expect(monument.width).toBeGreaterThan(4);
+    }
+  });
+});
+
+describe('the roofs really open and shut', () => {
+  it('a lever slides the stadium roof over the pitch and back again', async () => {
+    const { LogicSystem } = await import('../../src/engine/logic/LogicSystem');
+    const { BlockState } = await import('../../src/engine/blocks/BlockState');
+    for (const kind of ['arena_baixada', 'rogers_dome'] as const) {
+      const world = flat();
+      const logic = new LogicSystem(world, blocks); // listening before it is built
+      const tools = new BuildTools(world, blocks, new CommandHistory(world));
+      tools.run(kind, tools.planMonument(kind, 24, GROUND + 1, 24, { kit }));
+
+      // The machinery is there: sticky pistons, wire, and one lever to work it.
+      const found = { piston: 0, wire: 0, lever: [] as Array<{ x: number; y: number; z: number }> };
+      for (let x = 0; x < 48; x++) for (let y = GROUND; y < GROUND + 24; y++) for (let z = 0; z < 48; z++) {
+        const id = world.getBlock(x, y, z);
+        if (id === blocks.numericOf('sticky_piston')) found.piston++;
+        else if (id === blocks.numericOf('wire')) found.wire++;
+        else if (id === blocks.numericOf('lever')) found.lever.push({ x, y, z });
+      }
+      expect(found.piston, `${kind} has no pistons`).toBeGreaterThanOrEqual(6);
+      expect(found.wire, `${kind} has no wire`).toBeGreaterThan(12);
+      expect(found.lever, `${kind} needs exactly one lever`).toHaveLength(1);
+
+      // Count the panels sitting over the pitch before and after the lever.
+      const roofY = Math.max(...[...Array(24).keys()].map((i) => GROUND + i).filter((y) => world.getBlock(24, y, 24 - 1) !== 0 || world.getBlock(24, y, 24 + 1) !== 0));
+      const overPitch = (): number => {
+        let n = 0;
+        for (let x = 24 - 6; x <= 24 + 6; x++) for (let z = 24 - 3; z <= 24 + 3; z++) if (world.getBlock(x, roofY, z) !== 0) n++;
+        return n;
+      };
+      const closedBefore = overPitch();
+
+      const lever = found.lever[0];
+      const state = world.getState(lever.x, lever.y, lever.z);
+      world.setBlock(lever.x, lever.y, lever.z, blocks.numericOf('lever'), BlockState.withOpen(state, true));
+      for (let i = 0; i < 40; i++) logic.update(1 / 10);
+      const closedAfter = overPitch();
+      expect(closedAfter, `${kind}: the lever did not move the roof (${closedBefore} then ${closedAfter})`).not.toBe(closedBefore);
+
+      world.setBlock(lever.x, lever.y, lever.z, blocks.numericOf('lever'), BlockState.withOpen(state, false));
+      for (let i = 0; i < 40; i++) logic.update(1 / 10);
+      expect(overPitch(), `${kind}: the roof did not come back`).toBe(closedBefore);
     }
   });
 });
@@ -148,6 +230,9 @@ describe('asking for a famous place', () => {
       ['build canada place with the sails', 'canada_place'],
       ['build the big silver ball in vancouver', 'science_world'],
       ['build the lions gate bridge', 'lions_gate'],
+      ['build the arena da baixada', 'arena_baixada'],
+      ['build the athletico paranaense stadium', 'arena_baixada'],
+      ['build the stadium with the roof that opens', 'arena_baixada'],
     ];
     const wrong = cases.filter(([text, kind]) => parseMonument(text)?.kind !== kind).map(([text, kind]) => `${text} -> ${parseMonument(text)?.kind ?? 'nothing'} (wanted ${kind})`);
     expect(wrong, wrong.join('; ')).toEqual([]);
@@ -207,9 +292,9 @@ describe('asking for a famous place', () => {
     };
     const reply = await new RuleChatProvider().reply(ctx);
     const kinds = reply.actions.filter((a) => a.tool === 'build_monument').map((a) => a.args.kind);
-    expect(kinds).toEqual(['niemeyer_eye', 'wire_opera', 'botanical_garden', 'sign']);
-    expect(reply.actions[3].args.text).toBe('CURITIBA');
-    expect(new Set(reply.actions.map((a) => a.args.x)).size, 'landmarks piled on each other').toBe(4);
+    expect(kinds).toEqual(['niemeyer_eye', 'wire_opera', 'botanical_garden', 'arena_baixada', 'sign']);
+    expect(reply.actions[4].args.text).toBe('CURITIBA');
+    expect(new Set(reply.actions.map((a) => a.args.x)).size, 'landmarks piled on each other').toBe(5);
     expect(reply.say).toContain('Curitiba');
   });
 

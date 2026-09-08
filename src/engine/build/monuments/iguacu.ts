@@ -11,6 +11,13 @@ export const iguacu: Monument = {
   depth: 23,
   height: 14,
   blurb: 'Waterfalls everywhere, with jungle on top!',
+  real: {
+    height: 82,
+    width: 2700,
+    depth: 700,
+    landscape: true,
+    source: 'Iguacu: 275 falls over 2.7 km, the Devil\'s Throat 82 m deep',
+  },
   draw,
 };
 

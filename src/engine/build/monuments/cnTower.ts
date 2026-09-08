@@ -8,22 +8,29 @@ export const cnTower: Monument = {
   label: 'CN Tower',
   emoji: '🗼',
   place: 'Toronto, Canada',
-  width: 13,
-  depth: 13,
-  height: 46,
+  width: 9,
+  depth: 9,
+  height: 52,
   blurb: 'So tall you can see the whole lake from the top!',
+  real: {
+    height: 553,
+    width: 66,
+    depth: 66,
+    levels: { pod: 346, skyPod: 447, antenna: 457 },
+    source: 'CN Tower: 553.3 m, main pod 346 m, SkyPod 447 m',
+  },
   draw,
 };
 
 function draw(m: MonumentDraw): void {
   const { concrete, glass, white, lamp } = m.kit;
   plaza(m, m.kit.cobble);
-  // 553 m tall, with the main pod at 346 m and the SkyPod at 447 m: 63% and
-  // 81% of the way up, and a third of the tower is antenna above them.
-  const spire = m.g + 46;
-  const top = m.g + Math.round(46 * 0.84);
-  const pod = m.g + Math.round(46 * 0.63);
-  const skyPod = m.g + Math.round(46 * 0.81);
+  // 553 m to the tip, the main pod at 346 m, the SkyPod at 447 m, and the
+  // concrete shaft ending at 457 m where the antenna takes over.
+  const spire = m.g + m.up(553);
+  const top = m.g + m.up(457);
+  const pod = m.g + m.up(346);
+  const skyPod = m.g + m.up(447);
   for (let y = m.g + 1; y <= top; y++) {
     const t = (y - m.g) / (top - m.g);
     const r = y < m.g + 7 ? 2 : 1;

@@ -8,7 +8,7 @@ import type { MonumentKind } from './index';
 export type CityName = 'curitiba' | 'saopaulo' | 'ottawa' | 'toronto' | 'paris' | 'tokyo' | 'vancouver' | 'rio';
 
 export const CITY_PACKS: Record<CityName, { label: string; emoji: string; monuments: MonumentKind[]; sign: string }> = {
-  curitiba: { label: 'Curitiba', emoji: '🌲', monuments: ['niemeyer_eye', 'wire_opera', 'botanical_garden'], sign: 'CURITIBA' },
+  curitiba: { label: 'Curitiba', emoji: '🌲', monuments: ['niemeyer_eye', 'wire_opera', 'botanical_garden', 'arena_baixada'], sign: 'CURITIBA' },
   saopaulo: { label: 'São Paulo', emoji: '🏙️', monuments: ['masp', 'copan', 'ibirapuera'], sign: 'SAO PAULO' },
   ottawa: { label: 'Ottawa', emoji: '🍁', monuments: ['peace_tower', 'rideau_canal'], sign: 'OTTAWA' },
   toronto: { label: 'Toronto', emoji: '🇨🇦', monuments: ['cn_tower', 'rogers_dome'], sign: 'TORONTO' },

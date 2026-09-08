@@ -11,6 +11,7 @@
  * the chat, the site planner and the tests all read this list.
  */
 
+import { arenaBaixada } from './arenaBaixada';
 import { botanicalGarden } from './botanicalGarden';
 import { canadaPlace } from './canadaPlace';
 import { christRedeemer } from './christRedeemer';
@@ -54,6 +55,7 @@ export const MONUMENT_LIST = [
   lionsGate,
   christRedeemer,
   sugarloaf,
+  arenaBaixada,
   niemeyerEye,
   wireOpera,
   botanicalGarden,

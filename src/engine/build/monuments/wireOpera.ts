@@ -17,6 +17,13 @@ export const wireOpera: Monument = {
   depth: 23,
   height: 13,
   blurb: 'A ring of glass and tubes on a lake, with a quarry wall behind it!',
+  real: {
+    height: 20,
+    width: 60,
+    depth: 50,
+    landscape: true,
+    source: 'Wire Opera House: a tubular shell for 2,400 people in a flooded quarry',
+  },
   draw,
 };
 

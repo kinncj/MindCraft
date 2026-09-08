@@ -12,6 +12,13 @@ export const masp: Monument = {
   depth: 15,
   height: 11,
   blurb: 'A museum hanging from four big red beams — walk underneath!',
+  real: {
+    height: 30,
+    width: 74,
+    depth: 29,
+    levels: { plaza: 8, box: 14 },
+    source: 'MASP: a 74 m span with the box suspended 8 m above the plaza',
+  },
   draw,
 };
 
@@ -21,9 +28,9 @@ function draw(m: MonumentDraw): void {
   plaza(m, m.kit.cobble);
   const spanX = Math.floor(m.w / 2) - 2;
   const spanZ = Math.floor(m.d / 2) - 2;
-  // The real thing spans 74 m and lifts the box only 8 m: long and low, with a
-  // plaza running right through underneath. Keep just enough headroom to walk.
-  const deck = m.g + 5;
+  // 74 m of clear span with the box lifted 8 m: long and low, with the plaza
+  // running right through underneath. Never less than head height.
+  const deck = m.g + Math.max(4, m.up(8));
   // Four columns, and nothing else at head height: the plaza runs right under.
   for (const dx of [-spanX, spanX]) {
     for (const dz of [-spanZ, spanZ]) {

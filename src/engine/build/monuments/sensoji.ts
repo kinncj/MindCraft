@@ -16,6 +16,13 @@ export const sensoji: Monument = {
   depth: 17,
   height: 22,
   blurb: 'A red gate with a giant lantern, and a pagoda with five roofs!',
+  real: {
+    height: 53,
+    width: 60,
+    depth: 40,
+    levels: { gate: 12, pagoda: 53 },
+    source: 'Sensoji: five-storey pagoda 53 m, Kaminarimon gate about 12 m',
+  },
   draw,
 };
 

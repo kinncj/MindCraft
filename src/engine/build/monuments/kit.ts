@@ -32,5 +32,9 @@ export function monumentKit(registry: BlockRegistry): MonumentKit {
     lamp: maybe('lantern'),
     flowers: ['flower_pink', 'flower_yellow', 'flower_blue', 'flower_red'].filter((n) => registry.has(n)).map((n) => registry.numericOf(n)),
     black: id('color_black', 'deep_stone'),
+    stickyPiston: maybe('sticky_piston'),
+    wire: maybe('wire'),
+    lever: maybe('lever'),
+    repeater: maybe('repeater'),
   };
 }

@@ -8,17 +8,24 @@ export const peaceTower: Monument = {
   label: 'Peace Tower',
   emoji: '🕰️',
   place: 'Ottawa, Canada',
-  width: 27,
+  width: 37,
   depth: 17,
-  height: 32,
+  height: 26,
   blurb: 'A clock tower with a green copper roof!',
+  real: {
+    height: 92,
+    width: 145,
+    depth: 75,
+    levels: { clock: 68, roof: 78 },
+    source: 'Peace Tower: 92.2 m, clock faces near the top, with the Centre Block either side',
+  },
   draw,
 };
 
 function draw(m: MonumentDraw): void {
   const { stone, glass, green, white, black, fence } = m.kit;
   plaza(m, m.kit.cobble);
-  const top = m.g + 24;
+  const top = m.g + m.up(68); // the clock faces sit at 68 m of the 92 m tower
   for (let y = m.g + 1; y <= top; y++) {
     for (let dx = -3; dx <= 3; dx++) {
       for (let dz = -3; dz <= 3; dz++) {

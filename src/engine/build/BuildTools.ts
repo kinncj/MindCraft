@@ -1038,6 +1038,10 @@ export class BuildTools {
     };
     const x0 = x - Math.floor(w / 2);
     const z0 = z - Math.floor(d / 2);
+    // Blocks per metre: every height in a monument's drawing comes from the
+    // real measurement through this, so the proportions cannot drift.
+    const real = MONUMENTS[kind].real;
+    const scale = MONUMENTS[kind].height / real.height;
     drawMonument(kind, {
       put,
       kit: ctx.kit,
@@ -1051,6 +1055,9 @@ export class BuildTools {
       cz: z,
       w,
       d,
+      scale,
+      up: (metres: number) => Math.round(metres * scale),
+      across: (metres: number) => Math.round(metres * scale),
     });
     return [...cells.values()];
   }

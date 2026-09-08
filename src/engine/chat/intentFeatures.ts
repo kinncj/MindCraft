@@ -20,7 +20,7 @@ export const MONUMENT_LABELS = [
   'm_eiffel', 'm_cn_tower', 'm_rogers_dome', 'm_peace_tower', 'm_rideau_canal', 'm_niemeyer_eye',
   'm_wire_opera', 'm_botanical_garden', 'm_masp', 'm_copan', 'm_ibirapuera', 'm_niagara', 'm_iguacu', 'm_sign',
   'm_tokyo_tower', 'm_skytree', 'm_sensoji', 'm_canada_place', 'm_science_world', 'm_lions_gate',
-  'm_christ_redeemer', 'm_sugarloaf',
+  'm_christ_redeemer', 'm_sugarloaf', 'm_arena_baixada',
 ] as const;
 
 export const CITY_LABELS = ['city_curitiba', 'city_saopaulo', 'city_ottawa', 'city_toronto', 'city_paris', 'city_tokyo', 'city_vancouver', 'city_rio'] as const;

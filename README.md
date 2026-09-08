@@ -87,7 +87,8 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
   **Sensoji**'s pagoda, Vancouver's **Canada Place** sails, **Science World** ball and
   **Lions Gate Bridge**, or **Niagara** and **Iguaçu Falls** — with water that really
   falls — Niagara really is three falls with Goat Island between them, and a boat in the
-  mist below. Rio's **Christ the Redeemer** stands on Corcovado with **Sugarloaf** across
+  mist below. **Athletico Paranaense's Arena da Baixada** and the **Rogers Centre** have
+  roofs that genuinely open: sticky pistons, wire, repeaters and a lever a kid can flip. Rio's **Christ the Redeemer** stands on Corcovado with **Sugarloaf** across
   the bay. Their proportions come from the real things: the Eiffel Tower's floors sit at
   17% and 35% of its height because that is where 57 m and 115 m fall on 330 m. Ask for a whole city ("build Curitiba") and its landmarks go
   up side by side with the name in giant letters. A sign can spell anything: "a sign

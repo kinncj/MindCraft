@@ -15,6 +15,12 @@ export const scienceWorld: Monument = {
   depth: 21,
   height: 20,
   blurb: 'A giant silver ball made of triangles, with lights all over it!',
+  real: {
+    height: 47,
+    width: 47,
+    depth: 47,
+    source: 'Science World: geodesic sphere about 47 m across',
+  },
   draw,
 };
 

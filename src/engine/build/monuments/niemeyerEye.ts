@@ -17,6 +17,13 @@ export const niemeyerEye: Monument = {
   depth: 21,
   height: 22,
   blurb: 'A giant white eye on a yellow base, looking out over the park!',
+  real: {
+    height: 40,
+    width: 70,
+    depth: 40,
+    levels: { base: 12, eye: 24 },
+    source: 'Museu Oscar Niemeyer: the eye stands about 40 m up on its yellow base',
+  },
   draw,
 };
 

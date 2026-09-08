@@ -17,6 +17,13 @@ export const niagara: Monument = {
   depth: 23,
   height: 10,
   blurb: 'Three waterfalls in a row, with islands between them and a boat below!',
+  real: {
+    height: 57,
+    width: 820,
+    depth: 400,
+    landscape: true,
+    source: 'Niagara: Horseshoe crest 820 m wide and 57 m deep, with Goat Island and the American Falls',
+  },
   draw,
 };
 

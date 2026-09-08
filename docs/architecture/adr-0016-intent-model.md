@@ -29,8 +29,8 @@ Ship a tiny model trained in this repo, inside the bundle.
   letters, and a rough *sound* of each word (`phonetic`, so "skool" and
   "school" both become "skl", "hosptial" and "hospital" both "hosptl").
   Words also carry where they sit ("a house with a garden" is a house; "a
-  garden next to the house" is a garden). 8192 buckets × 81 labels, one
-  byte per weight, 90% of the weights pruned to zero — 131 KB gzipped,
+  garden next to the house" is a garden). 8192 buckets × 82 labels, one
+  byte per weight, 90% of the weights pruned to zero — 132 KB gzipped,
   recorded in the generated file's own header. Size is measured against the
   alternative: a downloaded helper model is 400 MB and up, so this one only
   has to stay a small fraction of the page (the test's line is a megabyte).

@@ -10,18 +10,25 @@ export const lionsGate: Monument = {
   label: 'Lions Gate Bridge',
   emoji: '🌉',
   place: 'Vancouver, Canada',
-  width: 41,
+  width: 45,
   depth: 13,
-  height: 22,
+  height: 14,
   blurb: 'A long green bridge on cables, with two towers standing in the water!',
+  real: {
+    height: 111,
+    width: 473,
+    depth: 27,
+    levels: { deck: 61 },
+    source: 'Lions Gate Bridge: 473 m main span, 111 m towers, 61 m clearance',
+  },
   draw,
 };
 
 function draw(m: MonumentDraw): void {
   const green = m.ctx.color ?? m.kit.green;
   const { water, stone, planks, fence } = m.kit;
-  const deckY = m.g + 6;
-  const towerY = m.g + 20;
+  const deckY = m.g + m.up(61); // ships pass 61 m under the deck
+  const towerY = m.g + m.up(111); // and the towers stand 111 m above the water
   const towerA = m.x0 + 8;
   const towerB = m.x1 - 8;
   const roadZ0 = m.cz - 1;

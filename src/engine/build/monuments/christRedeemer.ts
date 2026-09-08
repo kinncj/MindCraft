@@ -14,25 +14,37 @@ export const christRedeemer: Monument = {
   place: 'Rio de Janeiro, Brazil',
   width: 25,
   depth: 15,
-  height: 26,
+  height: 30,
   blurb: 'Standing on the mountain with his arms open over the whole city!',
+  real: {
+    // The summit rock counts: he is 30 m of figure on an 8 m pedestal, and the
+    // outcrop of Corcovado under him is what he is standing on.
+    height: 50,
+    width: 60,
+    depth: 40,
+    levels: { outcrop: 12, pedestal: 8, figure: 30, armSpan: 28 },
+    landscape: true,
+    source: 'Christ the Redeemer: 30 m figure, 8 m pedestal, 28 m arm span, on Corcovado',
+  },
   draw,
 };
 
 function draw(m: MonumentDraw): void {
   const stone = m.ctx.color ?? m.kit.white;
   const { cobble, grass } = m.kit;
-  // Corcovado: a rocky hill for him to stand on, green at the bottom.
-  for (let dy = 0; dy <= 4; dy++) {
-    const r = 8 - dy;
-    disc(m, m.cx, m.g + dy, m.cz, r, dy < 2 ? grass : cobble);
+  // Corcovado: the summit rock he stands on, twelve metres of it, green below.
+  const outcrop = m.up(12);
+  for (let dy = 0; dy <= outcrop; dy++) {
+    const reach = Math.floor(Math.min(m.w, m.d) / 2) - 1;
+    const r = Math.max(2, Math.round((1 - dy / (outcrop + 1)) * reach));
+    disc(m, m.cx, m.g + dy, m.cz, r, dy < outcrop / 3 ? grass : cobble);
     for (let h = 1; h <= 3; h++) disc(m, m.cx, m.g + dy + h, m.cz, Math.max(0, r - 3), 0);
   }
-  const base = m.g + 5;
-  // The square pedestal, a bit over a quarter of his height.
-  box(m, m.cx - 2, base, m.cz - 2, m.cx + 2, base + 4, m.cz + 2, cobble);
-  const feet = base + 5;
-  const headY = feet + 16; // the figure itself, 30 m of the 38 m total
+  const base = m.g + outcrop;
+  // An 8 m pedestal under a 30 m figure, and the arms reach 28 m tip to tip.
+  box(m, m.cx - 2, base, m.cz - 2, m.cx + 2, base + m.up(8), m.cz + 2, cobble);
+  const feet = base + m.up(8) + 1;
+  const headY = feet + m.up(30);
   // Robe: a column that widens at the hem, narrowing to the shoulders.
   for (let y = feet; y < headY - 3; y++) {
     const t = (y - feet) / (headY - 3 - feet);
@@ -46,7 +58,7 @@ function draw(m: MonumentDraw): void {
   }
   // The arms: straight out, level, nearly the width of the whole monument.
   const shoulders = headY - 4;
-  const reach = Math.floor(m.w / 2) - 2;
+  const reach = Math.min(Math.floor(m.w / 2) - 2, Math.round(m.across(28) / 2));
   for (let dx = -reach; dx <= reach; dx++) {
     m.put(m.cx + dx, shoulders, m.cz, stone);
     // The sleeves of the robe hang a little below the arms.

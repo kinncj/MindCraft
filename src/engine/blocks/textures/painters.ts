@@ -786,6 +786,27 @@ const wire: Painter = (ctx) => {
   ctx.fillRect(6, 0, 4, SIZE);
   ctx.fillRect(0, 6, SIZE, 4);
 };
+const repeater: Painter = (ctx) => {
+  ctx.fillStyle = '#b9c0c8';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#8f979f';
+  ctx.fillRect(0, 0, SIZE, 2);
+  ctx.fillRect(0, SIZE - 2, SIZE, 2);
+  ctx.fillStyle = '#7a1c15';
+  ctx.fillRect(6, 0, 4, SIZE); // the line running through it
+  ctx.fillStyle = '#3a3226';
+  ctx.fillRect(4, 4, 3, 3); // the little torches that make it a repeater
+  ctx.fillRect(9, 9, 3, 3);
+};
+const repeaterOn: Painter = (ctx) => {
+  ctx.fillStyle = '#c8cfd7';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#ff3b2f';
+  ctx.fillRect(6, 0, 4, SIZE);
+  ctx.fillStyle = '#ffd94a';
+  ctx.fillRect(4, 4, 3, 3);
+  ctx.fillRect(9, 9, 3, 3);
+};
 const wireOn: Painter = (ctx) => {
   ctx.clearRect(0, 0, SIZE, SIZE);
   ctx.fillStyle = '#ff3b2f';
@@ -970,6 +991,8 @@ export const PAINTERS: Record<string, { paint: Painter; seed: number }> = {
   plate: { paint: plate, seed: 184 },
   wire: { paint: wire, seed: 185 },
   wire_on: { paint: wireOn, seed: 186 },
+  repeater: { paint: repeater, seed: 187 },
+  repeater_on: { paint: repeaterOn, seed: 188 },
   logic_lamp: { paint: logicLamp, seed: 187 },
   logic_lamp_on: { paint: logicLampOn, seed: 188 },
   piston_side: { paint: pistonSide, seed: 189 },

@@ -17,6 +17,12 @@ export const botanicalGarden: Monument = {
   depth: 23,
   height: 12,
   blurb: 'A glass palace with three domes, and flower beds in patterns!',
+  real: {
+    height: 20,
+    width: 45,
+    depth: 40,
+    source: 'Botanical Garden of Curitiba: a 458 m2 greenhouse of three glass naves',
+  },
   draw,
 };
 

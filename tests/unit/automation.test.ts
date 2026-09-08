@@ -134,6 +134,36 @@ describe('logic', () => {
     expect(world.getBlock(1, 3, 0)).toBe(B.stone);
     expect(BlockState.isOpen(world.getState(0, 3, 0))).toBe(false);
   });
+  describe('repeaters', () => {
+    it('carries power past the fifteen blocks wire manages on its own', () => {
+      const { world, logic } = rig();
+      world.setBlock(-1, 3, 0, B.lever, BlockState.withOpen(0, true));
+      // Wire out to its limit, a repeater, then wire again — and a lamp far away.
+      for (let x = 0; x <= 13; x++) world.setBlock(x, 3, 0, B.wire);
+      world.setBlock(14, 3, 0, B.repeater);
+      for (let x = 15; x <= 27; x++) world.setBlock(x, 3, 0, B.wire);
+      world.setBlock(28, 3, 0, B.logic_lamp);
+      logic.tick();
+      expect(logic.powerAt(14, 3, 0), 'the repeater should start again at full').toBe(15);
+      expect(world.getBlock(28, 3, 0), 'the lamp past the repeater should light').toBe(B.logic_lamp_on);
+      expect(BlockState.variant(world.getState(14, 3, 0)), 'a working repeater lights up').toBe(1);
+      // And it goes dark again with the lever.
+      world.setBlock(-1, 3, 0, B.lever, BlockState.withOpen(0, false));
+      logic.tick();
+      expect(world.getBlock(28, 3, 0)).toBe(B.logic_lamp);
+      expect(BlockState.variant(world.getState(14, 3, 0))).toBe(0);
+    });
+
+    it('is no use without power reaching it', () => {
+      const { world, logic } = rig();
+      world.setBlock(14, 3, 0, B.repeater);
+      for (let x = 15; x <= 20; x++) world.setBlock(x, 3, 0, B.wire);
+      world.setBlock(21, 3, 0, B.logic_lamp);
+      logic.tick();
+      expect(world.getBlock(21, 3, 0)).toBe(B.logic_lamp);
+    });
+    });
+
 });
 
 describe('robots', () => {
