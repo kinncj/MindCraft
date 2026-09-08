@@ -10,6 +10,7 @@ cycle, and a Magic Delivery Box to keep treasures in.
 Everything stays on your computer. There is no server, no account, no ads, no tracking.
 
 **Repo:** https://github.com/kinncj/MindCraft — deployable to GitHub Pages as a static SPA.
+**Docs:** everything written down about the game is indexed in [`docs/README.md`](docs/README.md).
 
 ## What's in the game (2.0)
 
@@ -20,7 +21,7 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 - A playable kid with real physics: walk, run, sneak, jump, swim (and hop out), step
   up single blocks, duck under roofs. First- and third-person cameras; the camera
   never pokes through hills.
-- **About 70 blocks** with generated pixel textures: ground, building materials,
+- **About 85 blocks** with generated pixel textures: ground, building materials,
   ten color blocks and carpets, **stairs, slabs, doors that open, fences, windows**,
   nature, lights, and furniture (bed, table, chair, bookshelf, TV, painting, cake).
   Every block is one data definition — shape, collision, light, and behavior included.
@@ -40,7 +41,8 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 - **Build tools** on a tools bar: a two-tap **Room** tool (floor, hollow walls, a
   doorway), **Fill**, **Paint** (recolor a block in place), **Copy** and **Paste** with
   rotation, a **Mirror** toggle, and six **blueprint cards** (cozy house, castle tower,
-  bridge, garden, pool, treehouse) to stamp down and change.
+  bridge, garden, pool, treehouse) to stamp down and change. Asking a villager in words
+  goes to the generator instead, so a bridge or treehouse comes out any size and colour.
 - **A life layer**: chairs you can sit on, TVs and lamps that switch on, a fridge that
   stores food, a stove that sizzles, ladders to climb, rides with real-feel physics
   (a **car** that brakes and grips, a **motorbike** that leans, a **boat**, an
@@ -104,8 +106,8 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   time of day (slow and soft at night), footsteps, pops for building, splashes, doors,
   happy pets, crafting sparkles, pistons, and note blocks you can tune. A big mute
   button, a Sound menu, and no audio files at all.
-- **Every capability is a tool** — `player_walk_to`, `world_place_block`,
-  `build_stamp_blueprint`, `villager_talk`, `pet_adopt`, `vehicle_mount`, … — exposed through WebMCP
+- **Every capability is a tool** — `player_walk_to`, `world_place_block`, `build_house`,
+  `build_dig`, `build_feature`, `villager_talk`, `pet_adopt`, `vehicle_mount`, … — exposed through WebMCP
   (`navigator.modelContext`) and `window.mindcraftTools`, so agents can play too.
 - Works on desktop, tablet, and phone with **keyboard and mouse, touch, or a gamepad**.
   A dark-glass game UI with a crisp SVG icon set drawn in code, a full-screen game
@@ -133,6 +135,7 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 | Fly a plane / helicopter | `W` throttle up, `S` down, `A D` bank or turn, `Space` climb, `Shift` dive or land | joystick + Jump | left stick, A |
 | Chat with a villager | tap them, then type or tap a chip | tap, chips | RT on them, chips |
 | Dance | `X` or the ✦ button (friends nearby join in) | ✦ button | — |
+| Take a photo | `P` or the camera button | camera button | Back |
 | Crafting | `C`, a crafting table, or Menu → Crafting | Menu → Crafting | Start → Crafting |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Shift+Z` or buttons | buttons | B |
 | Menu | `Escape` or the Menu button | Menu button | Start |
@@ -183,21 +186,28 @@ grabbing scheme anywhere.
 
 ```bash
 npm install
-npm run dev        # local dev server (the working preview)
-npm test           # unit + component tests (Vitest + Testing Library)
-npm run test:e2e   # browser tests (Playwright; run `npx playwright install chromium` once)
-npm run build      # typecheck + production build into dist/
-npm run preview    # serve the production build locally
+npm run dev          # local dev server (the working preview)
+npm test             # unit + component tests (Vitest + Testing Library)
+npm run test:e2e     # browser tests (Playwright; run `npx playwright install chromium` once)
+npm run lint         # typecheck the whole project (tsc -b)
+npm run build        # typecheck + production build into dist/
+npm run preview      # serve the production build locally
+npm run train:brain  # retrain the creature brain into src/engine/ai/weights.ts
+npm run train:intent # retrain the sentence model into src/engine/chat/intentWeights.ts
 ```
+
+`npm run lint` is the typecheck that matters: a bare `npx tsc --noEmit` checks nothing
+here, because the root `tsconfig.json` only holds project references.
 
 ## Deploying to GitHub Pages
 
-The included workflow (`.github/workflows/deploy-github-pages.yml`) builds and publishes
-to GitHub Pages on every push to `main`. One-time setup: in the repo settings, under
+Every push to `main` runs the **Tests** workflow (unit and component tests, then the
+browser tests). Only a green run triggers `.github/workflows/deploy-github-pages.yml`,
+which builds that exact commit and publishes it — so a red suite never reaches a child.
+A manual run (**Actions → Deploy to GitHub Pages → Run workflow**) publishes whatever is
+on `main`, for a docs-only change or a hotfix. One-time setup: in the repo settings, under
 **Pages**, set the source to **GitHub Actions**. The site appears at
 `https://kinncj.github.io/MindCraft/`. Details: `docs/operations/github-pages-deployment.md`.
-
-Everything written down about the game is indexed in `docs/README.md`.
 
 ## How your world is saved
 
@@ -268,6 +278,10 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 4. ~~UI refresh~~ — done: bottom sheets, a menu with submenus, a tools drawer, safe areas
 5. ~~Crafting and logic~~ — done: recipe book, levers/buttons/plates/wire/lamps/pistons/doors/note blocks, robots
 6. ~~Sound~~ — done: generative Tone.js soundtrack by biome and time, effects, mute and volume
+7. ~~Words to buildings~~ — done: any building, dig or feature from a sentence, proven
+   walkable by physics tests, each on its own patch of open ground
+8. ~~A model of our own~~ — done: a 42 KB sentence model trained in the repo, shipped in
+   the bundle, no download
 
 Nothing before the basics stay boring and reliable.
 
@@ -277,3 +291,6 @@ Nothing before the basics stay boring and reliable.
   new chunks appear more slowly
 - Wild animals respawn fresh each session; pets, villagers, and vehicles are saved
 - Ultra mode is realism-inspired, not ray-traced — see `docs/product/visual-modes.md`
+- The built-in sentence model recognises the things this game can build; it does not
+  converse, and a brand-new word lands on the nearest thing it knows or on a shrug.
+  Conversation comes from the rules, or from the optional downloaded helper
