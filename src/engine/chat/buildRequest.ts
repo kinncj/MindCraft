@@ -260,8 +260,9 @@ function editDistance(a: string, b: string): number {
 }
 
 export function parseBuildRequest(raw: string): BuildSpec | null {
-  // "tree house" is a feature of its own, not a house: the word must not make a building.
-  const text = correctSpelling(raw.toLowerCase().replace(/\btree ?house(s)?\b/g, 'treehouse'));
+  // "tree house" and "dog house" are things of their own, not houses for people:
+  // the word "house" in them must not build a bungalow.
+  const text = correctSpelling(raw.toLowerCase().replace(/\btree ?house(s)?\b/g, 'treehouse').replace(/\b(dog|puppy|pet|doggy|kitty|cat) ?house(s)?\b/g, 'doghouse'));
   let type: BuildingType | null = null;
   for (const [pattern, t] of TYPE_WORDS) {
     if (pattern.test(text)) {
@@ -423,9 +424,20 @@ export function buildActionsFor(spec: BuildSpec, ctx: ChatContext): ChatAction[]
 }
 
 /** Things built beside a building, asked for on their own: a bridge, a treehouse, a playground. */
-export type FeatureSpec = { kind: 'court' | 'playground' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse' | 'runway'; width?: number; length?: number; color?: string; label: string };
+export type FeatureSpec = {
+  kind: 'court' | 'playground' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse' | 'runway' | 'doghouse';
+  width?: number;
+  length?: number;
+  color?: string;
+  /** A name to put on it: the dog's, over its door. */
+  text?: string;
+  /** Extras the child named. */
+  extras?: { fence?: boolean; bowl?: boolean; light?: boolean; bed?: boolean };
+  label: string;
+};
 
 const STANDALONE_FEATURES: Array<[RegExp, FeatureSpec['kind'], string]> = [
+  [/\b(doghouses?|kennels?|dog ?house(s)?|house for (my |the )?(dog|puppy|doggy)|puppy house)\b/, 'doghouse', 'dog house'],
   [/\b(runways?|air ?strips?|landing strips?|tarmacs?)\b/, 'runway', 'runway'],
   [/\b(tree ?house(s)?)\b/, 'treehouse', 'treehouse'],
   [/\b(bridges?|walkways?|footbridges?)\b/, 'bridge', 'bridge'],
@@ -467,6 +479,28 @@ export function parseFeature(raw: string): FeatureSpec | null {
     }
     const color = COLORS.find((c) => new RegExp(`\\b${c}\\b`).test(text));
     if (color) spec.color = `color_${color}`;
+    if (kind === 'doghouse') {
+      // "called Rex" and "named Rex" say it outright; "for Rex" only counts when
+      // the word after it is not another way of saying "the dog".
+      const NOT_A_NAME = new Set(['my', 'the', 'a', 'an', 'me', 'us', 'him', 'her', 'it', 'them', 'dog', 'dogs', 'puppy', 'puppies', 'doggy', 'pet', 'cat', 'kitty', 'called', 'named', 'name', 'with', 'and', 'that', 'who', 'she', 'he']);
+      const patterns = [
+        /\b(?:called|named|name is|name's)\s+([a-z][a-z'-]{1,14})\b/,
+        /\bfor\s+(?:my\s+|the\s+)?(?:dog\s+|puppy\s+|doggy\s+|pet\s+)?([a-z][a-z'-]{1,14})\b/,
+      ];
+      for (const pattern of patterns) {
+        const name = pattern.exec(text)?.[1];
+        if (name && !NOT_A_NAME.has(name)) {
+          spec.text = name.charAt(0).toUpperCase() + name.slice(1);
+          break;
+        }
+      }
+      spec.extras = {
+        fence: /\b(fence|yard|garden|gate|pen|run)\b/.test(text),
+        light: /\b(light|lamp|lantern|so (he|she|it) can see)\b/.test(text),
+        bowl: !/\bno (water|bowl)\b/.test(text),
+        bed: !/\bno bed\b/.test(text),
+      };
+    }
     return spec;
   }
   return null;

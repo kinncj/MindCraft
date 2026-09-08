@@ -155,6 +155,27 @@ const pool: Blueprint = {
   ),
 };
 
+const dogHouse: Blueprint = {
+  id: 'dog_house',
+  label: 'Dog House',
+  emoji: '🐶',
+  description: 'A little kennel with a round door and a red roof.',
+  stamp: fromLayers(
+    [
+      ['PPPPP', 'PPPPP', 'PPPPP', 'PPPPP', 'PPPPP'],
+      ['PPPPP', 'P...P', 'P...P', 'P...P', 'PP.PP'],
+      ['PPPPP', 'P...P', 'P...P', 'P...P', 'PP.PP'],
+      ['RRRRR', 'rRRRr', 'rRRRr', 'rRRRr', 'RRRRR'],
+      ['.....', '.RRR.', '.RRR.', '.RRR.', '.....'],
+    ],
+    {
+      P: { id: B.planks },
+      R: { id: B.roof_tiles },
+      r: { id: B.roof_stairs, state: R(1) },
+    },
+  ),
+};
+
 const treehouse: Blueprint = {
   id: 'treehouse',
   label: 'Treehouse',
@@ -179,7 +200,7 @@ const treehouse: Blueprint = {
   ),
 };
 
-export const BLUEPRINTS: Blueprint[] = [cozyHouse, castleTower, bridge, garden, pool, treehouse];
+export const BLUEPRINTS: Blueprint[] = [cozyHouse, dogHouse, castleTower, bridge, garden, pool, treehouse];
 
 export function blueprintById(id: string): Blueprint | undefined {
   return BLUEPRINTS.find((b) => b.id === id);

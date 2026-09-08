@@ -86,7 +86,7 @@ const ROOM_FURNITURE: Record<string, Array<string | [string, string]>> = {
   room: ['table', 'chair', 'bookshelf'],
 };
 
-export const FEATURE_KINDS: FeatureKind[] = ['court', 'playground', 'pool', 'garden', 'parking', 'fountain', 'fence', 'bridge', 'treehouse', 'runway'];
+export const FEATURE_KINDS: FeatureKind[] = ['court', 'playground', 'pool', 'garden', 'parking', 'fountain', 'fence', 'bridge', 'treehouse', 'runway', 'doghouse'];
 
 export function flagNames(): string[] {
   return Object.keys(FLAG_ART);
@@ -180,11 +180,16 @@ export function featureKit(registry: BlockRegistry, paint?: string | null): Feat
 }
 
 /** Knobs for a feature built on its own: size in blocks and an optional colour for its planks and rims. */
-export function featureOptions(registry: BlockRegistry, a: { kind: FeatureKind; width?: number; length?: number; color?: string | null }): FeatureOptions {
+export function featureOptions(
+  registry: BlockRegistry,
+  a: { kind: FeatureKind; width?: number; length?: number; color?: string | null; text?: string; extras?: { fence?: boolean; bowl?: boolean; light?: boolean; bed?: boolean } },
+): FeatureOptions {
   const size = FEATURE_SIZE[a.kind];
   return {
     width: a.width ?? size.w,
     depth: a.length ?? size.d,
+    text: a.text,
+    extras: a.extras,
     kit: featureKit(registry, a.color),
     palette: ['color_red', 'color_orange', 'color_yellow', 'color_green', 'color_blue', 'color_purple', 'color_pink'].map((c) => registry.numericOf(c)),
     stairRotation: stairRotationTowardPlusX(),

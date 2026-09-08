@@ -2,6 +2,7 @@ import type { BlockRegistry } from '../blocks/registry';
 import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
 import { ensureLivable, type BuildingLayout } from './livability';
 import type { Ground } from './siteFinder';
+import { drawText } from './monuments/font';
 import { MONUMENTS, drawMonument, monumentFootprint, type MonumentContext, type MonumentKind } from './monuments/index';
 
 /** Where the generator reports its layout for callers and tests. */
@@ -44,7 +45,7 @@ export type EarthworkOptions = {
 
 export type FurnitureItem = { id: number; state?: number; /** Something on top (a TV on a table). */ on?: number };
 
-export type FeatureKind = 'court' | 'playground' | 'pool' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse' | 'runway';
+export type FeatureKind = 'court' | 'playground' | 'pool' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse' | 'runway' | 'doghouse';
 
 /** Footprints of the outdoor features. */
 export const FEATURE_SIZE: Record<FeatureKind, { w: number; d: number }> = {
@@ -58,6 +59,7 @@ export const FEATURE_SIZE: Record<FeatureKind, { w: number; d: number }> = {
   bridge: { w: 11, d: 5 },
   treehouse: { w: 5, d: 5 },
   runway: { w: 41, d: 9 },
+  doghouse: { w: 9, d: 9 },
 };
 
 /** Blocks the features are made of. */
@@ -82,7 +84,16 @@ export type FeatureKit = {
 };
 
 /** What a feature drawn on its own needs from the generator. */
-export type FeatureContext = { kit: FeatureKit; palette: number[]; stairRotation: number; ladderState: number };
+export type FeatureContext = {
+  kit: FeatureKit;
+  palette: number[];
+  stairRotation: number;
+  ladderState: number;
+  /** A name to put on it — the dog's, over its door. */
+  text?: string;
+  /** Extras a kid asked for by name. */
+  extras?: { fence?: boolean; bowl?: boolean; light?: boolean; bed?: boolean };
+};
 
 export type FeatureOptions = FeatureContext & { width: number; depth: number };
 
@@ -886,6 +897,68 @@ export class BuildTools {
             put(x, groundY + 1, fz0 - 1, k.lamp);
             put(x, groundY + 1, fz1 + 1, k.lamp);
           }
+        }
+        break;
+      }
+      case 'doghouse': {
+        // A kennel built to whatever the child asked for: any size, any colour,
+        // a doorway a puppy walks straight into, and the extras they named.
+        const wall = opts.kit.planks;
+        const roof = opts.kit.roof;
+        const kx0 = fx0 + 2;
+        const kz0 = fz0 + 2;
+        const kx1 = fx1 - 2;
+        const kz1 = fz1 - 2;
+        const walls = Math.max(2, Math.min(4, Math.floor((kz1 - kz0) / 2) + 1));
+        const doorX = Math.floor((kx0 + kx1) / 2);
+        const doorWide = kx1 - kx0 >= 6;
+        // Grass and a fence around the yard, when a yard was asked for.
+        for (let x = fx0; x <= fx1; x++) {
+          for (let z = fz0; z <= fz1; z++) {
+            put(x, groundY, z, opts.kit.grass);
+            for (let h = 1; h <= 5; h++) put(x, groundY + h, z, 0);
+            const rim = x === fx0 || x === fx1 || z === fz0 || z === fz1;
+            const gate = z === fz1 && Math.abs(x - doorX) <= (doorWide ? 1 : 0);
+            if (opts.extras?.fence && rim && !gate) put(x, groundY + 1, z, opts.kit.fence);
+          }
+        }
+        // The kennel itself: floor, walls, and a doorway out of the front.
+        for (let x = kx0; x <= kx1; x++) {
+          for (let z = kz0; z <= kz1; z++) {
+            put(x, groundY, z, wall);
+            for (let h = 1; h <= walls; h++) {
+              const edge = x === kx0 || x === kx1 || z === kz0 || z === kz1;
+              const doorway = z === kz1 && h <= 2 && (x === doorX || (doorWide && x === doorX + 1));
+              put(x, groundY + h, z, edge && !doorway ? wall : 0);
+            }
+          }
+        }
+        // A roof of two solid courses, the upper one stepped in: a little house,
+        // and closed over the top so nothing rains on the dog.
+        for (let step = 0; step <= 1; step++) {
+          for (let x = kx0 - 1 + step; x <= kx1 + 1 - step; x++) {
+            for (let z = kz0 - 1 + step; z <= kz1 + 1 - step; z++) put(x, groundY + walls + 1 + step, z, roof);
+          }
+        }
+        // The dog's initial over the door, if it has a name.
+        const initial = (opts.text ?? '').trim().slice(0, 1).toUpperCase();
+        if (initial) {
+          const paint = opts.palette[initial.charCodeAt(0) % opts.palette.length];
+          drawText(initial, (column, row) => {
+            const x = doorX - 2 + column;
+            const y = groundY + walls + 6 - row;
+            if (x >= kx0 - 1 && x <= kx1 + 1) put(x, y, kz1 + 1, paint);
+          });
+        }
+        // A water bowl by the door, and a lamp on the post, when asked.
+        if (opts.extras?.bowl !== false) {
+          put(doorX + (doorWide ? 2 : 1), groundY + 1, kz1 + 1, opts.kit.slab);
+          put(doorX + (doorWide ? 3 : 2), groundY + 1, kz1 + 1, opts.kit.water);
+        }
+        if (opts.extras?.bed !== false) for (let x = kx0 + 1; x < kx1; x++) put(x, groundY + 1, kz0 + 1, opts.kit.slab);
+        if (opts.extras?.light && opts.kit.lamp !== null) {
+          put(fx0 + 1, groundY + 1, fz1 - 1, opts.kit.fence);
+          put(fx0 + 1, groundY + 2, fz1 - 1, opts.kit.lamp);
         }
         break;
       }

@@ -266,7 +266,14 @@ export class ChatAgent {
       }
       case 'build_feature': {
         const kind = typeof a.kind === 'string' && (FEATURE_KINDS as string[]).includes(a.kind) ? (a.kind as FeatureKind) : 'garden';
-        const opts = featureOptions(this.deps.registry, { kind, width: typeof a.width === 'number' ? a.width : undefined, length: typeof a.length === 'number' ? a.length : undefined, color: typeof a.color === 'string' ? a.color : null });
+        const opts = featureOptions(this.deps.registry, {
+          kind,
+          width: typeof a.width === 'number' ? a.width : undefined,
+          length: typeof a.length === 'number' ? a.length : undefined,
+          color: typeof a.color === 'string' ? a.color : null,
+          text: typeof a.text === 'string' ? a.text : undefined,
+          extras: typeof a.extras === 'object' && a.extras !== null ? (a.extras as { fence?: boolean; bowl?: boolean; light?: boolean; bed?: boolean }) : undefined,
+        });
         return { label: `Build a ${kind}`, edits: this.deps.build.planFeature(kind, num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), opts) };
       }
       case 'build_monument': {

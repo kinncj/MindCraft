@@ -22,6 +22,11 @@ a roof. Adding a *kind* of building is data, not new drawing code.
 2. A `case` in `drawFeature`. If a child can walk on it, push its steps or ladders
    onto the `BuildingLayout` so the livability pass clears headroom.
 
+A feature can take more than a size and a colour: `FeatureContext` carries `text`
+(the dog house puts the first letter of a name over its door) and `extras` (a fence,
+a bowl, a light — whatever the child named). Read them out of the words in
+`parseFeature`, and let the drawing treat them as optional.
+
 ## A dig (pool, lake, bunker, …)
 
 `EarthworkKind` + `EARTHWORK_SIZE` + a `case` in `planEarthwork`, and words in

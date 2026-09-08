@@ -47,8 +47,8 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
   Delivery Box keeps its treasures inside the block itself.
 - **Build tools** on a tools bar: a two-tap **Room** tool (floor, hollow walls, a
   doorway), **Fill**, **Paint** (recolor a block in place), **Copy** and **Paste** with
-  rotation, a **Mirror** toggle, and six **blueprint cards** (cozy house, castle tower,
-  bridge, garden, pool, treehouse) to stamp down and change. Asking a villager in words
+  rotation, a **Mirror** toggle, and seven **blueprint cards** (cozy house, dog house,
+  castle tower, bridge, garden, pool, treehouse) to stamp down and change. Asking a villager in words
   goes to the generator instead, so a bridge or treehouse comes out any size and colour.
 - **A life layer**: chairs you can sit on, TVs and lamps that switch on, a fridge that
   stores food, a stove that sizzles, ladders to climb, rides with real-feel physics
@@ -69,7 +69,9 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
 - **A little model of our own, trained on how kids type.** Alongside the word lists,
   a classifier trained in this repo that ships in the bundle (no download) reads misspellings and
   roundabout phrasings — "a hosptial", "skool", "somewhere for the sick people to go" —
-  and maps them onto the same builder. It also reads a whole sentence at a time:
+  and maps them onto the same builder. Ask a villager instead of stamping a card and you
+  get it to your own spec: "a big blue dog house for Rex with a fence and a light" comes
+  out big, blue, fenced, lit, with a water bowl and an **R** over the door. It also reads a whole sentence at a time:
   "build a school and dig a big lake and then make it night" is three jobs, done in
   order, while "a school with 6 classrooms and a computer room" stays one school. Airports
   come with a runway a plane can really take off from, and public buildings get sliding doors.

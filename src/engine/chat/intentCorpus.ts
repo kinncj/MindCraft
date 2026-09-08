@@ -39,6 +39,10 @@ export const LABEL_WORDS: Record<IntentLabel, string[]> = {
   fountain: ['fountain', 'water fountain', 'splashy fountain'],
   parking: ['parking lot', 'car park', 'place to park the cars'],
   fence: ['fence', 'fence around it', 'wall around the outside'],
+  doghouse: [
+    'dog house', 'doghouse', 'kennel', 'house for my dog', 'house for my puppy', 'little house for the doggy',
+    'a home for my puppy', 'somewhere for the dog to sleep', 'puppy house', 'dog kennel',
+  ],
   runway: ['runway', 'airstrip', 'landing strip', 'air strip', 'tarmac', 'strip for planes to take off', 'long strip for the airplanes', 'runway for airplanes'],
   // Famous places: the names people really use, in English and in Portuguese.
   m_eiffel: ['eiffel tower', 'eiffel', 'the tower in paris', 'torre eiffel', 'that big iron tower in france'],

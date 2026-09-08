@@ -13,7 +13,7 @@
 
 export const BUILDING_LABELS = ['house', 'castle', 'hospital', 'school', 'shop', 'skyscraper', 'hotel', 'barn', 'library', 'restaurant', 'firestation', 'airport'] as const;
 export const EARTHWORK_LABELS = ['pool', 'raisedPool', 'lake', 'pond', 'pit', 'bunker', 'tunnel', 'well', 'moat'] as const;
-export const FEATURE_LABELS = ['bridge', 'treehouse', 'playground', 'court', 'garden', 'fountain', 'parking', 'fence', 'runway'] as const;
+export const FEATURE_LABELS = ['bridge', 'treehouse', 'playground', 'court', 'garden', 'fountain', 'parking', 'fence', 'runway', 'doghouse'] as const;
 
 /** Famous places a kid can ask for by name, and cities that bring a few at once. */
 export const MONUMENT_LABELS = [

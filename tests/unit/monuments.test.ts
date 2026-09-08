@@ -197,3 +197,71 @@ describe('asking for a famous place', () => {
     expect(reply.say).toContain('Eiffel');
   });
 });
+
+describe('a dog house, built to the kid\'s specs', () => {
+  it('reads the size, the colour, the name and the extras out of the words', async () => {
+    const { parseFeature } = await import('../../src/engine/chat/buildRequest');
+    const plain = parseFeature('build a dog house');
+    expect(plain?.kind).toBe('doghouse');
+    const fancy = parseFeature('make a big red dog house for Rex with a fence and a light');
+    expect(fancy).toMatchObject({ kind: 'doghouse', color: 'color_red', text: 'Rex' });
+    expect(fancy?.width).toBeGreaterThan(9);
+    expect(fancy?.extras).toMatchObject({ fence: true, light: true, bowl: true });
+    expect(parseFeature('a tiny kennel for my puppy called Bolt')).toMatchObject({ kind: 'doghouse', text: 'Bolt' });
+    // A house for people is still a house for people.
+    const { parseBuildRequest } = await import('../../src/engine/chat/buildRequest');
+    expect(parseBuildRequest('build a dog house'), 'a kennel is not a bungalow').toBeNull();
+    expect(parseBuildRequest('build a house')?.type).toBe('house');
+  });
+
+  it('builds a kennel a puppy can walk into, with its initial over the door', async () => {
+    const { featureOptions } = await import('../../src/engine/build/buildingKit');
+    const world = flat();
+    const tools = new BuildTools(world, blocks, new CommandHistory(world));
+    const opts = featureOptions(blocks, { kind: 'doghouse', color: 'color_red', text: 'Rex', extras: { fence: true, bowl: true, light: true, bed: true } });
+    tools.run('dog house', tools.planFeature('doghouse', 24, GROUND + 1, 24, opts));
+    // A doorway two blocks tall at the front of the kennel, open to the yard.
+    const front = 24 + Math.floor(opts.depth / 2) - 2;
+    expect(world.getBlock(24, GROUND + 1, front), 'the doorway is blocked').toBe(0);
+    expect(world.getBlock(24, GROUND + 2, front), 'the doorway is only one tall').toBe(0);
+    // Walls and a roof around it.
+    expect(world.getBlock(24, GROUND + 1, front - 1), 'no room inside').toBe(0);
+    expect(world.getBlock(24, GROUND + 4, 24), 'no roof').not.toBe(0);
+    // The extras the child asked for.
+    expect(world.getBlock(24 - 4, GROUND + 1, 24 - 4), 'no fence around the yard').toBe(blocks.numericOf('fence'));
+    const around: number[] = [];
+    for (let x = 20; x <= 28; x++) for (let y = GROUND; y <= GROUND + 8; y++) for (let z = 20; z <= 28; z++) around.push(world.getBlock(x, y, z));
+    expect(around, 'no water bowl').toContain(blocks.numericOf('water'));
+    expect(around, 'no lamp').toContain(blocks.numericOf('lantern'));
+    // The R of Rex, up on the front.
+    const letters = around.filter((id) => id !== 0);
+    expect(letters.length).toBeGreaterThan(80);
+  });
+
+  it('a bigger kennel really is bigger', async () => {
+    const { featureOptions } = await import('../../src/engine/build/buildingKit');
+    const world = flat();
+    const tools = new BuildTools(world, blocks, new CommandHistory(world));
+    const small = tools.planFeature('doghouse', 24, GROUND + 1, 24, featureOptions(blocks, { kind: 'doghouse', width: 7, length: 7 }));
+    const big = tools.planFeature('doghouse', 24, GROUND + 1, 24, featureOptions(blocks, { kind: 'doghouse', width: 13, length: 13 }));
+    const solid = (edits: typeof small) => edits.filter((e) => e.id !== 0).length;
+    expect(solid(big)).toBeGreaterThan(solid(small));
+    const tallest = (edits: typeof small) => Math.max(...edits.filter((e) => e.id !== 0).map((e) => e.y));
+    expect(tallest(big), 'a big kennel should stand taller too').toBeGreaterThan(tallest(small));
+  });
+
+  it('the villager builds one when asked, with the name in its reply', async () => {
+    const { RuleChatProvider } = await import('../../src/engine/chat/RuleChatProvider');
+    const ctx = {
+      villager: { id: 'v1', name: 'Ben', job: 'builder', jobLabel: 'Builder', emoji: '🔨', x: 5, z: 5 },
+      message: 'build a big blue dog house for Rex with a fence',
+      history: [], player: { x: 8, y: 3, z: 8, yaw: 0 }, site: { x: 8, y: 3, z: 1 },
+      blueprints: [], blocks: blocks.palette().map((b) => ({ id: b.id, label: b.label })), tools: [],
+      world: { timeOfDay: 0.3, weather: 'sunny', biome: 'meadow', worldName: 'W' },
+    };
+    const reply = await new RuleChatProvider().reply(ctx);
+    expect(reply.actions[0].tool).toBe('build_feature');
+    expect(reply.actions[0].args).toMatchObject({ kind: 'doghouse', color: 'color_blue', text: 'Rex' });
+    expect((reply.actions[0].args.extras as { fence: boolean }).fence).toBe(true);
+  });
+})

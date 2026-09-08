@@ -99,11 +99,11 @@ interesting work went.
 Current shape (from the generated header of `src/engine/chat/intentWeights.ts`):
 
 ```
-8192 hashed feature buckets × 69 labels
+8192 hashed feature buckets × 70 labels
 one byte per weight, 90% of them pruned to zero
-114,246 generated training sentences
-held-out accuracy 97.9%
-111 KB gzipped — 736 KB of base64 in the source
+118,995 generated training sentences
+held-out accuracy 98.3%
+113 KB gzipped — 747 KB of base64 in the source
 ```
 
 Two numbers get quoted for size, and they measure different things: **41.5 KB**
@@ -202,7 +202,7 @@ TypeScript run by Node's built-in type stripping — no training framework, no
 Python, no dependencies at all.
 
 ```
-114246 sentences, 69 labels, 8192 buckets
+118995 sentences, 70 labels, 8192 buckets
 epoch 5:  loss 0.1051
 epoch 10: loss 0.0673
 epoch 20: loss 0.0458
@@ -233,7 +233,7 @@ better, because a run of zeros is nearly free in gzip:
 | 4096 | 90% | 98.0% | 57.2 KB | fine until the labels grew |
 | 4096 | 93% | 97.3% | 44.4 KB | small, but real sentences started failing |
 | 8192 | 80% | 98.1% | 173.5 KB | best of all, and not worth the bytes |
-| **8192** | **90%** | **97.9%** | **111.1 KB** | **what ships** |
+| **8192** | **90%** | **98.3%** | **113.1 KB** | **what ships** |
 | 8192 | 97% | 97.0% | 46.3 KB | squeezed; one or two sentences slip |
 | 8192 | 98% | 96.7% | 40.2 KB | "can we have a storm" → a shop |
 
@@ -242,7 +242,7 @@ Two things to take from that table.
 **More buckets pruned harder beats fewer buckets kept denser.** At the same file
 size, 8192 buckets at 97% read more sentences correctly than 4096 at 93%, because
 most of the loss at 4096 was hash collisions rather than missing weights. When the
-labels nearly doubled (50 → 69, after the monuments), widening the table was the
+labels nearly doubled (50 → 70, after the monuments), widening the table was the
 fix, not shrinking it.
 
 **Size is measured against the alternative.** A downloaded helper model is 400 MB

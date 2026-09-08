@@ -70,7 +70,17 @@ export function actionsFor(request: Request, ctx: ChatContext): ChatAction[] {
       const f = request.spec;
       const size = FEATURE_SIZE[f.kind];
       const at = ctx.plot?.(f.width ?? size.w, f.length ?? size.d) ?? ctx.site;
-      return [{ tool: 'build_feature', args: { x: at.x, y: at.y, z: at.z, kind: f.kind, ...(f.width ? { width: f.width } : {}), ...(f.length ? { length: f.length } : {}), ...(f.color ? { color: f.color } : {}) } }];
+      return [{
+        tool: 'build_feature',
+        args: {
+          x: at.x, y: at.y, z: at.z, kind: f.kind,
+          ...(f.width ? { width: f.width } : {}),
+          ...(f.length ? { length: f.length } : {}),
+          ...(f.color ? { color: f.color } : {}),
+          ...(f.text ? { text: f.text } : {}),
+          ...(f.extras ? { extras: f.extras } : {}),
+        },
+      }];
     }
     case 'monument': {
       const m = request.spec;
