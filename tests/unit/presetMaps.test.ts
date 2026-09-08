@@ -63,6 +63,25 @@ describe('prebuilt maps', () => {
     expect(gen.config).toEqual({ kind: 'flat', seed: 7, surfaceY: 4, preset: 'toyland' });
   });
 
+  it('a chunk generated in the worker still carries the toy chest and its toys', async () => {
+    // The worker cannot transfer a Map, so it sends block entities as plain data and
+    // the chunk manager puts them back. Without that, every prebuilt container arrives
+    // empty and a kid taps the toy chest to find nothing inside.
+    const { toWorkerResponse, fromWorkerResponse } = await import('../../src/engine/world/generation/workerChunk');
+    const gen = new FlatGenerator(7, 4, 'toyland');
+    const source = new Chunk(toChunkCoord(47), toChunkCoord(47));
+    gen.generate(source);
+    const response = toWorkerResponse(1, source);
+    expect(response.entities.length).toBeGreaterThan(0);
+    // Cross the worker boundary the way structured cloning does: only plain data survives.
+    const delivered = fromWorkerResponse(JSON.parse(JSON.stringify(response)) as typeof response, source.blocks, source.states);
+    expect(delivered.get(toLocal(47), 6, toLocal(47))).toBe(B.magic_box);
+    const chest = delivered.getEntity(toLocal(47), 6, toLocal(47));
+    expect(chest?.kind).toBe('container');
+    expect((chest?.data as { name: string }).name).toBe('Toy Chest');
+    expect((chest?.data as { items: unknown[] }).items.length).toBeGreaterThan(0);
+  });
+
   it('world records for presets carry the preset and its entities', () => {
     const town = createWorldRecord('T', 'town');
     expect(town.generator).toEqual({ kind: 'flat', surfaceY: 4, preset: 'town' });

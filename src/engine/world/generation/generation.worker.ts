@@ -1,13 +1,15 @@
 import { Chunk } from '../Chunk';
 import type { GeneratorConfig } from './Generator';
 import { createGenerator } from './createGenerator';
+import { toWorkerResponse, type GenerateResponse } from './workerChunk';
+
+export type { GenerateResponse } from './workerChunk';
 
 /**
  * Terrain generation off the main thread. One message in (config + chunk
  * coords), one message out (block and state buffers, transferred).
  */
 export type GenerateRequest = { id: number; config: GeneratorConfig; cx: number; cz: number };
-export type GenerateResponse = { id: number; cx: number; cz: number; blocks: ArrayBuffer; states: ArrayBuffer };
 
 const generators = new Map<string, ReturnType<typeof createGenerator>>();
 
@@ -21,12 +23,6 @@ self.onmessage = (event: MessageEvent<GenerateRequest>) => {
   }
   const chunk = new Chunk(cx, cz);
   generator.generate(chunk);
-  const response: GenerateResponse = {
-    id,
-    cx,
-    cz,
-    blocks: chunk.blocks.buffer as ArrayBuffer,
-    states: chunk.states.buffer as ArrayBuffer,
-  };
+  const response: GenerateResponse = toWorkerResponse(id, chunk);
   (self as unknown as Worker).postMessage(response, [response.blocks, response.states]);
 };

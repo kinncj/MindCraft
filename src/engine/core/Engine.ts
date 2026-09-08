@@ -112,6 +112,8 @@ declare global {
       projectBlock: (x: number, y: number, z: number) => { x: number; y: number } | null;
       playerPosition: () => { x: number; y: number; z: number };
       blockAt: (x: number, y: number, z: number) => string | null;
+      /** The block entity (a container's name and contents) at a spot, for tests and debugging. */
+      entityAt: (x: number, y: number, z: number) => { kind: string; data: Record<string, unknown> } | null;
       surfaceAt: (x: number, z: number) => number;
       isReady: () => boolean;
       renderStats: () => Record<string, unknown>;
@@ -1043,6 +1045,10 @@ export class Engine {
       blockAt: (x, y, z) => {
         const id = this.world.getBlock(x, y, z);
         return id === 0 ? 'air' : (registry.get(id)?.id ?? null);
+      },
+      entityAt: (x, y, z) => {
+        const entity = this.world.getEntity(x, y, z);
+        return entity ? { kind: entity.kind, data: entity.data } : null;
       },
       surfaceAt: (x, z) => this.world.height(x, z),
       isReady: () => this.settled,

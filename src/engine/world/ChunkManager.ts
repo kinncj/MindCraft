@@ -4,7 +4,8 @@ import type { ChunkMesher, ChunkMeshes } from '../render/ChunkMesher';
 import { Chunk } from './Chunk';
 import { CHUNK_SIZE, chunkKey, parseChunkKey, toChunkCoord } from './coords';
 import type { GeneratorConfig, WorldGenerator } from './generation/Generator';
-import type { GenerateRequest, GenerateResponse } from './generation/generation.worker';
+import type { GenerateRequest } from './generation/generation.worker';
+import { fromWorkerResponse, type GenerateResponse } from './generation/workerChunk';
 import { packRegion } from '../render/meshRegion';
 import type { MeshRequest, MeshResponse } from '../render/mesh.worker';
 import type { VoxelWorld } from './VoxelWorld';
@@ -251,12 +252,7 @@ export class ChunkManager implements System {
     return new Promise<Chunk>((resolve) => {
       const id = this.nextJob++;
       this.workerJobs.set(id, (response) => {
-        const chunk = new Chunk(cx, cz, {
-          blocks: new Uint16Array(response.blocks),
-          states: new Uint8Array(response.states),
-        });
-        chunk.generated = true;
-        resolve(chunk);
+        resolve(fromWorkerResponse(response));
       });
       const request: GenerateRequest = { id, config: this.generator.config, cx, cz };
       this.worker!.postMessage(request);
