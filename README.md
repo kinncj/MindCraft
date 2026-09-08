@@ -67,7 +67,7 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
   wells, moats. Bridges, treehouses, playgrounds, courts, and gardens come out any size and
   any colour, beside a building or on their own.
 - **A little model of our own, trained on how kids type.** Alongside the word lists,
-  a 42 KB classifier that ships in the bundle (no download) reads misspellings and
+  a classifier trained in this repo that ships in the bundle (no download) reads misspellings and
   roundabout phrasings — "a hosptial", "skool", "somewhere for the sick people to go" —
   and maps them onto the same builder. It also reads a whole sentence at a time:
   "build a school and dig a big lake and then make it night" is three jobs, done in
@@ -78,6 +78,14 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
   roads, plazas and courts are left alone even though they look flat and empty.
   `npm run train:intent` retrains it from the sentences in `src/engine/chat/intentCorpus.ts`.
   How it was built, end to end: `docs/ai/how-we-built-the-little-model.md`.
+- **Famous places, in blocks.** Ask for the **Eiffel Tower**, the **CN Tower**, the
+  **Rogers Centre**, Ottawa's **Peace Tower** and **Rideau Canal**, Curitiba's **Eye
+  Museum**, **Wire Opera House** and **Botanical Garden**, São Paulo's **MASP**,
+  **Copan** and **Ibirapuera Auditorium**, or **Niagara** and **Iguaçu Falls** — with
+  water that really falls. Ask for a whole city ("build Curitiba") and its landmarks go
+  up side by side with the name in giant letters. A sign can spell anything: "a sign
+  that says KINN". They are original block sculptures, one file each in
+  `src/engine/build/monuments/`.
 - **Chat with villagers.** Say what you want in your own words: "a beautiful and
   colourful brick mansion, like a massive house" becomes a three-floor brick house
   with rainbow pillars, glass windows, a door, a stepped roof, and a chimney. Houses
@@ -273,6 +281,10 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 - Toy Land's cowboy doll and astronaut toy are original block sculptures of stock toy
   archetypes. They are not affiliated with Disney/Pixar, and no Toy Story characters,
   names, or designs are used.
+- The monuments are original blocky homages to real places, drawn in this repository's
+  own code from public silhouettes and proportions. No plans, photographs, models,
+  logos, signage, or branding from the real buildings, their owners, or their architects
+  are used, and nothing here is affiliated with or endorsed by any of them.
 - Roblox, Brookhaven, and The Sims are inspirations only; no code, assets, names, or
   designs from them are used.
 - The code is MIT-licensed (see `LICENSE`).

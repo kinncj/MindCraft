@@ -8,6 +8,9 @@
  */
 
 import { classifyIntent, intentIsClear } from './intent';
+import { CITY_PACKS, isCityName, type CityName } from '../build/monuments/cities';
+import { MONUMENTS, cleanText, isMonumentKind, type MonumentKind } from '../build/monuments/index';
+import { labelSubject } from './intentFeatures';
 import { phonetic } from './intentFeatures';
 
 export type BuildingType = 'house' | 'castle' | 'hospital' | 'school' | 'shop' | 'skyscraper' | 'hotel' | 'barn' | 'library' | 'restaurant' | 'firestation' | 'airport';
@@ -164,6 +167,8 @@ const VOCABULARY = [
   'doctors', 'teachers', 'students', 'patients', 'nurses', 'firefighters', 'builders', 'farmers', 'musicians', 'shopkeeper',
   'lake', 'pond', 'pool', 'swimming', 'bunker', 'basement', 'tunnel', 'moat', 'trench', 'underground',
   'airport', 'airfield', 'runway', 'airstrip', 'tarmac', 'airplane', 'airplanes', 'aeroplane', 'helicopter', 'hangar', 'terminal',
+  'eiffel', 'niagara', 'iguacu', 'iguazu', 'toronto', 'ottawa', 'curitiba', 'paris', 'rideau', 'copan', 'masp', 'ibirapuera',
+  'niemeyer', 'botanical', 'opera', 'parliament', 'stadium', 'museum', 'canal', 'waterfall', 'waterfalls', 'monument', 'tower',
   'colourful', 'colorful', 'rainbow', 'beautiful', 'yellow', 'purple', 'orange', 'green', 'brown', 'white', 'black', 'brick', 'stone', 'wooden',
   'glass', 'furnished', 'furniture', 'automatic', 'piston', 'flag', 'canada', 'brazil', 'america', 'france', 'italy', 'germany', 'japan',
   'portugal', 'spain', 'mexico', 'ireland', 'massive', 'giant', 'little', 'small', 'huge',
@@ -215,10 +220,25 @@ export function correctSpelling(raw: string): string {
   const known = new Set(VOCABULARY);
   return raw.replace(/[a-z']{4,}/g, (word) => {
     if (known.has(word) || NEVER_CORRECT.has(word)) return word;
-    const match = SOUNDS_LIKE.get(phonetic(word));
+    const sounded = SOUNDS_LIKE.get(phonetic(word));
     // Sounding alike is not enough: a typo is also a near miss in spelling.
-    return match && editDistance(word, match) <= 2 ? match : word;
+    if (sounded && editDistance(word, sounded) <= 2) return sounded;
+    // One letter out from a word the parser knows, and long enough that the
+    // near miss cannot be a coincidence: "iffel" is the Eiffel Tower.
+    return word.length >= 5 ? (nearest(word) ?? word) : word;
   });
+}
+
+/** The one vocabulary word a single slip away, if exactly one is that close. */
+function nearest(word: string): string | null {
+  let best: string | null = null;
+  for (const candidate of VOCABULARY) {
+    if (candidate.length < 5 || Math.abs(candidate.length - word.length) > 1) continue;
+    if (editDistance(word, candidate) > 1) continue;
+    if (best && best !== candidate) return null; // ambiguous: leave it alone
+    best = candidate;
+  }
+  return best;
 }
 
 /** Levenshtein distance, stopped early: only small distances matter here. */
@@ -421,7 +441,10 @@ export function parseFeature(raw: string): FeatureSpec | null {
   const text = correctSpelling(raw.toLowerCase());
   const guess = classifyIntent(text);
   const known = STANDALONE_FEATURES.map(([pattern, kind, label]): [RegExp | null, FeatureSpec['kind'], string] => [pattern, kind, label]);
-  if (guess.kind === 'feature' && intentIsClear(guess) && !known.some(([pattern]) => pattern?.test(text))) {
+  // "plant a tree" is a tree, not a tree house: the model may only pick a
+  // treehouse when the child actually said something about a house up there.
+  const treehouseWithoutHouse = guess.label === 'treehouse' && !/\b(house|hut|cabin|stilts|up in a tree|ladder)\b/.test(text);
+  if (guess.kind === 'feature' && intentIsClear(guess) && !treehouseWithoutHouse && !known.some(([pattern]) => pattern?.test(text))) {
     const row = known.find(([, kind]) => kind === guess.label);
     if (row) known.unshift([null, row[1], row[2]]); // the model's guess, tried first
   }
@@ -500,4 +523,86 @@ export function parseEarthwork(raw: string): EarthworkSpec | null {
   else if (/\bshallow\b/.test(text)) spec.depth = 1;
   if (kind === 'tunnel' && /\b(\d{1,2})\s*(blocks? )?long\b/.test(text)) spec.length = Math.max(3, Math.min(48, Number(/\b(\d{1,2})\s*(blocks? )?long\b/.exec(text)![1])));
   return spec;
+}
+
+/** A famous place asked for by name. */
+export type MonumentSpec = { kind: MonumentKind; label: string; text?: string };
+
+/** The words people use for each monument, checked before the model is asked. */
+const MONUMENT_WORDS: Array<[RegExp, MonumentKind]> = [
+  [/\b(eiffel|eifel|iffel|torre eiffel)\b/, 'eiffel'],
+  [/\b(cn tower|c n tower|toronto tower)\b/, 'cn_tower'],
+  [/\b(rogers (centre|center)|skydome|sky dome)\b/, 'rogers_dome'],
+  [/\b(peace tower|parliament)\b/, 'peace_tower'],
+  [/\b(rideau|skating canal|skateway)\b/, 'rideau_canal'],
+  [/\b(niemeyer|museu do olho|eye museum|the eye)\b/, 'niemeyer_eye'],
+  [/\b(wire opera|opera de arame|ópera de arame)\b/, 'wire_opera'],
+  [/\b(botanical garden|jardim bot[aâ]nico|greenhouse)\b/, 'botanical_garden'],
+  [/\b(masp|sao paulo art museum|s[aã]o paulo art museum)\b/, 'masp'],
+  [/\b(copan|edif[ií]cio copan)\b/, 'copan'],
+  [/\b(ibirapuera)\b/, 'ibirapuera'],
+  [/\b(niagara|niagra)( falls)?\b/, 'niagara'],
+  [/\b(igua[cç]u|iguazu|foz do igua[cç]u|cataratas)( falls)?\b/, 'iguacu'],
+  [/\b(big letters|block letters|giant letters|a sign that says|sign saying|letters that say)\b/, 'sign'],
+];
+
+/** The word a sign should spell, when the child says one. */
+function signText(text: string): string | undefined {
+  const match = /\b(?:says?|saying|spells?|reads?)\s+["']?([a-z0-9 '!?-]{1,20})["']?/.exec(text);
+  const word = cleanText(match ? match[1] : '');
+  return word.length > 0 ? word : undefined;
+}
+
+export function parseMonument(raw: string): MonumentSpec | null {
+  const text = correctSpelling(raw.toLowerCase());
+  let kind: MonumentKind | null = null;
+  for (const [pattern, k] of MONUMENT_WORDS) {
+    if (pattern.test(text)) {
+      kind = k;
+      break;
+    }
+  }
+  if (!kind) {
+    const guess = classifyIntent(text);
+    if (guess.kind === 'monument' && intentIsClear(guess)) {
+      const subject = labelSubject(guess.label);
+      if (isMonumentKind(subject)) kind = subject;
+    }
+  }
+  if (!kind) return null;
+  const spec: MonumentSpec = { kind, label: MONUMENTS[kind].label };
+  if (kind === 'sign') spec.text = signText(text) ?? 'HELLO';
+  return spec;
+}
+
+/** A whole city: a few of its landmarks, and a sign with its name. */
+export type CitySpec = { city: CityName; label: string; monuments: MonumentKind[]; sign: string };
+
+const CITY_WORDS: Array<[RegExp, CityName]> = [
+  [/\bcuritiba\b/, 'curitiba'],
+  [/\b(s[aã]o paulo|sao paolo|sampa)\b/, 'saopaulo'],
+  [/\bottawa\b/, 'ottawa'],
+  [/\btoronto\b/, 'toronto'],
+  [/\bparis\b/, 'paris'],
+];
+
+export function parseCity(raw: string): CitySpec | null {
+  const text = correctSpelling(raw.toLowerCase());
+  let city: CityName | null = null;
+  for (const [pattern, c] of CITY_WORDS) {
+    if (pattern.test(text)) {
+      city = c;
+      break;
+    }
+  }
+  if (!city) {
+    const guess = classifyIntent(text);
+    if (guess.kind === 'city' && intentIsClear(guess)) {
+      const subject = labelSubject(guess.label);
+      if (isCityName(subject)) city = subject;
+    }
+  }
+  if (!city) return null;
+  const pack = CITY_PACKS[city];
+  return { city, label: pack.label, monuments: [...pack.monuments], sign: pack.sign };
 }

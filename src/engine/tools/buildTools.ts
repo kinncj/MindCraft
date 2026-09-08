@@ -2,6 +2,7 @@ import { blueprintById, BLUEPRINTS } from '../build/blueprints';
 import type { Engine } from '../core/Engine';
 import { resolveBlockId } from '../blocks/blocks';
 import { earthworkOptions, featureOptions, houseOptions, type BuildingArgs } from '../build/buildingKit';
+import { MONUMENTS, MONUMENT_KINDS, cleanText, isMonumentKind, monumentKit, type MonumentKind } from '../build/monuments/index';
 import type { EarthworkKind, FeatureKind } from '../build/BuildTools';
 import { houseLayout } from '../build/BuildTools';
 
@@ -82,6 +83,17 @@ export function registerBuildTools(engine: Engine): void {
     execute: (a: { x: number; y: number; z: number; kind: FeatureKind; width?: number; length?: number; color?: string }) => {
       const edits = build.planFeature(a.kind, a.x, a.y, a.z, featureOptions(engine.registry, a));
       return { blocks: build.run(`Build a ${a.kind}`, edits) };
+    },
+  });
+  tools.register({
+    name: 'build_monument',
+    description: `Build a famous place in blocks, centred on (x, z) with the ground at y: ${MONUMENT_KINDS.join(', ')}. The kind "sign" spells out the text argument in big block letters. color is a block id for the parts that have an obvious colour.`,
+    inputSchema: { type: 'object', properties: { x: int, y: int, z: int, kind: { type: 'string', enum: MONUMENT_KINDS }, text: { type: 'string' }, color: { type: 'string' } }, required: ['x', 'y', 'z', 'kind'] },
+    execute: (a: { x: number; y: number; z: number; kind: MonumentKind; text?: string; color?: string }) => {
+      if (!isMonumentKind(a.kind)) throw new Error(`I do not know the monument "${a.kind}"`);
+      const ctx = { kit: monumentKit(engine.registry), text: a.text ? cleanText(a.text) : undefined, color: a.color ? blockId(a.color) : null };
+      const edits = build.planMonument(a.kind, a.x, a.y, a.z, ctx);
+      return { blocks: build.run(`Build the ${MONUMENTS[a.kind].label}`, edits), monument: MONUMENTS[a.kind].label };
     },
   });
   tools.register({

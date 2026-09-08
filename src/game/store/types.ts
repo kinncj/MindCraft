@@ -55,6 +55,8 @@ export type UiSlice = {
   toggleViewMode: () => void;
   zoom: (delta: number) => void;
   dance: () => void;
+  /** Builds a famous place on open ground near the player. */
+  buildMonument: (kind: string, text?: string) => void;
   /** Takes a picture of the world (no HUD) and saves it as a PNG. */
   takePhoto: () => Promise<void>;
   /** Creative flight (double-tap jump, or the wing button). */

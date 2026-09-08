@@ -12,6 +12,7 @@ there is one place to keep correct.
 | [add-a-tool.md](add-a-tool.md) | A capability in the tool registry — which is also the MCP surface |
 | [teach-the-model.md](teach-the-model.md) | Teaching the in-bundle sentence model new things kids can ask for |
 | [add-a-building.md](add-a-building.md) | A building type, outdoor feature, or dig for the generator |
+| [add-a-monument.md](add-a-monument.md) | A famous place, drawn in blocks, and the cities that bring several at once |
 | [configuration.md](configuration.md) | Where everything configurable lives, and what is not configurable |
 
 The rules that override everything are in [`AGENTS.md`](../../AGENTS.md) (the same rules

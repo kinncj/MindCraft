@@ -1,5 +1,9 @@
 import { buildActionsFor, parseBuildRequest, parseEarthwork, parseFeature } from './buildRequest';
 import { actionsFor, describeRequest, parseRequests } from './requests';
+import { MONUMENTS } from '../build/monuments/index';
+import { CITY_PACKS, type CityName } from '../build/monuments/cities';
+
+const CITY_EMOJI: Record<CityName, string> = Object.fromEntries(Object.entries(CITY_PACKS).map(([k, v]) => [k, v.emoji])) as Record<CityName, string>;
 import type { ChatAction, ChatContext, ChatProvider, ChatReply } from './types';
 
 /**
@@ -98,6 +102,16 @@ export class RuleChatProvider implements ChatProvider {
         const list = words.length > 2 ? `${words.slice(0, -1).join(', ')}, and ${words[words.length - 1]}` : words.join(' and ');
         return say(`${list} — all of it! Watch me go! 🔨`, actions);
       }
+    }
+    // Famous places, before the shape words get hold of "tower".
+    const famous = requests.length === 1 && (requests[0].kind === 'monument' || requests[0].kind === 'city') ? requests[0] : null;
+    if (famous) {
+      const actions = actionsFor(famous, ctx);
+      if (famous.kind === 'city') {
+        return say(`${ctx.villager.emoji === '🔨' ? '' : ''}${famous.spec.label}, coming up! ${CITY_EMOJI[famous.spec.city] ?? '🏙️'} ${famous.spec.monuments.map((k) => MONUMENTS[k].label).join(', ')}, and the name in big letters. Watch me!`, actions);
+      }
+      const monument = MONUMENTS[famous.spec.kind];
+      return say(`The ${monument.label}! ${monument.emoji} ${monument.blurb} Watch me build it!`, actions);
     }
     const spec = parseBuildRequest(text);
     if (spec && wantsBuild) {

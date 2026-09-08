@@ -40,6 +40,26 @@ export const LABEL_WORDS: Record<IntentLabel, string[]> = {
   parking: ['parking lot', 'car park', 'place to park the cars'],
   fence: ['fence', 'fence around it', 'wall around the outside'],
   runway: ['runway', 'airstrip', 'landing strip', 'air strip', 'tarmac', 'strip for planes to take off', 'long strip for the airplanes', 'runway for airplanes'],
+  // Famous places: the names people really use, in English and in Portuguese.
+  m_eiffel: ['eiffel tower', 'eiffel', 'the tower in paris', 'torre eiffel', 'that big iron tower in france'],
+  m_cn_tower: ['cn tower', 'the tall tower in toronto', 'toronto tower', 'that needle tower with the pod'],
+  m_rogers_dome: ['rogers centre', 'rogers center', 'skydome', 'the baseball stadium in toronto', 'stadium with the round roof'],
+  m_peace_tower: ['peace tower', 'parliament in ottawa', 'the clock tower in ottawa', 'canadian parliament'],
+  m_rideau_canal: ['rideau canal', 'the skating canal in ottawa', 'the ice canal you skate on', 'canal skateway'],
+  m_niemeyer_eye: ['oscar niemeyer museum', 'the eye museum', 'museu do olho', 'museu oscar niemeyer', 'the big eye building in curitiba', 'the eye'],
+  m_wire_opera: ['wire opera house', 'opera de arame', 'the glass opera house in curitiba', 'the opera in the lake'],
+  m_botanical_garden: ['botanical garden', 'jardim botanico', 'the greenhouse in curitiba', 'the glass greenhouse with flowers'],
+  m_masp: ['masp', 'sao paulo art museum', 'museu de arte de sao paulo', 'the museum on red beams', 'the museum you can walk under'],
+  m_copan: ['copan', 'edificio copan', 'the wavy building in sao paulo', 'the building shaped like a wave'],
+  m_ibirapuera: ['ibirapuera auditorium', 'auditorio ibirapuera', 'the white auditorium with the red tongue', 'ibirapuera'],
+  m_niagara: ['niagara falls', 'niagara', 'the horseshoe waterfall', 'the big waterfall in canada'],
+  m_iguacu: ['iguacu falls', 'iguazu falls', 'foz do iguacu', 'cataratas do iguacu', 'the waterfalls in brazil', 'the jungle waterfalls'],
+  m_sign: ['big letters', 'a sign with my name', 'giant letters', 'block letters', 'a sign that says something'],
+  city_curitiba: ['curitiba', 'curitiba brazil', 'the city of curitiba'],
+  city_saopaulo: ['sao paulo', 'são paulo', 'sao paulo brazil', 'the city of sao paulo'],
+  city_ottawa: ['ottawa', 'ottawa canada', 'the capital of canada'],
+  city_toronto: ['toronto', 'toronto canada', 'the city of toronto'],
+  city_paris: ['paris', 'paris france', 'the city of paris'],
   follow: [], stay: [], dance: [], gift: [], time_night: [], time_day: [], weather_rain: [], weather_snow: [],
   weather_sunny: [], pet: [], creature: [], ride: [], vehicle: [], fly: [], land: [], stop_riding: [],
   shape: [], greeting: [], question: [],
@@ -60,6 +80,8 @@ export const ACTION_SENTENCES: Partial<Record<IntentLabel, string[]>> = {
   stay: [
     'stay here', 'wait here', 'stop walking', 'stay right there', 'dont move', 'wait for me', 'stop following me',
     'stay put', 'stand still please', 'wait right here until i come back', 'hold on stay there', 'you stay',
+    'wait here until i come back', 'stay there until i come back', 'dont come with me', 'wait for me to come back',
+    'stay while i go and look', 'you wait, i will come back', 'nobody move', 'freeze right there', 'park yourself here',
   ],
   dance: [
     'lets dance', 'dance with me', 'do a dance', 'show me your dance moves', 'can you dance', 'party time',
@@ -78,7 +100,11 @@ export const ACTION_SENTENCES: Partial<Record<IntentLabel, string[]>> = {
     'make it light again', 'no more night', 'i dont like the dark turn it back to day', 'morning time now',
     'can we have the daytime again', 'the night is over', 'time to wake up',
   ],
-  weather_rain: ['make it rain', 'i want rain', 'can we have a storm', 'rain please', 'make the rain come', 'turn on the rain'],
+  weather_rain: [
+    'make it rain', 'i want rain', 'can we have a storm', 'rain please', 'make the rain come', 'turn on the rain',
+    'can we have rain', 'i want a storm', 'lets have a storm', 'make a big storm', 'bring the rain', 'rainy day please',
+    'i like the rain, make it rain', 'can it rain now', 'make the sky rain', 'storm time',
+  ],
   weather_snow: ['make it snow', 'i want snow', 'snow please', 'can we have snow to play in', 'turn on the snow', 'let it snow'],
   weather_sunny: ['make it sunny', 'stop the rain', 'no more snow', 'i want sunshine', 'clear the sky', 'make the weather nice'],
   pet: [
@@ -105,8 +131,11 @@ export const ACTION_SENTENCES: Partial<Record<IntentLabel, string[]>> = {
   stop_riding: ['hop off', 'get out of the car', 'stop driving', 'get off the bike', 'land the plane and get out', 'stop riding'],
   shape: [
     'build a pyramid', 'make a big tower', 'build a huge cube', 'make a wall of bricks', 'build an arch',
-    'plant a tree', 'make a rainbow arch', 'build a tall tower of stone', 'a pyramid of sand please', 'make a ring',
+    'make a rainbow arch', 'build a tall tower of stone', 'a pyramid of sand please', 'make a ring',
     'build a road', 'make a path', 'build me a platform', 'a big box of blocks',
+    // A tree is a shape you plant; a tree house is a place you climb into.
+    'plant a tree', 'plant a tree please', 'plant some trees', 'grow a tree', 'grow me a big tree',
+    'put a tree here', 'i want a tree', 'make a tree', 'build a tree', 'a big tree please', 'plant an apple tree',
   ],
   greeting: [
     'hi there', 'hello', 'hey you', 'good morning', 'good night', 'bye bye', 'see you later', 'thank you so much',
@@ -176,6 +205,8 @@ export function rng(seed: number): () => number {
 /** How a six-year-old types: swapped letters, doubled letters, dropped letters, near misses. */
 export function typo(word: string, rand: () => number): string {
   if (word.length < 4) return word;
+  // Kids drop the first letter too — "iffel" for "eiffel", "ospital" for "hospital".
+  if (rand() < 0.12) return word.slice(1);
   const i = 1 + Math.floor(rand() * (word.length - 2));
   const roll = rand();
   if (roll < 0.3) return word.slice(0, i) + word.slice(i + 1); // dropped

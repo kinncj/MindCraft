@@ -29,10 +29,12 @@ Ship a tiny model trained in this repo, inside the bundle.
   letters, and a rough *sound* of each word (`phonetic`, so "skool" and
   "school" both become "skl", "hosptial" and "hospital" both "hosptl").
   Words also carry where they sit ("a house with a garden" is a house; "a
-  garden next to the house" is a garden). 4096 buckets × 50 labels, one
-  byte per weight, 90% of the weights pruned to zero — 41.5 KB gzipped
-  (43 KB of the page a child downloads, measured against a build without
-  it), recorded in the generated file's own header. No download, no network, the same answer on a
+  garden next to the house" is a garden). 8192 buckets × 69 labels, one
+  byte per weight, 90% of the weights pruned to zero — 111 KB gzipped,
+  recorded in the generated file's own header. Size is measured against the
+  alternative: a downloaded helper model is 400 MB and up, so this one only
+  has to stay a small fraction of the page (the test's line is a megabyte).
+  Under that, it is trained for accuracy. No download, no network, the same answer on a
   phone as on a desktop.
 - **What it answers.** Which building, dig, feature, or villager action
   this is — and, because a sentence usually holds more than one, where one

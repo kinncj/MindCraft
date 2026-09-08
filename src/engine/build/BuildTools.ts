@@ -2,6 +2,7 @@ import type { BlockRegistry } from '../blocks/registry';
 import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
 import { ensureLivable, type BuildingLayout } from './livability';
 import type { Ground } from './siteFinder';
+import { MONUMENTS, drawMonument, monumentFootprint, type MonumentContext, type MonumentKind } from './monuments/index';
 
 /** Where the generator reports its layout for callers and tests. */
 export type BuildingLayoutOut = { layout?: BuildingLayout };
@@ -946,6 +947,44 @@ export class BuildTools {
         break;
       }
     }
+  }
+
+  /**
+   * A famous place, drawn in blocks. `y` is the first air block above the
+   * ground, as everywhere else; the monument stands on `y - 1`.
+   */
+  planMonument(kind: MonumentKind, x: number, y: number, z: number, ctx: MonumentContext): BlockEdit[] {
+    const size = monumentFootprint(kind, ctx);
+    const w = Math.max(5, Math.min(64, size.width));
+    const d = Math.max(3, Math.min(64, size.depth));
+    const groundY = y - 1;
+    const cells = new Map<string, BlockEdit>();
+    const put = (px: number, py: number, pz: number, id: number, state = 0): void => {
+      if (py < 0 || py >= WORLD_HEIGHT) return;
+      cells.set(`${px},${py},${pz}`, { x: px, y: py, z: pz, id, state, entity: null });
+    };
+    const x0 = x - Math.floor(w / 2);
+    const z0 = z - Math.floor(d / 2);
+    drawMonument(kind, {
+      put,
+      kit: ctx.kit,
+      ctx,
+      g: groundY,
+      x0,
+      x1: x0 + w - 1,
+      z0,
+      z1: z0 + d - 1,
+      cx: x,
+      cz: z,
+      w,
+      d,
+    });
+    return [...cells.values()];
+  }
+
+  /** What a monument is called, for the villager's line and the label on undo. */
+  monumentLabel(kind: MonumentKind): string {
+    return MONUMENTS[kind].label;
   }
 
   /**

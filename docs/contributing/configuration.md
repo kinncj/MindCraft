@@ -8,6 +8,7 @@
 | Creature personalities | `scripts/train-brain.mjs` → `src/engine/ai/weights.ts` | `npm run train:brain` |
 | Sentences kids can say | `src/engine/chat/intentCorpus.ts` → `intentWeights.ts` | `npm run train:intent` |
 | Buildings, features, digs | `src/engine/build/` + `buildRequest.ts` | see add-a-building.md |
+| Famous places and cities | `src/engine/build/monuments/` | one file per monument; `cities.ts` groups them |
 | Prebuilt worlds | `src/engine/world/generation/maps/` | see add-a-scenario.md |
 | Terrain | `src/engine/world/generation/InfiniteGenerator.ts` | biomes, caves, trees |
 | Visual modes | `src/shaders/visualModes.ts` (data) + `EnvironmentSystem` | Classic, Ultra, Claude Dream, Cinema |

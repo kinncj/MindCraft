@@ -12,6 +12,7 @@ import { EARTHWORK_KINDS, FEATURE_KINDS, earthworkOptions, featureOptions, house
 import type { EarthworkKind, FeatureKind } from '../build/BuildTools';
 import { houseLayout } from '../build/BuildTools';
 import { SitePlanner } from '../build/siteFinder';
+import { MONUMENTS, isMonumentKind, monumentKit, cleanText } from '../build/monuments/index';
 import { buildActionsFor, parseBuildRequest, parseEarthwork, parseFeature } from './buildRequest';
 import { actionsFor, parseRequests } from './requests';
 import type { WebLlmProvider } from './WebLlmProvider';
@@ -145,7 +146,11 @@ export class ChatAgent {
     if (provider !== 'rules') {
       // A sentence with several requests in it: the words are the spec for all of them.
       const requests = parseRequests(ctx.message);
-      const many = requests.filter((r) => r.kind !== 'action').length > 1 ? requests.flatMap((r) => actionsFor(r, ctx)) : [];
+      // Several things asked for at once, or a famous place — either way the
+      // child's words decide what gets built, not the model's example.
+      const wantsMany = requests.filter((r) => r.kind !== 'action').length > 1;
+      const wantsFamous = requests.some((r) => r.kind === 'monument' || r.kind === 'city');
+      const many = wantsMany || wantsFamous ? requests.flatMap((r) => actionsFor(r, ctx)) : [];
       const spec = many.length > 0 ? null : parseBuildRequest(ctx.message);
       if (many.length > 0) {
         reply = { ...reply, actions: [...many, ...reply.actions.filter((x) => !x.tool.startsWith('build_') && x.tool !== 'villager_spawn')] };
@@ -263,6 +268,11 @@ export class ChatAgent {
         const kind = typeof a.kind === 'string' && (FEATURE_KINDS as string[]).includes(a.kind) ? (a.kind as FeatureKind) : 'garden';
         const opts = featureOptions(this.deps.registry, { kind, width: typeof a.width === 'number' ? a.width : undefined, length: typeof a.length === 'number' ? a.length : undefined, color: typeof a.color === 'string' ? a.color : null });
         return { label: `Build a ${kind}`, edits: this.deps.build.planFeature(kind, num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), opts) };
+      }
+      case 'build_monument': {
+        if (!isMonumentKind(a.kind)) return null;
+        const ctx2 = { kit: monumentKit(this.deps.registry), text: typeof a.text === 'string' ? cleanText(a.text) : undefined, color: typeof a.color === 'string' ? blockId(a.color) : null };
+        return { label: `Build the ${MONUMENTS[a.kind].label}`, edits: this.deps.build.planMonument(a.kind, num(a.x, ctx.site.x), num(a.y, ctx.site.y), num(a.z, ctx.site.z), ctx2) };
       }
       case 'build_dig': {
         const kind = typeof a.kind === 'string' && (EARTHWORK_KINDS as string[]).includes(a.kind) ? (a.kind as EarthworkKind) : 'pond';

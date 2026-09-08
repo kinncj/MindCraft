@@ -15,6 +15,14 @@ export const BUILDING_LABELS = ['house', 'castle', 'hospital', 'school', 'shop',
 export const EARTHWORK_LABELS = ['pool', 'raisedPool', 'lake', 'pond', 'pit', 'bunker', 'tunnel', 'well', 'moat'] as const;
 export const FEATURE_LABELS = ['bridge', 'treehouse', 'playground', 'court', 'garden', 'fountain', 'parking', 'fence', 'runway'] as const;
 
+/** Famous places a kid can ask for by name, and cities that bring a few at once. */
+export const MONUMENT_LABELS = [
+  'm_eiffel', 'm_cn_tower', 'm_rogers_dome', 'm_peace_tower', 'm_rideau_canal', 'm_niemeyer_eye',
+  'm_wire_opera', 'm_botanical_garden', 'm_masp', 'm_copan', 'm_ibirapuera', 'm_niagara', 'm_iguacu', 'm_sign',
+] as const;
+
+export const CITY_LABELS = ['city_curitiba', 'city_saopaulo', 'city_ottawa', 'city_toronto', 'city_paris'] as const;
+
 /**
  * The rest of what a villager can be asked to do. The label says what
  * kind of thing; which pet, which ride, which shape is read out of the
@@ -26,20 +34,27 @@ export const ACTION_LABELS = [
 ] as const;
 
 /** Every answer the model can give. 'none' means "nothing to do, just chatting". */
-export const INTENT_LABELS = [...BUILDING_LABELS, ...EARTHWORK_LABELS, ...FEATURE_LABELS, ...ACTION_LABELS, 'none'] as const;
+export const INTENT_LABELS = [...BUILDING_LABELS, ...EARTHWORK_LABELS, ...FEATURE_LABELS, ...MONUMENT_LABELS, ...CITY_LABELS, ...ACTION_LABELS, 'none'] as const;
 export type IntentLabel = (typeof INTENT_LABELS)[number];
 
 /** Which family a label belongs to, so callers know which parser to fill in. */
-export function intentKind(label: IntentLabel): 'building' | 'earthwork' | 'feature' | 'action' | 'none' {
+export function intentKind(label: IntentLabel): 'building' | 'earthwork' | 'feature' | 'monument' | 'city' | 'action' | 'none' {
   if ((BUILDING_LABELS as readonly string[]).includes(label)) return 'building';
   if ((EARTHWORK_LABELS as readonly string[]).includes(label)) return 'earthwork';
   if ((FEATURE_LABELS as readonly string[]).includes(label)) return 'feature';
+  if ((MONUMENT_LABELS as readonly string[]).includes(label)) return 'monument';
+  if ((CITY_LABELS as readonly string[]).includes(label)) return 'city';
   if ((ACTION_LABELS as readonly string[]).includes(label)) return 'action';
   return 'none';
 }
 
+/** The monument or city behind a label, without its prefix. */
+export function labelSubject(label: IntentLabel): string {
+  return label.replace(/^(m|city)_/, '');
+}
+
 /** Hashed feature space. Small enough to ship, big enough to keep collisions rare. */
-export const FEATURE_BUCKETS = 4096;
+export const FEATURE_BUCKETS = 8192;
 
 /** FNV-1a, folded into the bucket count. */
 function hash(text: string): number {

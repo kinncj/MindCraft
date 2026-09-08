@@ -6,7 +6,8 @@
  * through the same parsers a single request would.
  */
 
-import { buildActionsFor, parseBuildRequest, parseEarthwork, parseFeature, type BuildSpec, type EarthworkSpec, type FeatureSpec } from './buildRequest';
+import { buildActionsFor, parseBuildRequest, parseCity, parseEarthwork, parseFeature, parseMonument, type BuildSpec, type CitySpec, type EarthworkSpec, type FeatureSpec, type MonumentSpec } from './buildRequest';
+import { MONUMENTS, monumentFootprint } from '../build/monuments/index';
 import { classifyIntent, intentIsClear, splitClauses } from './intent';
 import { FEATURE_SIZE } from '../build/BuildTools';
 import { EARTHWORK_SIZE } from '../build/buildingKit';
@@ -17,6 +18,8 @@ export type Request =
   | { kind: 'building'; spec: BuildSpec; clause: string }
   | { kind: 'earthwork'; spec: EarthworkSpec; clause: string }
   | { kind: 'feature'; spec: FeatureSpec; clause: string }
+  | { kind: 'monument'; spec: MonumentSpec; clause: string }
+  | { kind: 'city'; spec: CitySpec; clause: string }
   | { kind: 'action'; label: IntentLabel; clause: string };
 
 /** Everything the sentence asks for, in the order the child said it. */
@@ -35,6 +38,12 @@ export function parseRequests(raw: string): Request[] {
 }
 
 function parseClause(clause: string): Request | null {
+  // Famous places first: "the eiffel tower" is not a tower shape, and
+  // "sao paulo" is not a request for a building called Paulo.
+  const city = parseCity(clause);
+  if (city) return { kind: 'city', spec: city, clause };
+  const monument = parseMonument(clause);
+  if (monument) return { kind: 'monument', spec: monument, clause };
   const building = parseBuildRequest(clause);
   if (building) return { kind: 'building', spec: building, clause };
   const dig = parseEarthwork(clause);
@@ -62,6 +71,25 @@ export function actionsFor(request: Request, ctx: ChatContext): ChatAction[] {
       const size = FEATURE_SIZE[f.kind];
       const at = ctx.plot?.(f.width ?? size.w, f.length ?? size.d) ?? ctx.site;
       return [{ tool: 'build_feature', args: { x: at.x, y: at.y, z: at.z, kind: f.kind, ...(f.width ? { width: f.width } : {}), ...(f.length ? { length: f.length } : {}), ...(f.color ? { color: f.color } : {}) } }];
+    }
+    case 'monument': {
+      const m = request.spec;
+      const size = monumentFootprint(m.kind, { text: m.text });
+      const at = ctx.plot?.(size.width, size.depth) ?? ctx.site;
+      return [{ tool: 'build_monument', args: { x: at.x, y: at.y, z: at.z, kind: m.kind, ...(m.text ? { text: m.text } : {}) } }];
+    }
+    case 'city': {
+      // Each landmark gets its own patch of ground, and the city's name goes up in letters.
+      const actions: ChatAction[] = [];
+      for (const kind of request.spec.monuments) {
+        const size = monumentFootprint(kind);
+        const at = ctx.plot?.(size.width, size.depth) ?? ctx.site;
+        actions.push({ tool: 'build_monument', args: { x: at.x, y: at.y, z: at.z, kind } });
+      }
+      const signSize = monumentFootprint('sign', { text: request.spec.sign });
+      const signAt = ctx.plot?.(signSize.width, signSize.depth) ?? ctx.site;
+      actions.push({ tool: 'build_monument', args: { x: signAt.x, y: signAt.y, z: signAt.z, kind: 'sign', text: request.spec.sign } });
+      return actions;
     }
     case 'action':
       return actionForLabel(request.label, request.clause, ctx);
@@ -136,6 +164,10 @@ export function describeRequest(request: Request): string {
     case 'earthwork':
     case 'feature':
       return `${article(request.spec.label)} ${request.spec.label}`;
+    case 'monument':
+      return request.spec.kind === 'sign' ? `letters that say ${request.spec.text ?? 'hello'}` : `the ${MONUMENTS[request.spec.kind].label}`;
+    case 'city':
+      return `${request.spec.label}: ${request.spec.monuments.map((k) => MONUMENTS[k].label).join(', ')}`;
     case 'action':
       return ACTION_WORDS[request.label] ?? 'that';
   }

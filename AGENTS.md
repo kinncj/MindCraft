@@ -37,6 +37,7 @@ generated in code.
 | Add a capability / MCP tool | [docs/contributing/add-a-tool.md](docs/contributing/add-a-tool.md) |
 | Teach the sentence model | [docs/contributing/teach-the-model.md](docs/contributing/teach-the-model.md) |
 | Add a building, feature or dig | [docs/contributing/add-a-building.md](docs/contributing/add-a-building.md) |
+| Add a famous place or a city | [docs/contributing/add-a-monument.md](docs/contributing/add-a-monument.md) |
 | Find where something is configured | [docs/contributing/configuration.md](docs/contributing/configuration.md) |
 
 Architecture: `docs/architecture/adr-0006-v2-engine-foundation.md`, and the index of

@@ -12,6 +12,7 @@ import { getEngine } from './engineRef';
 import { createWorldRecord } from './store/worldRecords';
 import { blueprintById } from '../engine/build/blueprints';
 import { downloadPhoto } from './photo';
+import { MONUMENTS, isMonumentKind, monumentFootprint } from '../engine/build/monuments/index';
 import type { InteractionMode } from '../types/game';
 import type { AudioState, PlayerLookState } from './store/types';
 import type { GameState, ViewMode } from './store/types';
@@ -458,6 +459,22 @@ export const useGameStore = create<GameState>((set, get) => {
       engine.build.setClipboard(bp.stamp);
       set({ openPanel: 'none', panelPayload: null, mode: 'paste' });
       get().showToast(`${bp.emoji} ${bp.label}: tap where to build it! Press R to turn it.`);
+    },
+    buildMonument(kind, text) {
+      const engine = getEngine();
+      if (!engine || !isMonumentKind(kind)) return;
+      const player = engine.playerState();
+      const size = monumentFootprint(kind, { text });
+      // Its own patch of open, level ground, like everything a villager builds.
+      const site = engine.chat.sites.place({ width: size.width, depth: size.depth }, { x: player.x, z: player.z });
+      const label = MONUMENTS[kind].label;
+      try {
+        engine.tools.call('build_monument', { x: site.x, y: site.y, z: site.z, kind, ...(text ? { text } : {}) });
+        set({ openPanel: 'none', panelPayload: null });
+        get().showToast(`${MONUMENTS[kind].emoji} ${label} is going up over there!`);
+      } catch {
+        get().showToast('That did not fit here. Try somewhere with more space!');
+      }
     },
     setViewMode(mode) {
       set({ viewMode: mode });
