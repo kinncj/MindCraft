@@ -1,4 +1,5 @@
 import { buildActionsFor, parseBuildRequest, parseEarthwork, parseFeature } from './buildRequest';
+import { actionsFor, describeRequest, parseRequests } from './requests';
 import type { ChatAction, ChatContext, ChatProvider, ChatReply } from './types';
 
 /**
@@ -87,6 +88,17 @@ export class RuleChatProvider implements ChatProvider {
     const sizeWord = /\b(huge|giant|big|large|tall)\b/.test(text) ? 9 : /\b(tiny|small|little|mini)\b/.test(text) ? 3 : 5;
     const numberMatch = /\b(\d{1,2})\b/.exec(text);
     const size = numberMatch ? Math.max(2, Math.min(16, Number(numberMatch[1]))) : sizeWord;
+    // More than one thing in the sentence ("a school and a lake and make it night"):
+    // do all of them, in the order they were said.
+    const requests = parseRequests(ctx.message);
+    if (requests.length > 1) {
+      const actions = requests.flatMap((r) => actionsFor(r, ctx));
+      if (actions.length > 0) {
+        const words = requests.map(describeRequest);
+        const list = words.length > 2 ? `${words.slice(0, -1).join(', ')}, and ${words[words.length - 1]}` : words.join(' and ');
+        return say(`${list} — all of it! Watch me go! 🔨`, actions);
+      }
+    }
     const spec = parseBuildRequest(text);
     if (spec && wantsBuild) {
       const extras = [spec.furnish ? 'furnished' : '', spec.people.length ? `with ${spec.people.map((p) => `${p.count} ${(p.name ?? p.job).toLowerCase()}${p.count > 1 ? 's' : ''}`).join(' and ')}` : '', spec.flag ? `and a ${spec.flag} flag` : ''].filter(Boolean).join(', ');
@@ -173,6 +185,10 @@ export class RuleChatProvider implements ChatProvider {
     if (/\b(help|what can (you|we) do|what should we do|what (do|can) we do|what to do|what now|ideas|bored)\b/.test(text)) {
       return say(`I can build a house, a school, a hospital, a castle, a bridge, a treehouse, a playground, a pyramid… and I can dig pools, lakes, and bunkers! Any size, any color. Or say "follow me", "dance", or "make it night". 🏠🏰🌉`);
     }
+    // Last chance before a shrug: the little intent model, which reads phrasings
+    // and spellings the word lists above do not.
+    const guessed = requests.length === 1 ? actionsFor(requests[0], ctx) : [];
+    if (guessed.length > 0) return say(`Okay! ${describeRequest(requests[0])}, coming up! ✨`, guessed);
     return say(`Hmm, I'm not sure about "${ctx.message.slice(0, 40)}". Try "build a pink house", "make a big treehouse", "dig a 30 by 20 lake", or "let's dance"! 😊`);
   }
 }

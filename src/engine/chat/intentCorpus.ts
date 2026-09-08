@@ -38,7 +38,83 @@ export const LABEL_WORDS: Record<IntentLabel, string[]> = {
   fountain: ['fountain', 'water fountain', 'splashy fountain'],
   parking: ['parking lot', 'car park', 'place to park the cars'],
   fence: ['fence', 'fence around it', 'wall around the outside'],
+  follow: [], stay: [], dance: [], gift: [], time_night: [], time_day: [], weather_rain: [], weather_snow: [],
+  weather_sunny: [], pet: [], creature: [], ride: [], vehicle: [], fly: [], land: [], stop_riding: [],
+  shape: [], greeting: [], question: [],
   none: [],
+};
+
+/**
+ * Whole sentences for the things that are not buildings. These are not
+ * crossed with the "build me a ..." templates — a kid asks for them
+ * outright — so they are written out, many ways each.
+ */
+export const ACTION_SENTENCES: Partial<Record<IntentLabel, string[]>> = {
+  follow: [
+    'follow me', 'come with me', 'come along', 'walk with me', 'lets go together', 'come here', 'come on lets go',
+    'can you come with me', 'i want you to follow me', 'stay with me', 'walk beside me', 'come and see this',
+    'lets explore together', 'come look at my house', 'you can come too', 'follow me please', 'this way',
+  ],
+  stay: [
+    'stay here', 'wait here', 'stop walking', 'stay right there', 'dont move', 'wait for me', 'stop following me',
+    'stay put', 'stand still please', 'wait right here until i come back', 'hold on stay there', 'you stay',
+  ],
+  dance: [
+    'lets dance', 'dance with me', 'do a dance', 'show me your dance moves', 'can you dance', 'party time',
+    'sing a song', 'lets have a party', 'boogie', 'wiggle around', 'dance dance dance', 'put on some music',
+  ],
+  gift: [
+    'give me a present', 'can i have a gift', 'do you have something for me', 'i want a present', 'surprise me',
+    'give me something nice', 'whats in your pocket', 'can you give me a treat', 'present please',
+  ],
+  time_night: [
+    'make it night', 'i want it to be dark', 'turn on the stars', 'bedtime now', 'can we see the moon',
+    'make it dark outside', 'night time please', 'lets look at the stars', 'turn the sky dark', 'make the sun go down',
+  ],
+  time_day: [
+    'make it day', 'i want the sun back', 'make it morning', 'turn the sun on', 'daytime please', 'wake up the sun',
+    'make it light again', 'bring the sunshine back', 'no more night',
+  ],
+  weather_rain: ['make it rain', 'i want rain', 'can we have a storm', 'rain please', 'make the rain come', 'turn on the rain'],
+  weather_snow: ['make it snow', 'i want snow', 'snow please', 'can we have snow to play in', 'turn on the snow', 'let it snow'],
+  weather_sunny: ['make it sunny', 'stop the rain', 'no more snow', 'i want sunshine', 'clear the sky', 'make the weather nice'],
+  pet: [
+    'can i have a puppy', 'i want a dog', 'give me a kitten', 'i want a cat please', 'a little puppy for me',
+    'can you get me a kitty', 'i would love a doggy', 'my own pet please', 'a pet cat',
+  ],
+  creature: [
+    'i want a bunny', 'can we have a rabbit', 'a little chick please', 'i want to see a butterfly',
+    'send me a butterfly', 'a baby chicken', 'bunnies please', 'a birdie',
+  ],
+  ride: [
+    'fly that airplane', 'go fly the plane', 'drive the car', 'you drive the car', 'ride the motorcycle',
+    'take the helicopter for a spin', 'hop in the boat and go', 'can you fly the helicopter', 'go for a drive',
+    'get in the plane and fly it', 'you take the bike', 'drive that car around for me',
+  ],
+  vehicle: [
+    'i want a car', 'give me a boat', 'can i have a motorcycle', 'i want an airplane', 'make me a helicopter',
+    'a car for me please', 'i need a boat to go on the water', 'can we get a plane', 'i want a car of my own',
+    'my own car please', 'can i drive a car', 'i want to drive something', 'get me a fast car', 'i want a red car',
+    'a boat for me', 'my own motorbike', 'i would like a helicopter of my own', 'bring me a car',
+  ],
+  fly: ['i want to fly', 'let me fly', 'can i fly please', 'give me wings', 'i want to go up in the air', 'turn on flying'],
+  land: ['stop flying', 'i want to land', 'take me down', 'no more flying', 'turn off flying', 'put me on the ground'],
+  stop_riding: ['hop off', 'get out of the car', 'stop driving', 'get off the bike', 'land the plane and get out', 'stop riding'],
+  shape: [
+    'build a pyramid', 'make a big tower', 'build a huge cube', 'make a wall of bricks', 'build an arch',
+    'plant a tree', 'make a rainbow arch', 'build a tall tower of stone', 'a pyramid of sand please', 'make a ring',
+    'build a road', 'make a path', 'build me a platform', 'a big box of blocks',
+  ],
+  greeting: [
+    'hi there', 'hello', 'hey you', 'good morning', 'good night', 'bye bye', 'see you later', 'thank you so much',
+    'you are the best', 'i love you', 'that was awesome', 'nice job', 'wow that is cool', 'howdy',
+  ],
+  question: [
+    'what is your name', 'who are you', 'what do you do', 'how are you', 'what colour is the sky',
+    'whats the weather like', 'what time is it', 'where are we', 'what is your favourite food',
+    'do you like cake', 'how old are you', 'what can you do', 'what should we do', 'tell me a joke',
+    'can you swim', 'what is this place', 'why is the sky blue',
+  ],
 };
 
 const ASK = [
@@ -61,20 +137,24 @@ const EXTRAS = [
   ' with an elevator', ' and a flag', ' with stairs', ' next to my house', ' over there', ' right now', ' please',
   ' for my friends', ' with lights inside', ' near the water', ' with furniture', ' and make it colourful',
   ' 15 by 11', ' 30 by 20', ' with doctors and patients', ' with 6 classrooms', ' with a sports court',
+  // The thing being asked for is the one at the front: what comes after "with" belongs to it.
+  ' with a garden', ' with a swimming pool', ' with a playground', ' with a fence around it',
+  ' with a fountain outside', ' with a car park', ' with a bridge to the front door', ' with a treehouse in the garden',
+  ' with a garden and a pool', ' with a playground and a sports court', ' with a pond and some flowers',
+  ' next to the lake', ' by the bridge', ' near the playground', ' beside the tree house',
+  ' with lots of rooms', ' with lots of classrooms', ' with lots of windows', ' with lots of beds',
+  ' with lots of books inside', ' with lots of lights', ' with loads of floors', ' full of furniture',
+  ' with a red roof', ' with big windows', ' with a tall door', ' that is really tall',
 ];
 
-/** Things that are not building requests at all. */
+/** Things that mean nothing in particular: no action, no answer to look up. */
 const CHIT_CHAT = [
-  'hello', 'hi there', 'how are you', 'what is your name', 'what colour is the sky', 'whats the weather',
-  'lets dance', 'dance with me', 'follow me', 'stay here', 'come with me', 'what time is it', 'make it night',
-  'make it day', 'make it rain', 'make it snow', 'can i have a puppy', 'i want a kitten', 'give me a pet',
-  'tell me a joke', 'sing a song', 'what is your favourite colour', 'what is your favourite food',
-  'do you like cake', 'i am six years old', 'good morning', 'good night', 'see you later', 'thank you',
-  'fly the airplane', 'go fly a plane', 'drive the car', 'ride the motorcycle', 'hop in the helicopter',
-  'lets play a game', 'where are we', 'what is this place', 'can you jump', 'how old are you', 'i love you',
-  'give me a red block', 'place a block here', 'undo that', 'save my world', 'i am hungry', 'lets go swimming',
-  'do you like my house', 'that is pretty', 'wow that is cool', 'what should we do', 'help me',
-  'make a pyramid', 'build a tower', 'make a big cube', 'build a wall', 'plant a tree', 'make a rainbow arch',
+  'okay', 'yes please', 'no thank you', 'maybe later', 'i dont know', 'hmm let me think', 'thats funny',
+  'my mum said hello', 'i had pizza for lunch', 'my brother is six', 'we went to the park today',
+  'i am hungry', 'i am tired', 'my favourite colour is pink', 'i like your hat', 'this is my world',
+  'look at that over there', 'oops', 'watch this', 'again again', 'one more time', 'i did it',
+  'undo that', 'save my world', 'give me a red block', 'place a block here', 'lets play a game',
+  'i lost my dog somewhere', 'the sky is very pretty today', 'nothing', 'blah blah blah', 'la la la',
 ];
 
 const KEY_NEIGHBOURS: Record<string, string> = { a: 's', b: 'v', c: 'x', d: 'f', e: 'r', f: 'g', g: 'h', h: 'j', i: 'o', j: 'k', k: 'l', l: 'k', m: 'n', n: 'm', o: 'p', p: 'o', q: 'w', r: 't', s: 'd', t: 'y', u: 'i', v: 'b', w: 'e', x: 'z', y: 'u', z: 'x' };
@@ -102,6 +182,15 @@ export function typo(word: string, rand: () => number): string {
   return word.slice(0, i) + near + word.slice(i + 1);
 }
 
+/** Misspells the word that carries the meaning, which is the one kids get wrong. */
+export function typoPhrase(phrase: string, rand: () => number): string {
+  const words = phrase.split(' ');
+  let at = 0;
+  for (let i = 1; i < words.length; i++) if (words[i].length > words[at].length) at = i;
+  words[at] = typo(words[at], rand);
+  return words.join(' ');
+}
+
 function noisy(sentence: string, rand: () => number): string {
   const words = sentence.split(' ').filter(Boolean);
   const out: string[] = [];
@@ -122,8 +211,16 @@ export function buildCorpus(seed = 20260907): Sample[] {
     samples.push({ text: noisy(text, rand), label });
     samples.push({ text: noisy(text, rand), label });
   };
+  for (const [label, sentences] of Object.entries(ACTION_SENTENCES) as Array<[IntentLabel, string[]]>) {
+    for (const sentence of sentences) {
+      // Actions are asked for outright, so the sentences carry their own weight.
+      for (let i = 0; i < 3; i++) push(sentence, label);
+      push(`${sentence} please`, label);
+      if (rand() < 0.5) push(`can you ${sentence}`, label);
+    }
+  }
   for (const label of INTENT_LABELS) {
-    if (label === 'none') continue;
+    if (label === 'none' || LABEL_WORDS[label].length === 0) continue;
     const digs = ['pool', 'raisedPool', 'lake', 'pond', 'pit', 'bunker', 'tunnel', 'well', 'moat'].includes(label);
     const asks = digs ? [...DIG_ASK, ...ASK.slice(0, 8)] : ASK;
     for (const word of LABEL_WORDS[label]) {
@@ -132,9 +229,12 @@ export function buildCorpus(seed = 20260907): Sample[] {
         const extra = EXTRAS[Math.floor(rand() * EXTRAS.length)];
         push(ask.replace('{}', `${adjective}${word}`) + extra, label);
         if (rand() < 0.3) push(ask.replace('{}', word), label);
+        // The word that carries the meaning, spelled the way a kid spells it.
+        for (let i = 0; i < 2; i++) push(ask.replace('{}', `${adjective}${typoPhrase(word, rand)}`) + extra, label);
       }
       push(word, label);
       push(`${word} please`, label);
+      for (let i = 0; i < 3; i++) push(typoPhrase(word, rand), label);
     }
   }
   // "none" needs as much weight as the rest, or everything looks like a building.

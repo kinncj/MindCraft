@@ -15,20 +15,31 @@ export const BUILDING_LABELS = ['house', 'castle', 'hospital', 'school', 'shop',
 export const EARTHWORK_LABELS = ['pool', 'raisedPool', 'lake', 'pond', 'pit', 'bunker', 'tunnel', 'well', 'moat'] as const;
 export const FEATURE_LABELS = ['bridge', 'treehouse', 'playground', 'court', 'garden', 'fountain', 'parking', 'fence'] as const;
 
-/** Every answer the model can give. 'none' means "this is not a building request". */
-export const INTENT_LABELS = [...BUILDING_LABELS, ...EARTHWORK_LABELS, ...FEATURE_LABELS, 'none'] as const;
+/**
+ * The rest of what a villager can be asked to do. The label says what
+ * kind of thing; which pet, which ride, which shape is read out of the
+ * words themselves, where it is exact.
+ */
+export const ACTION_LABELS = [
+  'follow', 'stay', 'dance', 'gift', 'time_night', 'time_day', 'weather_rain', 'weather_snow', 'weather_sunny',
+  'pet', 'creature', 'ride', 'vehicle', 'fly', 'land', 'stop_riding', 'shape', 'greeting', 'question',
+] as const;
+
+/** Every answer the model can give. 'none' means "nothing to do, just chatting". */
+export const INTENT_LABELS = [...BUILDING_LABELS, ...EARTHWORK_LABELS, ...FEATURE_LABELS, ...ACTION_LABELS, 'none'] as const;
 export type IntentLabel = (typeof INTENT_LABELS)[number];
 
 /** Which family a label belongs to, so callers know which parser to fill in. */
-export function intentKind(label: IntentLabel): 'building' | 'earthwork' | 'feature' | 'none' {
+export function intentKind(label: IntentLabel): 'building' | 'earthwork' | 'feature' | 'action' | 'none' {
   if ((BUILDING_LABELS as readonly string[]).includes(label)) return 'building';
   if ((EARTHWORK_LABELS as readonly string[]).includes(label)) return 'earthwork';
   if ((FEATURE_LABELS as readonly string[]).includes(label)) return 'feature';
+  if ((ACTION_LABELS as readonly string[]).includes(label)) return 'action';
   return 'none';
 }
 
 /** Hashed feature space. Small enough to ship, big enough to keep collisions rare. */
-export const FEATURE_BUCKETS = 2048;
+export const FEATURE_BUCKETS = 4096;
 
 /** FNV-1a, folded into the bucket count. */
 function hash(text: string): number {
@@ -91,6 +102,9 @@ export function featurize(raw: string): Map<number, number> {
   for (let i = 0; i < words.length; i++) {
     const w = words[i];
     add(`w:${w}`);
+    // Where the word sits matters: "a house with a garden" is a house, and
+    // "a garden next to the house" is a garden. The thing asked for comes first.
+    add(i < 5 ? `e:${w}` : `l:${w}`);
     if (i + 1 < words.length) add(`b:${w} ${words[i + 1]}`);
     const padded = `<${w}>`;
     for (let n = 3; n <= 4; n++) {

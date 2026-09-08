@@ -25,12 +25,19 @@ Ship a tiny model trained in this repo, inside the bundle.
   word unigrams and bigrams, character 3- and 4-grams, the first four
   letters, and a rough *sound* of each word (`phonetic`, so "skool" and
   "school" both become "skl", "hosptial" and "hospital" both "hosptl").
-  2048 buckets × 29 labels, one byte per weight, 88% of the weights pruned
-  to zero — about 15 KB gzipped in the bundle. No download, no network,
-  the same answer on a phone as on a desktop.
-- **What it answers.** One question: which building, dig, or feature is
-  this? Everything else — sizes, colours, rooms, counts, people, flags —
-  stays with the parsers, which are exact and easy to read.
+  Words also carry where they sit ("a house with a garden" is a house; "a
+  garden next to the house" is a garden). 4096 buckets × 48 labels, one
+  byte per weight, 90% of the weights pruned to zero — about 40 KB
+  gzipped in the bundle. No download, no network, the same answer on a
+  phone as on a desktop.
+- **What it answers.** Which building, dig, feature, or villager action
+  this is — and, because a sentence usually holds more than one, where one
+  request ends and the next begins (`splitClauses`, guarded so that "a
+  school with 6 classrooms and a computer room" stays one school while
+  "build a school and dig a big lake and make it night" becomes three
+  jobs). Everything else — sizes, colours, rooms, counts, people, flags,
+  which pet, which ride — stays with the parsers, which are exact and easy
+  to read.
 - **What it learns from.** `intentCorpus.ts`: sentences generated from
   templates crossed with the words kids use for each thing, then knocked
   about with dropped words and typos (dropped, doubled, swapped, and

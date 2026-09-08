@@ -21,7 +21,7 @@ export type IntentWeights = {
 
 export type Intent = {
   label: IntentLabel;
-  kind: 'building' | 'earthwork' | 'feature' | 'none';
+  kind: ReturnType<typeof intentKind>;
   confidence: number;
   /** How likely it is that this is not a building request at all. */
   none: number;
@@ -74,4 +74,65 @@ export function classifyIntent(text: string): Intent {
   const label = INTENT_LABELS[best];
   const noneAt = INTENT_LABELS.indexOf('none');
   return { label, kind: intentKind(label), confidence: 1 / total, none: Math.exp(scores[noneAt] - max) / total };
+}
+
+/**
+ * Kids do not say one thing at a time: "build a school with a playground
+ * and dig a big lake and then make it night". The sentence is cut where
+ * one request stops and the next begins — "and", "then", "also", "plus",
+ * a comma — but not inside a phrase that belongs to the thing being built
+ * ("a house with a garden and a pool" is one house).
+ */
+export function splitClauses(raw: string): string[] {
+  const text = raw.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (!text) return [];
+  const cut = /(, | and then | then | and also | also | plus | after that | next | and |, )/g;
+  const parts: string[] = [];
+  let head = text;
+  let guard = 0;
+  while (guard++ < 12) {
+    cut.lastIndex = 0;
+    let split = false;
+    for (let at = cut.exec(head); at; at = cut.exec(head)) {
+      const left = head.slice(0, at.index).trim();
+      const right = head.slice(at.index + at[0].length).trim();
+      if (!left || !right || !canSplit(left, right)) continue;
+      parts.push(left);
+      head = right;
+      split = true;
+      break;
+    }
+    if (!split) break;
+  }
+  if (head) parts.push(head);
+  return parts;
+}
+
+/** Words that start a new request rather than carrying on the last one. */
+const STARTS_REQUEST = /^(build|make|dig|put|place|give|add|create|construct|bring|spawn|i want|i need|i would like|can you|could you|can we|please|let'?s|lets|now|you)\b/;
+const STARTS_THING = /^(a|an|the|some|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+\S+/;
+/** A phrase that describes the thing already asked for, not a new one. */
+const CARRIES_ON = /\b(with|that has|which has|containing|inside|full of|made of|made out of|out of|like|next to|beside|near|by)\b[^.]*$/;
+
+function canSplit(left: string, right: string): boolean {
+  const head = classifyIntent(left);
+  const tail = classifyIntent(right);
+  if (!intentIsClear(head) || !intentIsClear(tail)) return false;
+  // "a school with 6 classrooms and a computer room" is one school:
+  // everything after "with" belongs to the thing in front of it.
+  if (CARRIES_ON.test(left) && !STARTS_REQUEST.test(right)) return false;
+  if (STARTS_REQUEST.test(right)) return true;
+  // "a house and a castle" splits; "a beautiful and colourful mansion" does not,
+  // because the second half is not a thing of its own.
+  return STARTS_THING.test(right) && tail.label !== head.label;
+}
+
+/** Every request in the sentence, in the order the child said them. */
+export function classifyAll(raw: string): Intent[] {
+  const out: Intent[] = [];
+  for (const clause of splitClauses(raw)) {
+    const intent = classifyIntent(clause);
+    if (intentIsClear(intent)) out.push(intent);
+  }
+  return out;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyIntent, intentIsClear } from '../../src/engine/chat/intent';
+import { classifyAll, classifyIntent, intentIsClear, splitClauses } from '../../src/engine/chat/intent';
 import { correctSpelling, parseBuildRequest, parseEarthwork, parseFeature } from '../../src/engine/chat/buildRequest';
 
 describe('the little intent model', () => {
@@ -24,11 +24,33 @@ describe('the little intent model', () => {
     expect(wrong, wrong.join('; ')).toEqual([]);
   });
 
-  it('shrugs at everything that is not a building request', () => {
-    for (const text of ['hello there', 'what colour is the sky', 'lets dance', 'can i have a puppy', 'make it night', 'fly the airplane', 'i love you', 'what should we do']) {
+  it('never turns talking, playing, or the weather into a building site', () => {
+    for (const text of ['hello there', 'what colour is the sky', 'lets dance', 'can i have a puppy', 'make it night', 'fly the airplane', 'i love you', 'what should we do', 'i had pizza for lunch']) {
       const intent = classifyIntent(text);
-      expect(intentIsClear(intent), `${text} -> ${intent.label} ${intent.confidence.toFixed(2)} (none ${intent.none.toFixed(2)})`).toBe(false);
+      const builds = intent.kind === 'building' || intent.kind === 'earthwork' || intent.kind === 'feature';
+      expect(builds && intentIsClear(intent), `${text} -> ${intent.label} ${intent.confidence.toFixed(2)}`).toBe(false);
     }
+  });
+
+  it('hears the other things a villager can do', () => {
+    const cases: Array<[string, string]> = [
+      ['can you come with me', 'follow'],
+      ['wait right here until i come back', 'stay'],
+      ['lets have a party', 'dance'],
+      ['do you have something for me', 'gift'],
+      ['i want to see the stars', 'time_night'],
+      ['bring the sunshine back', 'time_day'],
+      ['can we have a storm', 'weather_rain'],
+      ['i want snow to play in', 'weather_snow'],
+      ['can i have a puppy', 'pet'],
+      ['send me a butterfly', 'creature'],
+      ['go fly that airplane', 'ride'],
+      ['i want a car of my own', 'vehicle'],
+      ['let me fly please', 'fly'],
+      ['build a huge pyramid', 'shape'],
+    ];
+    const wrong = cases.filter(([text, label]) => guess(text) !== label).map(([text, label]) => `${text} -> ${guess(text)} (wanted ${label})`);
+    expect(wrong, wrong.join('; ')).toEqual([]);
   });
 
   it('says how sure it is, so callers can ignore a shaky guess', () => {
@@ -91,5 +113,20 @@ describe('every model gets the same answer', () => {
     for (const [text, type] of [['bild me a hosptial', 'hospital'], ['a skool for the kids', 'school'], ['huge mansion', 'house']] as const) {
       expect(parseBuildRequest(text)?.type, text).toBe(type);
     }
+  });
+});
+
+describe('a whole sentence, not one word of it', () => {
+  it('splits a sentence into the requests it really contains', () => {
+    expect(splitClauses('build a school and dig a big lake')).toEqual(['build a school', 'dig a big lake']);
+    expect(classifyAll('build a school and dig a big lake').map((i) => i.label)).toEqual(['school', 'lake']);
+    expect(classifyAll('make me a house, a treehouse and a bridge').map((i) => i.label)).toEqual(['house', 'treehouse', 'bridge']);
+    expect(classifyAll('build a castle then make it night').map((i) => i.label)).toEqual(['castle', 'time_night']);
+  });
+
+  it('keeps a building and the things inside it together', () => {
+    const one = classifyAll('build a school with 6 classrooms and a computer room');
+    expect(one.map((i) => i.label)).toEqual(['school']);
+    expect(classifyAll('a house with a garden and a pool').map((i) => i.label)).toEqual(['house']);
   });
 });

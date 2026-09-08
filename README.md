@@ -60,8 +60,10 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
 - **A little model of our own, trained on how kids type.** Alongside the word lists,
   a 15 KB classifier that ships in the bundle (no download) reads misspellings and
   roundabout phrasings — "a hosptial", "skool", "somewhere for the sick people to go" —
-  and maps them onto the same builder. `npm run train:intent` retrains it from the
-  sentences in `src/engine/chat/intentCorpus.ts`.
+  and maps them onto the same builder. It also reads a whole sentence at a time:
+  "build a school and dig a big lake and then make it night" is three jobs, done in
+  order, while "a school with 6 classrooms and a computer room" stays one school.
+  `npm run train:intent` retrains it from the sentences in `src/engine/chat/intentCorpus.ts`.
 - **Chat with villagers.** Say what you want in your own words: "a beautiful and
   colourful brick mansion, like a massive house" becomes a three-floor brick house
   with rainbow pillars, glass windows, a door, a stepped roof, and a chimney. Houses

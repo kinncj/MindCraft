@@ -18,7 +18,7 @@ const EPOCHS = 30;
 const LEARNING_RATE = 0.5;
 const L2 = 1e-6;
 /** Share of the weights zeroed before shipping. */
-const PRUNE = 0.88;
+const PRUNE = Number(process.env.PRUNE ?? 0.9);
 const L = INTENT_LABELS.length;
 
 const corpus = buildCorpus();

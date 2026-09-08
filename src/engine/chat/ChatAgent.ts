@@ -12,6 +12,7 @@ import { EARTHWORK_KINDS, FEATURE_KINDS, earthworkOptions, featureOptions, house
 import type { EarthworkKind, FeatureKind } from '../build/BuildTools';
 import { houseLayout } from '../build/BuildTools';
 import { buildActionsFor, parseBuildRequest, parseEarthwork, parseFeature } from './buildRequest';
+import { actionsFor, parseRequests } from './requests';
 import type { WebLlmProvider } from './WebLlmProvider';
 import { sharedHelper } from './helperSingleton';
 import { CHAT_TOOL_ALLOWLIST, HANDS_ON_TOOLS, type ChatAction, type ChatContext, type ChatProvider, type ChatReply, type ChatTurn } from './types';
@@ -136,9 +137,17 @@ export class ChatAgent {
     // prompt, so when the words describe a building, the parsed building replaces the model's
     // building call (and brings its people and flag along); the model keeps its own line.
     if (provider !== 'rules') {
-      const spec = parseBuildRequest(ctx.message);
+      // A sentence with several requests in it: the words are the spec for all of them.
+      const requests = parseRequests(ctx.message);
+      const many = requests.filter((r) => r.kind !== 'action').length > 1 ? requests.flatMap((r) => actionsFor(r, ctx)) : [];
+      const spec = many.length > 0 ? null : parseBuildRequest(ctx.message);
+      if (many.length > 0) {
+        reply = { ...reply, actions: [...many, ...reply.actions.filter((x) => !x.tool.startsWith('build_') && x.tool !== 'villager_spawn')] };
+      }
       const isBuild = (t: string): boolean => t === 'build_house' || t === 'build_stamp_blueprint' || t === 'build_room' || t === 'build_dig' || t === 'build_feature';
-      if (spec && (reply.actions.some((x) => isBuild(x.tool)) || reply.actions.length === 0)) {
+      if (many.length > 0) {
+        // Already replaced with everything the sentence asked for.
+      } else if (spec && (reply.actions.some((x) => isBuild(x.tool)) || reply.actions.length === 0)) {
         reply = { ...reply, actions: [...buildActionsFor(spec, ctx), ...reply.actions.filter((x) => !isBuild(x.tool) && x.tool !== 'villager_spawn')] };
       } else if (!spec) {
         const dig = parseEarthwork(ctx.message);
