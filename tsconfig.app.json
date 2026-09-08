@@ -15,7 +15,9 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vitest/globals", "@testing-library/jest-dom"]
+    // "node" is here for the tests that read files (the model's size and the docs'
+    // numbers). Vitest 5 no longer pulls Node's types in on its own.
+    "types": ["vitest/globals", "@testing-library/jest-dom", "node"]
   },
   "include": ["src", "tests/unit", "tests/component", "tests/setup.ts"]
 }
