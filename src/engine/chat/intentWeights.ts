@@ -2,6 +2,7 @@
 // Intent model: 4096 hashed n-gram buckets → 50 labels (softmax),
 // one byte per weight. Trained on 77490 generated sentences;
 // held-out accuracy 97.0% with 90% of the weights pruned to zero.
+// Download cost: 41.5 KB gzipped (267 KB of base64 in the source).
 import type { IntentWeights } from './intent';
 
 export const INTENT_WEIGHTS: IntentWeights = {

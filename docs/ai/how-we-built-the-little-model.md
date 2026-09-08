@@ -45,7 +45,7 @@ The honest answer to *"can we train our own SLM?"*:
 |---|---|---|
 | Pretrain a small LLM from scratch | GPU-months, billions of tokens, a hosted download | Something worse than a 0.5B model that already exists |
 | Fine-tune an existing 0.5B model (LoRA) | A training rig, an MLC/WebGPU compile step, a hosted download | Better tool-calling, still a 400 MB download, still not offline for everyone |
-| **Train a tiny task model in-repo** | **Minutes on a laptop, ~40 KB in the bundle** | **Understands the sentences this game actually gets** |
+| **Train a tiny task model in-repo** | **Minutes on a laptop, ~42 KB in the bundle** | **Understands the sentences this game actually gets** |
 
 The third one wins because the task is narrow. The villager does not need to
 discuss the weather in prose. It needs to know: *which of the things I can build
@@ -67,7 +67,7 @@ bundle.**
   └───────┬───────┘
           │ nothing matched
           ▼
-  ┌───────────────┐   trained here, 40 KB, offline, every device
+  ┌───────────────┐   trained here, 42 KB, offline, every device
   │ little model  │   "hosptial" → hospital, and where one request ends
   └───────┬───────┘
           │ still nothing
@@ -103,8 +103,21 @@ Current shape (from the generated header of `src/engine/chat/intentWeights.ts`):
 one byte per weight, 90% of them pruned to zero
 77,490 generated training sentences
 held-out accuracy 97.0%
-≈ 41 KB gzipped in the bundle
+41.5 KB gzipped — 267 KB of base64 in the source
 ```
+
+Two numbers get quoted for size, and they measure different things: **41.5 KB**
+is the weights on their own, gzipped, which is what the training run prints and
+what the generated file's header records. **43 KB** is what a child's browser
+actually pays for them — the gzipped page with the model minus the gzipped page
+without it, slightly more because compressed base64 does not overlap with the
+code around it. Either way the model is a rounding error next to Three.js.
+
+The training script measures this on every run and writes it into the header, and
+a unit test checks the header against the file and fails if the weights ever grow
+past 50 KB. That is deliberate: an earlier version of this model was 15 KB, the
+README said so for a while after it had grown, and nobody noticed until a reader
+did.
 
 ## 5. The clues (features)
 
@@ -215,7 +228,7 @@ alongside. Accuracy is unchanged at this resolution.
 of the weights costs half a point of accuracy and makes the file compress far
 better, because a run of zeros is nearly free in gzip:
 
-| Pruned | Held-out | Weights, gzipped | Verdict |
+| Pruned | Held-out | Weights alone, gzipped | Verdict |
 |---|---|---|---|
 | 0% | 97.5% | 128.0 KB | too heavy for a page a phone loads |
 | **90%** | **97.0%** | **41.5 KB** | **what ships** |

@@ -30,8 +30,9 @@ Ship a tiny model trained in this repo, inside the bundle.
   "school" both become "skl", "hosptial" and "hospital" both "hosptl").
   Words also carry where they sit ("a house with a garden" is a house; "a
   garden next to the house" is a garden). 4096 buckets × 48 labels, one
-  byte per weight, 90% of the weights pruned to zero — about 40 KB
-  gzipped in the bundle. No download, no network, the same answer on a
+  byte per weight, 90% of the weights pruned to zero — 41.5 KB gzipped
+  (43 KB of the page a child downloads, measured against a build without
+  it), recorded in the generated file's own header. No download, no network, the same answer on a
   phone as on a desktop.
 - **What it answers.** Which building, dig, feature, or villager action
   this is — and, because a sentence usually holds more than one, where one

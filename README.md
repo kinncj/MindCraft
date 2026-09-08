@@ -58,7 +58,7 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   wells, moats. Bridges, treehouses, playgrounds, courts, and gardens come out any size and
   any colour, beside a building or on their own.
 - **A little model of our own, trained on how kids type.** Alongside the word lists,
-  a 15 KB classifier that ships in the bundle (no download) reads misspellings and
+  a 42 KB classifier that ships in the bundle (no download) reads misspellings and
   roundabout phrasings — "a hosptial", "skool", "somewhere for the sick people to go" —
   and maps them onto the same builder. It also reads a whole sentence at a time:
   "build a school and dig a big lake and then make it night" is three jobs, done in
