@@ -32,5 +32,5 @@ intentional. Weather (rain/snow) desaturates the sky and dims sunlight on top of
 ## Where this lives
 
 `src/shaders/visualModes.ts` holds the mode definitions (pure data), and
-`src/game/engine/environment.ts` applies them. See
+`src/engine/render/EnvironmentSystem.ts` applies them. See
 `docs/architecture/adr-0005-visual-mode-and-shader-package.md` for the design reasoning.

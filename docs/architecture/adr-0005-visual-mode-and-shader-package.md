@@ -10,17 +10,22 @@ in the renderer — lights here, sky there, effects sprinkled around.
 
 ## Decision
 
+> Paths updated 2026-09-07: the engine moved to `src/engine/` in ADR-0006, so the
+> environment system now lives at `src/engine/render/EnvironmentSystem.ts`. The split
+> itself — pure data in `src/shaders/`, behaviour in the engine — is unchanged.
+
 Split into two pieces:
 
 - `src/shaders/visualModes.ts` — mode **definitions** as pure data: sky palette
   (day/dawn/night), sun/hemisphere intensities, tone mapping choice, exposure, fog range,
   effect flags. No Three.js imports, trivially unit-testable.
-- `src/game/engine/environment.ts` — one **EnvironmentSystem** that owns everything
+- `src/engine/render/EnvironmentSystem.ts` — one **EnvironmentSystem** that owns everything
   atmospheric: it applies a mode, advances the day/night cycle, orbits the sun, blends
   sky colors, fades stars in at night, runs rain/snow particles, and drives the shared
   `dayLight` uniform that the voxel-light shader multiplies against baked sky light.
 
-Adding a fourth mode is one new object in `visualModes.ts`. Nothing else changes.
+Adding a mode is one new object in `visualModes.ts`. Nothing else changes — there are
+four today: Classic, Ultra, Claude Dream, and Cinema (ADR-0013).
 
 ## What "Ultra-Realistic" means here
 

@@ -148,3 +148,19 @@ describe('the model stays small enough to ship', () => {
     expect(Math.abs(Number(claimed) - kb), `header says ${claimed} KB, measured ${kb.toFixed(1)} KB`).toBeLessThan(0.2);
   });
 });
+
+describe('the docs quote the model that actually ships', () => {
+  it('agrees with the code on buckets and labels', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { FEATURE_BUCKETS, INTENT_LABELS } = await import('../../src/engine/chat/intentFeatures');
+    const shape = `${FEATURE_BUCKETS} buckets × ${INTENT_LABELS.length} labels`;
+    const generated = readFileSync('src/engine/chat/intentWeights.ts', 'utf8');
+    expect(generated, 'the generated header').toContain(`${FEATURE_BUCKETS} hashed n-gram buckets → ${INTENT_LABELS.length} labels`);
+    // Prose drifts silently; this is the cheapest way to stop it.
+    for (const doc of ['docs/architecture/adr-0016-intent-model.md', 'docs/ai/how-we-built-the-little-model.md']) {
+      const text = readFileSync(doc, 'utf8').replace(/\s+/g, ' ');
+      const quotesShape = text.includes(shape) || text.includes(`${FEATURE_BUCKETS} hashed feature buckets × ${INTENT_LABELS.length} labels`);
+      expect(quotesShape, `${doc} does not quote "${shape}"`).toBe(true);
+    }
+  });
+});

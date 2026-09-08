@@ -14,7 +14,7 @@ page register tools that a browser-side agent can call. Tests need the same hook
 
 - `src/engine/tools/ToolRegistry.ts` holds every capability once: a `domain_verb`
   name, a description, a JSON schema, and an `execute` function. Names are validated
-  (`player_move`, `world_place_block`, `villager_spawn`, `pet_follow`, …).
+  (`player_walk_to`, `world_place_block`, `villager_spawn`, `pet_follow`, …).
 - `src/engine/tools/webmcp.ts` publishes the registry to `navigator.modelContext`
   when the browser has it (both the `registerTool` and `provideContext` shapes of
   the proposal), and always to `window.mindcraftTools` for Playwright, bookmarklets,

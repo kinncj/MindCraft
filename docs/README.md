@@ -1,7 +1,8 @@
 # MindCraft docs
 
 Everything written down about the game, by area. Start with the vision, then the
-guide to whichever part you are touching.
+guide to whichever part you are touching. Working rules for contributors — human or
+agent — are in [`CLAUDE.md`](../CLAUDE.md) at the root.
 
 ## Product
 
