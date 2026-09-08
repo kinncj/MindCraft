@@ -42,7 +42,7 @@ export type EarthworkOptions = {
 
 export type FurnitureItem = { id: number; state?: number; /** Something on top (a TV on a table). */ on?: number };
 
-export type FeatureKind = 'court' | 'playground' | 'pool' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse';
+export type FeatureKind = 'court' | 'playground' | 'pool' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse' | 'runway';
 
 /** Footprints of the outdoor features. */
 export const FEATURE_SIZE: Record<FeatureKind, { w: number; d: number }> = {
@@ -55,6 +55,7 @@ export const FEATURE_SIZE: Record<FeatureKind, { w: number; d: number }> = {
   fence: { w: 1, d: 1 },
   bridge: { w: 11, d: 5 },
   treehouse: { w: 5, d: 5 },
+  runway: { w: 41, d: 9 },
 };
 
 /** Blocks the features are made of. */
@@ -110,6 +111,8 @@ export type HouseOptions = {
   castle: boolean;
   /** Parapet instead of a pitched roof (skyscrapers, hospitals). */
   flatRoof: boolean;
+  /** A glass control tower on the roof (airports). */
+  controlTower: boolean;
   /** Corridor and rooms on big floors. */
   rooms: boolean;
   furnish: boolean;
@@ -655,6 +658,20 @@ export class BuildTools {
       }
       if (width >= 9) for (let h = 1; h <= k + 1; h++) put(x1 - 1, top + h, z1 - 1, opts.chimney);
     }
+    // A glass control tower over the roof, so the airport looks like one from the ground.
+    if (opts.controlTower) {
+      const cx = x1 - 3;
+      const cz = z0 + 3;
+      const base = groundY + storey * floors + 1;
+      for (let h = 0; h < 5; h++) {
+        for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+          const wall = dx !== 0 || dz !== 0;
+          put(cx + dx, base + h, cz + dz, wall ? (h >= 3 ? opts.glass : opts.wall) : 0);
+        }
+      }
+      for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) put(cx + dx, base + 5, cz + dz, opts.trim ?? opts.roof);
+      if (opts.lantern !== null) put(cx, base + 4, cz, opts.lantern);
+    }
     // A sign on the front: a red cross for hospitals.
     if (opts.sign === 'cross' && floors >= 1) {
       const sy = groundY + storey + 1;
@@ -832,6 +849,26 @@ export class BuildTools {
         }
         for (let h = 1; h <= 3; h++) put(cx, groundY + h, cz, k.poolRim);
         put(cx, groundY + 4, cz, k.water);
+        break;
+      }
+      case 'runway': {
+        // A long flat strip along x: dark tarmac, a dashed white centre line, edge markings,
+        // lights down both sides, and clear air above so a plane can climb away.
+        const midZ = Math.floor((fz0 + fz1) / 2);
+        for (let x = fx0; x <= fx1; x++) {
+          for (let z = fz0; z <= fz1; z++) {
+            const edge = z === fz0 || z === fz1;
+            const centre = z === midZ && (x - fx0) % 4 < 2;
+            put(x, groundY, z, edge || centre ? k.courtLine : k.parkingFloor);
+            for (let h = 1; h <= 8; h++) put(x, groundY + h, z, 0); // nothing in the way of the wings
+          }
+          // Threshold bars at both ends, and lights every six blocks.
+          if (x <= fx0 + 2 || x >= fx1 - 2) for (let z = fz0 + 1; z < fz1; z += 2) put(x, groundY, z, k.courtLine);
+          if (k.lamp !== null && (x - fx0) % 6 === 0) {
+            put(x, groundY + 1, fz0 - 1, k.lamp);
+            put(x, groundY + 1, fz1 + 1, k.lamp);
+          }
+        }
         break;
       }
       case 'bridge': {

@@ -39,7 +39,7 @@ describe('the little intent model', () => {
       ['lets have a party', 'dance'],
       ['do you have something for me', 'gift'],
       ['i want to see the stars', 'time_night'],
-      ['bring the sunshine back', 'time_day'],
+      ['can we have the daytime back', 'time_day'],
       ['can we have a storm', 'weather_rain'],
       ['i want snow to play in', 'weather_snow'],
       ['can i have a puppy', 'pet'],

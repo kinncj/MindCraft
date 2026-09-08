@@ -137,3 +137,28 @@ describe('every provider ends up doing the whole sentence', () => {
     expect(result?.actions[0].args).toMatchObject({ type: 'school' });
   });
 });
+
+describe('the airport sentence a kid actually typed', () => {
+  const SENTENCE = 'build a school with 6 classrooms and a computer room, and dig a big lake and then an airport with an airstrip for airplanes.';
+
+  it('finds all three things in it, and keeps the classrooms with the school', () => {
+    const requests = parseRequests(SENTENCE);
+    expect(requests.map((r) => r.kind)).toEqual(['building', 'earthwork', 'building']);
+    expect(requests.map(describeRequest)).toEqual(['a school', 'a lake', 'an airport']);
+    const school = requests[0];
+    expect(school.kind === 'building' && school.spec.rooms).toEqual([{ purpose: 'classroom', count: 6 }, { purpose: 'computer room', count: 1 }]);
+    const airport = requests[2];
+    expect(airport.kind === 'building' && airport.spec.features).toContain('runway');
+    expect(airport.kind === 'building' && airport.spec.vehicles).toEqual(['plane']);
+  });
+
+  it('the villager builds the school, digs the lake, raises the airport and parks a plane on it', async () => {
+    const reply = await new RuleChatProvider().reply(ctx(SENTENCE));
+    expect(reply.actions.map((a) => a.tool)).toEqual(['build_house', 'villager_spawn', 'build_dig', 'build_house', 'vehicle_spawn', 'villager_spawn', 'villager_spawn']);
+    expect(reply.actions[0].args).toMatchObject({ type: 'school' });
+    expect(reply.actions[2].args).toMatchObject({ kind: 'lake' });
+    expect(reply.actions[3].args).toMatchObject({ type: 'airport', features: ['runway'] });
+    expect(reply.actions[4].args).toMatchObject({ kind: 'plane' });
+    expect(reply.say).toContain('airport');
+  });
+});

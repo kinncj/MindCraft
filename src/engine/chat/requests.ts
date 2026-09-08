@@ -119,15 +119,18 @@ function actionForLabel(label: IntentLabel, clause: string, ctx: ChatContext): C
   }
 }
 
+/** "a" or "an", so the villager sounds like a person. */
+function article(word: string): string {
+  return /^[aeiou]/.test(word) ? 'an' : 'a';
+}
+
 /** How the villager says what it is about to do. */
 export function describeRequest(request: Request): string {
   switch (request.kind) {
     case 'building':
-      return `a ${request.spec.label}`;
     case 'earthwork':
-      return `a ${request.spec.label}`;
     case 'feature':
-      return `a ${request.spec.label}`;
+      return `${article(request.spec.label)} ${request.spec.label}`;
     case 'action':
       return ACTION_WORDS[request.label] ?? 'that';
   }

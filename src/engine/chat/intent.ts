@@ -86,7 +86,8 @@ export function classifyIntent(text: string): Intent {
 export function splitClauses(raw: string): string[] {
   const text = raw.toLowerCase().replace(/\s+/g, ' ').trim();
   if (!text) return [];
-  const cut = /(, | and then | then | and also | also | plus | after that | next | and |, )/g;
+  // Longest separators first: ", and " is one cut, not a comma with a stray "and" left over.
+  const cut = /(, and then | and then |, and also |, and |, then |, plus |, also | and also | after that | and then | then | also | plus | next | and |, |; )/g;
   const parts: string[] = [];
   let head = text;
   let guard = 0;

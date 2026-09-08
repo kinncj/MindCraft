@@ -61,3 +61,24 @@ Ship a tiny model trained in this repo, inside the bundle.
 - The model can be wrong. It is gated by confidence, and a shrug is the
   designed failure: the villager asks what the child meant instead of
   building the wrong thing.
+
+## Addendum (2026-09-07): what one real sentence taught us
+
+A child typed "build a school with 6 classrooms and a computer room, and dig a
+big lake and then an airport with an airstrip for airplanes." and got only the
+school. Three separate faults, all now covered by tests:
+
+1. The clause splitter matched ", " before ", and ", so the second request began
+   with a stray "and" and was rejected. Separators are now matched longest-first.
+2. There was no such thing as an airport or a runway. Both are generated now: an
+   airport is a glass terminal with a control tower and a runway beside it, and a
+   runway is a long tarmac strip with a dashed centre line, threshold bars, edge
+   lights, and eight blocks of clear air for the wings. Rides named in the
+   sentence ("for airplanes") are parked there.
+3. Public buildings (airport, hospital, shop) now get sliding doors by default,
+   which is both how real ones work and what makes a one-wide doorway usable
+   without stopping to open it.
+
+Blocks are centred on their coordinates (the physics rounds), so a one-wide
+doorway is walked down its middle. A test now walks a character through a plain
+house door for exactly that reason.

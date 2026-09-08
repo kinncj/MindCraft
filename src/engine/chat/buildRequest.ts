@@ -10,7 +10,7 @@
 import { classifyIntent, intentIsClear } from './intent';
 import { phonetic } from './intentFeatures';
 
-export type BuildingType = 'house' | 'castle' | 'hospital' | 'school' | 'shop' | 'skyscraper' | 'hotel' | 'barn' | 'library' | 'restaurant' | 'firestation';
+export type BuildingType = 'house' | 'castle' | 'hospital' | 'school' | 'shop' | 'skyscraper' | 'hotel' | 'barn' | 'library' | 'restaurant' | 'firestation' | 'airport';
 
 export type BuildSpec = {
   kind: 'house' | 'castle';
@@ -32,6 +32,8 @@ export type BuildSpec = {
   rooms: Array<{ purpose: string; count: number }>;
   /** Outdoor features around the building. */
   features: string[];
+  /** Rides to park there ("an airport for airplanes" gets a plane). */
+  vehicles: string[];
   doorWidth: number;
   doorHeight: number;
   automaticDoor: boolean;
@@ -51,23 +53,25 @@ const TYPE_WORDS: Array<[RegExp, BuildingType]> = [
   [/\b(library)\b/, 'library'],
   [/\b(restaurant|cafe|café|diner|pizzeria)\b/, 'restaurant'],
   [/\b(fire ?station|firehouse)\b/, 'firestation'],
+  [/\b(air ?ports?|airfields?|air ?terminals?|plane stations?)\b/, 'airport'],
   [/\b(castle|fort|fortress|keep|citadel|stronghold)\b/, 'castle'],
   [/\b(house|home|homes|cottage|hut|cabin|mansion|villa|palace|manor|bungalow|apartment|flat|building|lodge|shed|garage)\b/, 'house'],
 ];
 
 /** Per type: default size class, wall, trim, roof, furniture, sign, and who works there. */
-const TYPE_DEFAULTS: Record<BuildingType, { size: 'small' | 'normal' | 'big' | 'huge'; floors: number; wall: string; trim: string | null; roof: string; furnish: boolean; sign: 'cross' | null; people: Array<{ job: string; name?: string; count: number }> }> = {
+const TYPE_DEFAULTS: Record<BuildingType, { size: 'small' | 'normal' | 'big' | 'huge'; floors: number; wall: string; trim: string | null; roof: string; furnish: boolean; sign: 'cross' | null; /** Doors that open by themselves, the way they do in real public buildings. */ automatic?: boolean; people: Array<{ job: string; name?: string; count: number }> }> = {
   house: { size: 'normal', floors: 1, wall: 'planks', trim: null, roof: 'roof_tiles', furnish: false, sign: null, people: [] },
   castle: { size: 'big', floors: 2, wall: 'stone_bricks', trim: null, roof: 'stone_bricks', furnish: false, sign: null, people: [] },
-  hospital: { size: 'huge', floors: 3, wall: 'color_white', trim: 'color_red', roof: 'color_white', furnish: true, sign: 'cross', people: [{ job: 'doctor', count: 2 }] },
+  hospital: { size: 'huge', floors: 3, wall: 'color_white', trim: 'color_red', roof: 'color_white', furnish: true, sign: 'cross', automatic: true, people: [{ job: 'doctor', count: 2 }] },
   school: { size: 'big', floors: 2, wall: 'brick', trim: 'color_yellow', roof: 'roof_tiles', furnish: true, sign: null, people: [{ job: 'teacher', count: 1 }] },
-  shop: { size: 'normal', floors: 1, wall: 'planks', trim: 'color_orange', roof: 'roof_tiles', furnish: true, sign: null, people: [{ job: 'shopkeeper', count: 1 }] },
+  shop: { size: 'normal', floors: 1, wall: 'planks', trim: 'color_orange', roof: 'roof_tiles', furnish: true, sign: null, automatic: true, people: [{ job: 'shopkeeper', count: 1 }] },
   skyscraper: { size: 'big', floors: 6, wall: 'glass', trim: 'stone_bricks', roof: 'stone_bricks', furnish: false, sign: null, people: [] },
   hotel: { size: 'huge', floors: 4, wall: 'sandstone', trim: 'color_blue', roof: 'roof_tiles', furnish: true, sign: null, people: [{ job: 'shopkeeper', name: 'Concierge', count: 1 }] },
   barn: { size: 'big', floors: 1, wall: 'planks', trim: 'color_red', roof: 'color_red', furnish: false, sign: null, people: [{ job: 'farmer', count: 1 }] },
   library: { size: 'big', floors: 2, wall: 'stone_bricks', trim: 'planks', roof: 'roof_tiles', furnish: true, sign: null, people: [{ job: 'teacher', name: 'Librarian', count: 1 }] },
   restaurant: { size: 'normal', floors: 1, wall: 'brick', trim: 'color_red', roof: 'roof_tiles', furnish: true, sign: null, people: [{ job: 'baker', name: 'Chef', count: 1 }] },
   firestation: { size: 'big', floors: 2, wall: 'color_red', trim: 'color_white', roof: 'stone_bricks', furnish: false, sign: null, people: [{ job: 'firefighter', count: 2 }] },
+  airport: { size: 'huge', floors: 2, wall: 'glass', trim: 'color_blue', roof: 'color_white', furnish: true, sign: null, automatic: true, people: [{ job: 'builder', name: 'Pilot', count: 2 }] },
 };
 
 const SIZES = { small: [5, 5, 1], normal: [7, 7, 1], big: [9, 9, 2], huge: [15, 13, 3] } as const;
@@ -127,6 +131,7 @@ const FEATURE_WORDS: Array<[RegExp, string]> = [
   [/\b(parking( lot)?|car ?park)\b/, 'parking'],
   [/\b(fountains?)\b/, 'fountain'],
   [/\b(fenced?|fence around|wall around)\b/, 'fence'],
+  [/\b(runways?|air ?strips?|landing strips?|tarmacs?)\b/, 'runway'],
 ];
 
 const FLAGS: Array<[RegExp, string]> = [
@@ -158,6 +163,7 @@ const VOCABULARY = [
   'stable', 'market', 'supermarket', 'bakery', 'elevator', 'stairs', 'staircase', 'ladder', 'doors', 'windows', 'floors', 'storeys', 'stories',
   'doctors', 'teachers', 'students', 'patients', 'nurses', 'firefighters', 'builders', 'farmers', 'musicians', 'shopkeeper',
   'lake', 'pond', 'pool', 'swimming', 'bunker', 'basement', 'tunnel', 'moat', 'trench', 'underground',
+  'airport', 'airfield', 'runway', 'airstrip', 'tarmac', 'airplane', 'airplanes', 'aeroplane', 'helicopter', 'hangar', 'terminal',
   'colourful', 'colorful', 'rainbow', 'beautiful', 'yellow', 'purple', 'orange', 'green', 'brown', 'white', 'black', 'brick', 'stone', 'wooden',
   'glass', 'furnished', 'furniture', 'automatic', 'piston', 'flag', 'canada', 'brazil', 'america', 'france', 'italy', 'germany', 'japan',
   'portugal', 'spain', 'mexico', 'ireland', 'massive', 'giant', 'little', 'small', 'huge',
@@ -315,6 +321,8 @@ export function parseBuildRequest(raw: string): BuildSpec | null {
   }
   const features: string[] = [];
   for (const [pattern, feature] of FEATURE_WORDS) if (pattern.test(text) && !features.includes(feature)) features.push(feature);
+  // An airport without a runway is just a shed: planes need somewhere to take off.
+  if (type === 'airport' && !features.includes('runway')) features.push('runway');
   // Grow the building until the rooms fit. A floor has one room per 4-block section on the
   // front side and one on the back side, except that a multi-floor building's stairwell takes
   // the three back sections nearest the left wall.
@@ -345,7 +353,16 @@ export function parseBuildRequest(raw: string): BuildSpec | null {
   const sizeWord = huge ? 'massive' : big ? 'big' : small ? 'little' : '';
   const noun = type === 'house' ? (/\bmansion\b/.test(text) ? 'mansion' : /\bpalace\b/.test(text) ? 'palace' : /\bcottage\b/.test(text) ? 'cottage' : 'house') : type === 'firestation' ? 'fire station' : type;
   const label = [sizeWord, colorful ? 'colourful' : '', materialWord, noun].filter(Boolean).join(' ');
-  return { kind: type === 'castle' ? 'castle' : 'house', type, width, depth, floors, wall, roof, trim, colorful, furnish: furnish || rooms.length > 0, sign: d.sign, flag, people, rooms, features, doorWidth: pistonDoor ? 2 : doorWidth, doorHeight, automaticDoor: automaticDoor && !pistonDoor, elevator, pistonDoor, label };
+  const vehicles: string[] = [];
+  for (const [pattern, kind] of [
+    [/\b(airplanes?|aeroplanes?|planes?|jets?)\b/, 'plane'],
+    [/\b(helicopters?|choppers?)\b/, 'helicopter'],
+    [/\b(boats?|ships?|yachts?)\b/, 'boat'],
+    [/\b(cars?|trucks?)\b/, 'car'],
+  ] as Array<[RegExp, string]>) {
+    if (pattern.test(text) && !vehicles.includes(kind)) vehicles.push(kind);
+  }
+  return { kind: type === 'castle' ? 'castle' : 'house', type, width, depth, floors, wall, roof, trim, colorful, furnish: furnish || rooms.length > 0, sign: d.sign, flag, people, rooms, features, vehicles, doorWidth: pistonDoor ? 2 : doorWidth, doorHeight, automaticDoor: (automaticDoor || d.automatic === true) && !pistonDoor, elevator, pistonDoor, label };
 }
 
 import type { ChatAction, ChatContext } from './types';
@@ -366,6 +383,7 @@ export function buildActionsFor(spec: BuildSpec, ctx: ChatContext): ChatAction[]
       },
     },
   ];
+  for (const kind of spec.vehicles) actions.push({ tool: 'vehicle_spawn', args: { kind, x: at.x, z: at.z + 6 } });
   let i = 0;
   for (const person of spec.people) {
     for (let n = 0; n < person.count; n++) {
@@ -378,9 +396,10 @@ export function buildActionsFor(spec: BuildSpec, ctx: ChatContext): ChatAction[]
 }
 
 /** Things built beside a building, asked for on their own: a bridge, a treehouse, a playground. */
-export type FeatureSpec = { kind: 'court' | 'playground' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse'; width?: number; length?: number; color?: string; label: string };
+export type FeatureSpec = { kind: 'court' | 'playground' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse' | 'runway'; width?: number; length?: number; color?: string; label: string };
 
 const STANDALONE_FEATURES: Array<[RegExp, FeatureSpec['kind'], string]> = [
+  [/\b(runways?|air ?strips?|landing strips?|tarmacs?)\b/, 'runway', 'runway'],
   [/\b(tree ?house(s)?)\b/, 'treehouse', 'treehouse'],
   [/\b(bridges?|walkways?|footbridges?)\b/, 'bridge', 'bridge'],
   [/\b(playgrounds?|play ?structures?|play ?areas?|swings?|slides?|climbing frames?|jungle gyms?)\b/, 'playground', 'playground'],

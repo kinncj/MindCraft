@@ -62,7 +62,8 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   roundabout phrasings — "a hosptial", "skool", "somewhere for the sick people to go" —
   and maps them onto the same builder. It also reads a whole sentence at a time:
   "build a school and dig a big lake and then make it night" is three jobs, done in
-  order, while "a school with 6 classrooms and a computer room" stays one school.
+  order, while "a school with 6 classrooms and a computer room" stays one school. Airports
+  come with a runway a plane can really take off from, and public buildings get sliding doors.
   `npm run train:intent` retrains it from the sentences in `src/engine/chat/intentCorpus.ts`.
 - **Chat with villagers.** Say what you want in your own words: "a beautiful and
   colourful brick mansion, like a massive house" becomes a three-floor brick house

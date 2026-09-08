@@ -48,6 +48,7 @@ const FURNITURE: Record<string, string[]> = {
   castle: ['table', 'chair', 'bookshelf', 'painting'],
   skyscraper: ['table', 'chair', 'tv', 'painting'],
   firestation: ['bed', 'table', 'chair'],
+  airport: ['chair', 'chair', 'table', 'lantern', 'chair', 'magic_box'],
 };
 
 /** Flag bitmaps: letters map to colour blocks, '.' is a gap. Top row first, 12 wide, 7 tall. */
@@ -85,7 +86,7 @@ const ROOM_FURNITURE: Record<string, Array<string | [string, string]>> = {
   room: ['table', 'chair', 'bookshelf'],
 };
 
-export const FEATURE_KINDS: FeatureKind[] = ['court', 'playground', 'pool', 'garden', 'parking', 'fountain', 'fence', 'bridge', 'treehouse'];
+export const FEATURE_KINDS: FeatureKind[] = ['court', 'playground', 'pool', 'garden', 'parking', 'fountain', 'fence', 'bridge', 'treehouse', 'runway'];
 
 export function flagNames(): string[] {
   return Object.keys(FLAG_ART);
@@ -212,7 +213,7 @@ export function houseOptions(registry: BlockRegistry, a: BuildingArgs): HouseOpt
   const kit = featureKit(registry);
   const roomPlan = (a.roomPlan ?? []).filter((r) => r.count > 0);
   const features = (a.features ?? []).filter((f): f is FeatureKind => (FEATURE_KINDS as string[]).includes(f));
-  const flatRoof = a.flatRoof ?? (type === 'skyscraper' || type === 'hospital' || type === 'firestation');
+  const flatRoof = a.flatRoof ?? (type === 'skyscraper' || type === 'hospital' || type === 'firestation' || type === 'airport');
   return {
     width: a.width ?? 7,
     depth: a.depth ?? 7,
@@ -246,6 +247,7 @@ export function houseOptions(registry: BlockRegistry, a: BuildingArgs): HouseOpt
     colorful: a.colorful === true,
     castle,
     flatRoof,
+    controlTower: type === 'airport',
     rooms: a.rooms ?? (roomPlan.length > 0 || (type !== 'house' && type !== 'castle' && type !== 'barn')),
     furnish: a.furnish === true || roomPlan.length > 0,
     furniture,

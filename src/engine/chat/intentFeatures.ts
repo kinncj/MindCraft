@@ -11,9 +11,9 @@
  * does not chat; the helper model and the rules do that.
  */
 
-export const BUILDING_LABELS = ['house', 'castle', 'hospital', 'school', 'shop', 'skyscraper', 'hotel', 'barn', 'library', 'restaurant', 'firestation'] as const;
+export const BUILDING_LABELS = ['house', 'castle', 'hospital', 'school', 'shop', 'skyscraper', 'hotel', 'barn', 'library', 'restaurant', 'firestation', 'airport'] as const;
 export const EARTHWORK_LABELS = ['pool', 'raisedPool', 'lake', 'pond', 'pit', 'bunker', 'tunnel', 'well', 'moat'] as const;
-export const FEATURE_LABELS = ['bridge', 'treehouse', 'playground', 'court', 'garden', 'fountain', 'parking', 'fence'] as const;
+export const FEATURE_LABELS = ['bridge', 'treehouse', 'playground', 'court', 'garden', 'fountain', 'parking', 'fence', 'runway'] as const;
 
 /**
  * The rest of what a villager can be asked to do. The label says what

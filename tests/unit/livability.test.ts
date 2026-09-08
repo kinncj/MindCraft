@@ -268,3 +268,66 @@ describe('bridges and treehouses are built, not stamped', () => {
     expect(player.y, `treehouse: at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThanOrEqual(17);
   });
 });
+
+describe('an airport a plane can use', () => {
+  it('lays a long flat strip with nothing above it, and a walkable, livable terminal', () => {
+    const world = flat();
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    build.run('runway', build.planFeature('runway', 24, 13, 24, featureOptions(blocks, { kind: 'runway' })));
+    const groundY = 12;
+    // Flat all the way along, and eight blocks of clear air above the whole strip.
+    for (let x = 24 - 20; x <= 24 + 20; x++) {
+      expect(world.getBlock(x, groundY, 24), `strip at ${x}`).not.toBe(0);
+      for (let h = 1; h <= 8; h++) expect(world.getBlock(x, groundY + h, 24), `air at ${x},${groundY + h}`).toBe(0);
+    }
+    // Painted: a dashed centre line and edges the pilot can see.
+    const white = blocks.numericOf('color_white');
+    let dashes = 0;
+    for (let x = 24 - 20; x <= 24 + 20; x++) if (world.getBlock(x, groundY, 24) === white) dashes++;
+    expect(dashes).toBeGreaterThan(10);
+    expect(world.getBlock(24, groundY, 24 - 4)).toBe(white);
+  });
+
+  it('the terminal passes every livability rule and the character walks in through the sliding door', async () => {
+    const world = flat();
+    const { LogicSystem } = await import('../../src/engine/logic/LogicSystem');
+    const logic = new LogicSystem(world, blocks);
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    const out: BuildingLayoutOut = {};
+    const opts = houseOptions(blocks, { type: 'airport', width: 15, depth: 13, floors: 2, wall: 'glass', trim: 'color_blue', furnish: true, automaticDoor: true });
+    const edits = build.planHouse(24, 13, 24, opts, out);
+    const walkThrough = new Set([blocks.numericOf('pressure_plate'), blocks.numericOf('wire')]);
+    expect(checkLivability(edits, out.layout!, blocks.numericOf('door'), walkThrough)).toEqual([]);
+    build.run('airport', edits);
+    const layout = out.layout!;
+    // Blocks are centred on their coordinates, so a one-wide doorway is walked down its middle.
+    const lane = layout.doorCells.reduce((a, b) => a + b, 0) / layout.doorCells.length;
+    const player = new PlayerController(world, blocks, { x: lane, y: layout.groundY + 1, z: layout.doorZ - 3 });
+    logic.pressers = () => [player.box()];
+    for (let i = 0; i < 60 * 5; i++) {
+      player.update(1 / 60, { forward: true, back: false, left: false, right: false, jump: false, sprint: false, sneak: false }, Math.PI);
+      logic.update(1 / 60);
+    }
+    expect(player.z, `stopped at ${player.x.toFixed(2)},${player.y.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThan(layout.doorZ + 1);
+  });
+});
+
+describe('a one-wide door is really wide enough', () => {
+  it('the character walks through a plain house door once it opens', async () => {
+    const world = flat();
+    const { LogicSystem } = await import('../../src/engine/logic/LogicSystem');
+    const logic = new LogicSystem(world, blocks);
+    const build = new BuildTools(world, blocks, new CommandHistory(world));
+    const out: BuildingLayoutOut = {};
+    build.run('house', build.planHouse(24, 13, 24, houseOptions(blocks, { type: 'house', width: 9, depth: 9, floors: 1, wall: 'planks', automaticDoor: true }), out));
+    const layout = out.layout!;
+    expect(layout.doorCells).toHaveLength(1);
+    const player = new PlayerController(world, blocks, { x: layout.doorCells[0], y: layout.groundY + 1, z: layout.doorZ - 3 });
+    logic.pressers = () => [player.box()];
+    for (let i = 0; i < 60 * 5; i++) {
+      player.update(1 / 60, { forward: true, back: false, left: false, right: false, jump: false, sprint: false, sneak: false }, Math.PI);
+      logic.update(1 / 60);
+    }
+    expect(player.z, `stopped at ${player.x.toFixed(2)},${player.z.toFixed(2)}`).toBeGreaterThan(layout.doorZ + 1);
+  });
+});
