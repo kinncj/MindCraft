@@ -71,3 +71,17 @@ runs are the proof.
   character fails a test rather than reaching a child.
 - Blueprint cards remain for bridges, pools, gardens, and treehouses, and
   are checked for door height.
+
+## Addendum (2026-09-07): somewhere to put it
+
+Everything used to go up at one spot a few blocks in front of the child, so a
+sentence asking for three things stacked them on top of each other. A
+`SitePlanner` (`build/siteFinder.ts`) now hands out ground: it spirals outward
+from where the child is standing and takes the first patch that is level
+(no more than two blocks of rise across the whole plot), clear of anything
+standing on it, inside loaded chunks, and not already claimed. Every plot it
+gives out is remembered for the session, so the next request goes next door
+rather than on top. Buildings, digs, features and plain shapes all ask for their
+own plot, sized to what they are; when the world really has nowhere to put it
+(all hills, all houses) the child still gets their building, right where they
+stand.

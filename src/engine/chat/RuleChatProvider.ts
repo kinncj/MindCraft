@@ -107,23 +107,22 @@ export class RuleChatProvider implements ChatProvider {
     const dig = !spec ? parseEarthwork(text) : null;
     if (dig && wantsBuild) {
       const size = dig.width && dig.length ? ` ${dig.width} by ${dig.length}` : '';
-      return say(`Time to dig! ⛏️ A${size} ${dig.label}${dig.depth ? `, ${dig.depth} deep` : ''}, coming right up!`, [
-        { tool: 'build_dig', args: { x: at.x, y: at.y, z: at.z, kind: dig.kind, ...(dig.width ? { width: dig.width } : {}), ...(dig.length ? { length: dig.length } : {}), ...(dig.depth ? { depth: dig.depth } : {}) } },
-      ]);
+      return say(`Time to dig! ⛏️ A${size} ${dig.label}${dig.depth ? `, ${dig.depth} deep` : ''}, coming right up!`, actionsFor({ kind: 'earthwork', spec: dig, clause: text }, ctx));
     }
     const feature = !spec && !dig ? parseFeature(text) : null;
     if (feature && wantsBuild) {
       const paint = feature.color ?? (color && COLOR_WORDS[color].startsWith('color_') ? COLOR_WORDS[color] : undefined);
       const size = feature.width && feature.length ? ` ${feature.width} by ${feature.length}` : '';
-      return say(`On it! ${FEATURE_EMOJI[feature.kind] ?? '🔨'} A${size} ${feature.label}${paint ? ` in ${color ?? 'colour'}` : ''}, right over there. Watch me go!`, [
-        { tool: 'build_feature', args: { x: at.x, y: at.y, z: at.z, kind: feature.kind, ...(feature.width ? { width: feature.width } : {}), ...(feature.length ? { length: feature.length } : {}), ...(paint ? { color: paint } : {}) } },
-      ]);
+      const actions = actionsFor({ kind: 'feature', spec: paint ? { ...feature, color: paint } : feature, clause: text }, ctx);
+      return say(`On it! ${FEATURE_EMOJI[feature.kind] ?? '🔨'} A${size} ${feature.label}${paint ? ` in ${color ?? 'colour'}` : ''}, right over there. Watch me go!`, actions);
     }
     for (const [pattern, shape, label, defaultBlock] of SHAPE_WORDS) {
       if (pattern.test(text) && wantsBuild) {
         const block = color ? COLOR_WORDS[color] : defaultBlock;
+        // Its own patch of ground, like everything else: pyramids should not grow out of towers.
+        const spot = ctx.plot?.(size + 2, size + 2) ?? at;
         return say(`${label.replace(/^\S+ /, '')}, coming right up! ${label.split(' ')[0]} Let me get my hammer. 🔨`, [
-          { tool: 'build_shape', args: { shape, block, size, x: at.x, y: at.y, z: at.z } },
+          { tool: 'build_shape', args: { shape, block, size, x: spot.x, y: spot.y, z: spot.z } },
         ]);
       }
     }

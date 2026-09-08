@@ -11,6 +11,7 @@ import { RuleChatProvider, rotationFromYaw } from './RuleChatProvider';
 import { EARTHWORK_KINDS, FEATURE_KINDS, earthworkOptions, featureOptions, houseOptions } from '../build/buildingKit';
 import type { EarthworkKind, FeatureKind } from '../build/BuildTools';
 import { houseLayout } from '../build/BuildTools';
+import { SitePlanner } from '../build/siteFinder';
 import { buildActionsFor, parseBuildRequest, parseEarthwork, parseFeature } from './buildRequest';
 import { actionsFor, parseRequests } from './requests';
 import type { WebLlmProvider } from './WebLlmProvider';
@@ -54,6 +55,7 @@ export class ChatAgent {
     },
   ) {
     this.helper = deps.helper ?? sharedHelper();
+    this.sites = new SitePlanner(deps.build.ground);
   }
 
   registerProvider(provider: ChatProvider | null): void {
@@ -74,6 +76,9 @@ export class ChatAgent {
     return this.histories.get(villagerId) ?? [];
   }
 
+  /** Keeps every build on its own patch of ground, in this world, this session. */
+  readonly sites: SitePlanner;
+
   private context(villagerId: string, message: string): ChatContext | null {
     const entity = this.deps.entities.byId(villagerId);
     if (!entity || entity.kind !== 'villager') return null;
@@ -90,6 +95,7 @@ export class ChatAgent {
       history: this.history(villagerId),
       player,
       site: { x: sx, y: (top >= 0 ? top : Math.round(player.y) - 1) + 1, z: sz },
+      plot: (width, depth) => this.sites.place({ width, depth }, { x: sx, z: sz }),
       blueprints: BLUEPRINTS.map((b) => ({ id: b.id, label: b.label })),
       blocks: this.deps.registry.palette().filter((d) => !d.spawns).map((d) => ({ id: d.id, label: d.label })),
       tools: this.deps.tools.list().map((t) => ({ name: t.name, description: t.description })),
@@ -152,11 +158,11 @@ export class ChatAgent {
       } else if (!spec) {
         const dig = parseEarthwork(ctx.message);
         if (dig && (reply.actions.some((x) => isBuild(x.tool)) || reply.actions.length === 0)) {
-          reply = { ...reply, actions: [{ tool: 'build_dig', args: { x: ctx.site.x, y: ctx.site.y, z: ctx.site.z, ...dig } }, ...reply.actions.filter((x) => !isBuild(x.tool))] };
+          reply = { ...reply, actions: [...actionsFor({ kind: 'earthwork', spec: dig, clause: ctx.message }, ctx), ...reply.actions.filter((x) => !isBuild(x.tool))] };
         } else if (!dig) {
           const feature = parseFeature(ctx.message);
           if (feature && (reply.actions.some((x) => isBuild(x.tool)) || reply.actions.length === 0)) {
-            reply = { ...reply, actions: [{ tool: 'build_feature', args: { x: ctx.site.x, y: ctx.site.y, z: ctx.site.z, ...feature } }, ...reply.actions.filter((x) => !isBuild(x.tool))] };
+            reply = { ...reply, actions: [...actionsFor({ kind: 'feature', spec: feature, clause: ctx.message }, ctx), ...reply.actions.filter((x) => !isBuild(x.tool))] };
           }
         }
       }

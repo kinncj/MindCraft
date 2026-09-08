@@ -8,6 +8,8 @@
 
 import { buildActionsFor, parseBuildRequest, parseEarthwork, parseFeature, type BuildSpec, type EarthworkSpec, type FeatureSpec } from './buildRequest';
 import { classifyIntent, intentIsClear, splitClauses } from './intent';
+import { FEATURE_SIZE } from '../build/BuildTools';
+import { EARTHWORK_SIZE } from '../build/buildingKit';
 import type { IntentLabel } from './intentFeatures';
 import type { ChatAction, ChatContext } from './types';
 
@@ -46,16 +48,19 @@ function parseClause(clause: string): Request | null {
 
 /** What each request tells the villager to do. */
 export function actionsFor(request: Request, ctx: ChatContext): ChatAction[] {
-  const at = ctx.site;
   switch (request.kind) {
     case 'building':
       return buildActionsFor(request.spec, ctx);
     case 'earthwork': {
       const d = request.spec;
+      const size = EARTHWORK_SIZE[d.kind];
+      const at = ctx.plot?.(d.width ?? size[0], d.length ?? size[1]) ?? ctx.site;
       return [{ tool: 'build_dig', args: { x: at.x, y: at.y, z: at.z, kind: d.kind, ...(d.width ? { width: d.width } : {}), ...(d.length ? { length: d.length } : {}), ...(d.depth ? { depth: d.depth } : {}) } }];
     }
     case 'feature': {
       const f = request.spec;
+      const size = FEATURE_SIZE[f.kind];
+      const at = ctx.plot?.(f.width ?? size.w, f.length ?? size.d) ?? ctx.site;
       return [{ tool: 'build_feature', args: { x: at.x, y: at.y, z: at.z, kind: f.kind, ...(f.width ? { width: f.width } : {}), ...(f.length ? { length: f.length } : {}), ...(f.color ? { color: f.color } : {}) } }];
     }
     case 'action':

@@ -1,6 +1,7 @@
 import type { BlockRegistry } from '../blocks/registry';
 import { SetBlocksCommand, type BlockEdit } from '../commands/Command';
 import { ensureLivable, type BuildingLayout } from './livability';
+import type { Ground } from './siteFinder';
 
 /** Where the generator reports its layout for callers and tests. */
 export type BuildingLayoutOut = { layout?: BuildingLayout };
@@ -184,6 +185,19 @@ export class BuildTools {
   mirrorX: number | null = null;
   /** Short kid-facing hints the UI shows as toasts. */
   onHint: ((message: string) => void) | null = null;
+
+  /** What the site planner needs: how high the ground is, and what is standing on it. */
+  get ground(): Ground {
+    return {
+      height: (x, z) => this.world.height(x, z),
+      blocked: (x, y, z) => {
+        const id = this.world.getBlock(x, y, z);
+        if (id === 0) return false;
+        const def = this.registry.get(id);
+        return def ? def.collision !== 'none' : true;
+      },
+    };
+  }
 
   constructor(
     private world: VoxelWorld,

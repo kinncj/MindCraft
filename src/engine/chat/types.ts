@@ -17,6 +17,12 @@ export type ChatContext = {
   player: { x: number; y: number; z: number; yaw: number };
   /** A good spot to build: a few blocks in front of the player. */
   site: { x: number; y: number; z: number };
+  /**
+   * The nearest patch of open, level ground that fits, claimed so the next
+   * thing in the same sentence goes somewhere else. Without a world to look
+   * at (tests, outside agents) it is just `site`.
+   */
+  plot?: (width: number, depth: number) => { x: number; y: number; z: number };
   blueprints: Array<{ id: string; label: string }>;
   blocks: Array<{ id: string; label: string }>;
   /** Tools the provider may call, with one-line descriptions. */

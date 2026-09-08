@@ -368,8 +368,15 @@ export function parseBuildRequest(raw: string): BuildSpec | null {
 import type { ChatAction, ChatContext } from './types';
 
 /** The tool calls that make a spec real: the building, then its people beside it. */
+/** Rough width of the widest outdoor feature, so the plot leaves room for it. */
+function widestFeature(features: string[]): number {
+  if (features.includes('runway')) return 45;
+  return features.length > 0 ? 16 : 0;
+}
+
 export function buildActionsFor(spec: BuildSpec, ctx: ChatContext): ChatAction[] {
-  const at = ctx.site;
+  // Its own patch of open ground, clear of whatever was built a moment ago.
+  const at = ctx.plot?.(spec.width + widestFeature(spec.features), spec.depth) ?? ctx.site;
   const actions: ChatAction[] = [
     {
       tool: 'build_house',
