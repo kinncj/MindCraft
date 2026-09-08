@@ -57,6 +57,11 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   bunkers, and along tunnels. Villagers dig too: pools, lakes, ponds, bunkers, tunnels,
   wells, moats. Bridges, treehouses, playgrounds, courts, and gardens come out any size and
   any colour, beside a building or on their own.
+- **A little model of our own, trained on how kids type.** Alongside the word lists,
+  a 15 KB classifier that ships in the bundle (no download) reads misspellings and
+  roundabout phrasings — "a hosptial", "skool", "somewhere for the sick people to go" —
+  and maps them onto the same builder. `npm run train:intent` retrains it from the
+  sentences in `src/engine/chat/intentCorpus.ts`.
 - **Chat with villagers.** Say what you want in your own words: "a beautiful and
   colourful brick mansion, like a massive house" becomes a three-floor brick house
   with rainbow pillars, glass windows, a door, a stepped roof, and a chimney. Houses

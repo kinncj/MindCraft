@@ -7,6 +7,9 @@
  * cross, beds and lamps inside, four villagers, and a flag on a pole.
  */
 
+import { classifyIntent, intentIsClear } from './intent';
+import { phonetic } from './intentFeatures';
+
 export type BuildingType = 'house' | 'castle' | 'hospital' | 'school' | 'shop' | 'skyscraper' | 'hotel' | 'barn' | 'library' | 'restaurant' | 'firestation';
 
 export type BuildSpec = {
@@ -142,15 +145,110 @@ const FLAGS: Array<[RegExp, string]> = [
   [/\b(rainbow|pride)\b/, 'rainbow'],
 ];
 
+/**
+ * The words this parser reads. A misspelled word that sounds like one of
+ * these is corrected before any pattern runs, so "6 clasrooms" and "a
+ * computr room" land in the right place.
+ */
+const VOCABULARY = [
+  'classroom', 'classrooms', 'computer', 'library', 'canteen', 'cafeteria', 'gym', 'office', 'reception', 'ward', 'bedroom', 'bedrooms',
+  'laboratory', 'kitchen', 'lounge', 'bathroom', 'toilet', 'playground', 'basketball', 'football', 'soccer', 'tennis', 'garden', 'flowers',
+  'fountain', 'parking', 'fence', 'bridge', 'treehouse', 'hospital', 'clinic', 'school', 'kindergarten', 'university', 'house', 'cottage',
+  'mansion', 'castle', 'palace', 'fortress', 'skyscraper', 'hotel', 'restaurant', 'pizzeria', 'library', 'firestation', 'firehouse', 'barn',
+  'stable', 'market', 'supermarket', 'bakery', 'elevator', 'stairs', 'staircase', 'ladder', 'doors', 'windows', 'floors', 'storeys', 'stories',
+  'doctors', 'teachers', 'students', 'patients', 'nurses', 'firefighters', 'builders', 'farmers', 'musicians', 'shopkeeper',
+  'lake', 'pond', 'pool', 'swimming', 'bunker', 'basement', 'tunnel', 'moat', 'trench', 'underground',
+  'colourful', 'colorful', 'rainbow', 'beautiful', 'yellow', 'purple', 'orange', 'green', 'brown', 'white', 'black', 'brick', 'stone', 'wooden',
+  'glass', 'furnished', 'furniture', 'automatic', 'piston', 'flag', 'canada', 'brazil', 'america', 'france', 'italy', 'germany', 'japan',
+  'portugal', 'spain', 'mexico', 'ireland', 'massive', 'giant', 'little', 'small', 'huge',
+];
+
+/**
+ * Ordinary words a kid uses that must never be "corrected": they are
+ * spelled right, and some of them sound like a word in the vocabulary
+ * ("long" sounds like "lounge").
+ */
+const NEVER_CORRECT = new Set([
+  'long', 'wide', 'tall', 'high', 'over', 'under', 'water', 'river', 'grass', 'ground', 'here', 'there',
+  'that', 'this', 'them', 'they', 'with', 'without', 'please', 'thanks', 'thank', 'want', 'like', 'love',
+  'make', 'made', 'build', 'built', 'give', 'have', 'need', 'come', 'lets', 'look', 'show', 'play',
+  'jump', 'walk', 'talk', 'help', 'find', 'take', 'know', 'think', 'much', 'many', 'more', 'most',
+  'some', 'from', 'into', 'onto', 'next', 'near', 'side', 'back', 'front', 'left', 'right', 'good',
+  'nice', 'cool', 'best', 'super', 'friend', 'friends', 'mummy', 'mommy', 'daddy', 'sister', 'brother', 'family',
+  'people', 'again', 'really', 'very', 'today', 'night', 'morning', 'sunny', 'rainy', 'snowy', 'cloud', 'clouds',
+  'stars', 'moon', 'trees', 'tree', 'blocks', 'block', 'world', 'what', 'when', 'where', 'which', 'while',
+  'would', 'could', 'should', 'about', 'after', 'because', 'been', 'before', 'both', 'came', 'does', 'done',
+  'down', 'each', 'even', 'every', 'first', 'going', 'gone', 'great', 'just', 'last', 'little', 'name',
+  'never', 'only', 'other', 'said', 'same', 'says', 'seen', 'such', 'tell', 'than', 'then', 'these',
+  'thing', 'things', 'those', 'time', 'told', 'took', 'turn', 'until', 'upon', 'went', 'were', 'will',
+  'work', 'year', 'your', 'yours', 'mine', 'ours', 'dont', 'cant', 'wont', 'didnt', 'isnt', 'open',
+  'close', 'inside', 'outside', 'above', 'below', 'around', 'away', 'back', 'down', 'together', 'maybe', 'okay',
+  'sure', 'another', 'anything', 'something', 'nothing', 'everyone', 'anyone', 'myself', 'yourself', 'himself', 'herself', 'happy',
+  'funny', 'silly', 'sleepy', 'hungry', 'thirsty', 'tired', 'scared', 'brave', 'kind', 'mean', 'loud', 'quiet',
+]);
+
+const SOUNDS_LIKE = ((): Map<string, string> => {
+  const known = new Set(VOCABULARY);
+  const bySound = new Map<string, string | null>();
+  for (const word of VOCABULARY) {
+    const key = phonetic(word);
+    // Two vocabulary words that sound alike are ambiguous: correct neither.
+    bySound.set(key, bySound.has(key) && bySound.get(key) !== word ? null : word);
+  }
+  const out = new Map<string, string>();
+  for (const [key, word] of bySound) if (word && !known.has(key)) out.set(key, word);
+  return out;
+})();
+
+/**
+ * Rewrites words that sound like something the parser knows. Real words
+ * are left alone, and so is the punctuation: a comma is what keeps "6
+ * classrooms, a computer room" from reading as six computer rooms.
+ */
+export function correctSpelling(raw: string): string {
+  const known = new Set(VOCABULARY);
+  return raw.replace(/[a-z']{4,}/g, (word) => {
+    if (known.has(word) || NEVER_CORRECT.has(word)) return word;
+    const match = SOUNDS_LIKE.get(phonetic(word));
+    // Sounding alike is not enough: a typo is also a near miss in spelling.
+    return match && editDistance(word, match) <= 2 ? match : word;
+  });
+}
+
+/** Levenshtein distance, stopped early: only small distances matter here. */
+function editDistance(a: string, b: string): number {
+  if (Math.abs(a.length - b.length) > 2) return 3;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost);
+      best = Math.min(best, row[j]);
+    }
+    if (best > 2) return 3;
+    prev = row;
+  }
+  return prev[b.length];
+}
+
 export function parseBuildRequest(raw: string): BuildSpec | null {
   // "tree house" is a feature of its own, not a house: the word must not make a building.
-  const text = raw.toLowerCase().replace(/\btree ?house(s)?\b/g, 'treehouse');
+  const text = correctSpelling(raw.toLowerCase().replace(/\btree ?house(s)?\b/g, 'treehouse'));
   let type: BuildingType | null = null;
   for (const [pattern, t] of TYPE_WORDS) {
     if (pattern.test(text)) {
       type = t;
       break;
     }
+  }
+  if (!type) {
+    // Nothing we wrote down matched. Ask the model that was trained on how kids
+    // really type: it reads misspellings and roundabout phrasings ("somewhere
+    // for sick people to go") the way the word list cannot.
+    const guess = classifyIntent(text);
+    if (guess.kind === 'building' && intentIsClear(guess)) type = guess.label as BuildingType;
   }
   if (!type) return null;
   const d = TYPE_DEFAULTS[type];
@@ -294,9 +392,15 @@ const STANDALONE_FEATURES: Array<[RegExp, FeatureSpec['kind'], string]> = [
 
 /** A feature asked for on its own. Null when the words are about something else. */
 export function parseFeature(raw: string): FeatureSpec | null {
-  const text = raw.toLowerCase();
-  for (const [pattern, kind, label] of STANDALONE_FEATURES) {
-    if (!pattern.test(text)) continue;
+  const text = correctSpelling(raw.toLowerCase());
+  const guess = classifyIntent(text);
+  const known = STANDALONE_FEATURES.map(([pattern, kind, label]): [RegExp | null, FeatureSpec['kind'], string] => [pattern, kind, label]);
+  if (guess.kind === 'feature' && intentIsClear(guess) && !known.some(([pattern]) => pattern?.test(text))) {
+    const row = known.find(([, kind]) => kind === guess.label);
+    if (row) known.unshift([null, row[1], row[2]]); // the model's guess, tried first
+  }
+  for (const [pattern, kind, label] of known) {
+    if (pattern && !pattern.test(text)) continue;
     const spec: FeatureSpec = { kind, label };
     const sizeMatch = /\b(\d{1,2})\s*(x|by)\s*(\d{1,2})\b/.exec(text);
     if (sizeMatch) {
@@ -335,13 +439,17 @@ const EARTHWORK_WORDS: Array<[RegExp, EarthworkSpec['kind']]> = [
 ];
 
 export function parseEarthwork(raw: string): EarthworkSpec | null {
-  const text = raw.toLowerCase();
+  const text = correctSpelling(raw.toLowerCase());
   let kind: EarthworkSpec['kind'] | null = null;
   for (const [pattern, k] of EARTHWORK_WORDS) {
     if (pattern.test(text)) {
       kind = k;
       break;
     }
+  }
+  if (!kind) {
+    const guess = classifyIntent(text);
+    if (guess.kind === 'earthwork' && intentIsClear(guess)) kind = guess.label as EarthworkSpec['kind'];
   }
   if (!kind) return null;
   const spec: EarthworkSpec = { kind, label: kind === 'raisedPool' ? 'above-ground pool' : kind };

@@ -1,0 +1,56 @@
+# ADR-0016: A small model of our own, trained on how kids type
+
+Status: accepted (2026-09-07)
+
+## Context
+
+Free-form building has to work for every child on every device (ADR-0015).
+The word lists carry it a long way, but a six-year-old types "hosptial",
+"skool", "a brige across the river", "somewhere for the sick people to go".
+The optional helper model (ADR-0012) handles phrasing like that — when a
+grown-up has downloaded it, on a device that can run it. Everyone else falls
+back to the word lists, and the word lists say nothing.
+
+Training a general small language model of our own was considered and
+rejected: pretraining needs GPUs and a hosted download, and the result would
+still be worse at chatting than the 0.5B model we already offer. The gap
+worth closing is narrower than chat — recognising *which* of the things the
+generator can already build a child is asking for.
+
+## Decision
+
+Ship a tiny model trained in this repo, inside the bundle.
+
+- **What it is.** A multinomial logistic regression over hashed features:
+  word unigrams and bigrams, character 3- and 4-grams, the first four
+  letters, and a rough *sound* of each word (`phonetic`, so "skool" and
+  "school" both become "skl", "hosptial" and "hospital" both "hosptl").
+  2048 buckets × 29 labels, one byte per weight, 88% of the weights pruned
+  to zero — about 15 KB gzipped in the bundle. No download, no network,
+  the same answer on a phone as on a desktop.
+- **What it answers.** One question: which building, dig, or feature is
+  this? Everything else — sizes, colours, rooms, counts, people, flags —
+  stays with the parsers, which are exact and easy to read.
+- **What it learns from.** `intentCorpus.ts`: sentences generated from
+  templates crossed with the words kids use for each thing, then knocked
+  about with dropped words and typos (dropped, doubled, swapped, and
+  neighbouring-key letters). The corpus lives in the repo, so what the
+  model was taught is readable and can be grown. `npm run train:intent`
+  rewrites `intentWeights.ts`; held-out accuracy is printed and recorded
+  in the generated file's header.
+- **Where it sits.** The written words always win. The model is consulted
+  only when no pattern matched, and only acted on when its guess is clearly
+  ahead of "this is just chatting" (`intentIsClear`). A misspelled word that
+  sounds like one the parser knows is also corrected before the patterns run
+  (`correctSpelling`), guarded by an edit-distance check and a list of
+  ordinary words that must never be rewritten.
+
+## Consequences
+
+- The floor under every provider is the same: rules, built-in model, and
+  helper all end up building the thing the child described.
+- Growing the vocabulary means adding phrasings to the corpus and
+  retraining, not writing more regular expressions.
+- The model can be wrong. It is gated by confidence, and a shrug is the
+  designed failure: the villager asks what the child meant instead of
+  building the wrong thing.
