@@ -8,7 +8,7 @@
 - A playable kid character: walk, run (Ctrl), sneak (Shift), jump, swim, step up single
   blocks, fit under roofs; first- and third-person cameras; the third-person camera
   never clips into hills
-- Roughly 85 blocks, all available from the start: ground, building materials, ten
+- Roughly 88 blocks, all available from the start: ground, building materials, ten
   color blocks and carpets, stairs, slabs, doors that open, fences, window panes,
   nature, lights, and furniture (bed, table, chair, bookshelf, TV, painting, cake)
 - Minecraft-style voxel lighting, recomputed only around each edit: sealed shelters
@@ -45,10 +45,11 @@
   built-in on-device model behind a parent toggle, or an outside agent. Anything the
   child describes — a hospital with doctors, a school with six classrooms, a 30 by 20
   lake, an airport with a runway — is generated to order and built by hand, undoable
-- Crafting: a picture recipe book (36 recipes) with a tap-to-fill grid; crafting table
+- Crafting: a picture recipe book (37 recipes) with a tap-to-fill grid; crafting table
 - Logic: lever, button, pressure plate, wire (fades over 15 blocks, and climbs a step),
-  logic lamp, pistons facing all six ways that push up to 12 blocks and sticky pistons
-  that pull one back, powered and automatic doors, note blocks; a 10 Hz tick
+  logic lamp, repeaters that pass power on at full strength so a circuit can run past
+  fifteen blocks, pistons facing all six ways that push up to 12 blocks and sticky
+  pistons that pull one back, powered and automatic doors, note blocks; a 10 Hz tick
 - Robots: card programs (forward, back, left, right, turn, up, down, place, remove,
   wait, repeat ×N), one step every half second, persisted with the world
 - Works with keyboard and mouse (a desktop grabs the pointer like a block game; a

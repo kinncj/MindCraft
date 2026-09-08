@@ -46,8 +46,11 @@ function draw(m: MonumentDraw): void {
       for (const dz of [-r, r]) {
         m.put(m.cx + dx, y, m.cz + dz, iron);
         // Diagonal bracing between the legs, so they read as lattice.
-        if ((y - m.g) % 3 === 0) {
+        // Lattice, not slabs: every fourth course braces the legs, and only
+        // every other block of it, so daylight shows through the ironwork.
+        if ((y - m.g) % 4 === 0) {
           for (let i = 1; i < r * 2; i++) {
+            if ((i + y) % 2 !== 0) continue;
             m.put(m.cx + dx, y, m.cz + dz + (dz < 0 ? i : -i), iron);
             m.put(m.cx + dx + (dx < 0 ? i : -i), y, m.cz + dz, iron);
           }

@@ -45,10 +45,14 @@ function draw(m: MonumentDraw): void {
   box(m, m.cx - 2, base, m.cz - 2, m.cx + 2, base + m.up(8), m.cz + 2, cobble);
   const feet = base + m.up(8) + 1;
   const headY = feet + m.up(30);
+  // The arms come off at 26 m of the 30 m figure — high, which is why the
+  // silhouette reads as a cross from far away — leaving a small head above.
+  const shoulders = feet + m.up(26);
   // Robe: a column that widens at the hem, narrowing to the shoulders.
-  for (let y = feet; y < headY - 3; y++) {
-    const t = (y - feet) / (headY - 3 - feet);
-    const r = t < 0.25 ? 3 : t > 0.8 ? 1 : 2;
+  for (let y = feet; y < shoulders; y++) {
+    const t = (y - feet) / Math.max(1, shoulders - feet);
+    // The robe falls wide at the hem and draws in towards the shoulders.
+    const r = t < 0.2 ? 3 : t < 0.55 ? 2 : 1;
     for (let dx = -r; dx <= r; dx++) {
       for (let dz = -1; dz <= 1; dz++) {
         if (Math.abs(dx) === r && Math.abs(dz) === 1) continue;
@@ -56,16 +60,14 @@ function draw(m: MonumentDraw): void {
       }
     }
   }
-  // The arms: straight out, level, nearly the width of the whole monument.
-  const shoulders = headY - 4;
   const reach = Math.min(Math.floor(m.w / 2) - 2, Math.round(m.across(28) / 2));
   for (let dx = -reach; dx <= reach; dx++) {
     m.put(m.cx + dx, shoulders, m.cz, stone);
     // The sleeves of the robe hang a little below the arms.
     if (Math.abs(dx) > 2 && Math.abs(dx) < reach - 1) m.put(m.cx + dx, shoulders - 1, m.cz, stone);
   }
-  // Head and shoulders.
+  // Head and shoulders: a head is about a tenth of him, not a quarter.
   box(m, m.cx - 1, shoulders + 1, m.cz - 1, m.cx + 1, shoulders + 1, m.cz + 1, stone);
-  box(m, m.cx - 1, shoulders + 2, m.cz - 1, m.cx + 1, headY, m.cz + 1, stone);
-  m.put(m.cx, headY + 1, m.cz, stone);
+  box(m, m.cx, shoulders + 2, m.cz, m.cx, headY, m.cz, stone);
+  box(m, m.cx - 1, shoulders + 2, m.cz - 1, m.cx + 1, headY - 1, m.cz + 1, stone);
 }

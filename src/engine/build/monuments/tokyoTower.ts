@@ -47,8 +47,10 @@ function draw(m: MonumentDraw): void {
     for (const dx of [-r, r]) {
       for (const dz of [-r, r]) {
         m.put(m.cx + dx, y, m.cz + dz, banded);
+        // Lattice bracing: every other block, so it reads as steelwork.
         if ((y - m.g) % 4 === 0) {
           for (let i = 1; i < r * 2; i++) {
+            if ((i + y) % 2 !== 0) continue;
             m.put(m.cx + dx, y, m.cz + dz + (dz < 0 ? i : -i), banded);
             m.put(m.cx + dx + (dx < 0 ? i : -i), y, m.cz + dz, banded);
           }

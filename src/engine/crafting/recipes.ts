@@ -55,6 +55,7 @@ export const RECIPES: Recipe[] = [
   { id: 'logic_lamp', label: 'Logic Lamp', emoji: '💡', result: 'logic_lamp', count: 1, grid: [_, 'wire', _, 'wire', 'glow_crystal', 'wire', _, 'wire', _], hint: 'Wire around a glow crystal.' },
   { id: 'piston', label: 'Piston', emoji: '🔩', result: 'piston', count: 1, grid: ['planks', 'planks', 'planks', 'cobblestone', 'glow_crystal', 'cobblestone', 'cobblestone', 'wire', 'cobblestone'], hint: 'A wooden face, stone, and a spark.' },
   { id: 'sticky_piston', label: 'Sticky Piston', emoji: '🔩', result: 'sticky_piston', count: 1, grid: ['hay', _, _, 'piston', _, _, _, _, _], hint: 'A piston with a sticky top.' },
+  { id: 'repeater', label: 'Repeater', emoji: '🔁', result: 'repeater', count: 1, grid: [_, _, _, 'glow_crystal', 'wire', 'glow_crystal', 'stone', 'stone', 'stone'], hint: 'Two little lights on a stone slab: it passes power on, full strength.' },
   { id: 'note_block', label: 'Note Block', emoji: '🎵', result: 'note_block', count: 1, grid: ['planks', 'planks', 'planks', 'planks', 'wire', 'planks', 'planks', 'planks', 'planks'], hint: 'Wire inside a wooden box.' },
   { id: 'robot', label: 'Robot', emoji: '🤖', result: 'robot', count: 1, grid: ['glow_crystal', 'stone_bricks', 'glow_crystal', 'stone_bricks', 'wire', 'stone_bricks', 'piston', 'stone_bricks', 'piston'], hint: 'Eyes, a heart of wire, piston legs.' },
 ];

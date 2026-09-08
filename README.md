@@ -28,7 +28,7 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
 - A playable kid with real physics: walk, run, sneak, jump, swim (and hop out), step
   up single blocks, duck under roofs. First- and third-person cameras; the camera
   never pokes through hills.
-- **About 85 blocks** with generated pixel textures: ground, building materials,
+- **About 88 blocks** with generated pixel textures: ground, building materials,
   ten color blocks and carpets, **stairs, slabs, doors that open, fences, windows**,
   nature, lights, and furniture (bed, table, chair, bookshelf, TV, painting, cake).
   Every block is one data definition — shape, collision, light, and behavior included.
