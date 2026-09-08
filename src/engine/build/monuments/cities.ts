@@ -5,7 +5,7 @@
 
 import type { MonumentKind } from './index';
 
-export type CityName = 'curitiba' | 'saopaulo' | 'ottawa' | 'toronto' | 'paris';
+export type CityName = 'curitiba' | 'saopaulo' | 'ottawa' | 'toronto' | 'paris' | 'tokyo' | 'vancouver';
 
 export const CITY_PACKS: Record<CityName, { label: string; emoji: string; monuments: MonumentKind[]; sign: string }> = {
   curitiba: { label: 'Curitiba', emoji: '🌲', monuments: ['niemeyer_eye', 'wire_opera', 'botanical_garden'], sign: 'CURITIBA' },
@@ -13,6 +13,8 @@ export const CITY_PACKS: Record<CityName, { label: string; emoji: string; monume
   ottawa: { label: 'Ottawa', emoji: '🍁', monuments: ['peace_tower', 'rideau_canal'], sign: 'OTTAWA' },
   toronto: { label: 'Toronto', emoji: '🇨🇦', monuments: ['cn_tower', 'rogers_dome'], sign: 'TORONTO' },
   paris: { label: 'Paris', emoji: '🗼', monuments: ['eiffel'], sign: 'PARIS' },
+  tokyo: { label: 'Tokyo', emoji: '🎌', monuments: ['tokyo_tower', 'skytree', 'sensoji'], sign: 'TOKYO' },
+  vancouver: { label: 'Vancouver', emoji: '🏔️', monuments: ['canada_place', 'science_world', 'lions_gate'], sign: 'VANCOUVER' },
 };
 
 export const CITY_NAMES = Object.keys(CITY_PACKS) as CityName[];

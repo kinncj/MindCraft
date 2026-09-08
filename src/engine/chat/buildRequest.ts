@@ -168,6 +168,7 @@ const VOCABULARY = [
   'lake', 'pond', 'pool', 'swimming', 'bunker', 'basement', 'tunnel', 'moat', 'trench', 'underground',
   'airport', 'airfield', 'runway', 'airstrip', 'tarmac', 'airplane', 'airplanes', 'aeroplane', 'helicopter', 'hangar', 'terminal',
   'eiffel', 'niagara', 'iguacu', 'iguazu', 'toronto', 'ottawa', 'curitiba', 'paris', 'rideau', 'copan', 'masp', 'ibirapuera',
+  'tokyo', 'vancouver', 'skytree', 'sensoji', 'asakusa', 'kaminarimon', 'pagoda', 'geodesic',
   'niemeyer', 'botanical', 'opera', 'parliament', 'stadium', 'museum', 'canal', 'waterfall', 'waterfalls', 'monument', 'tower',
   'colourful', 'colorful', 'rainbow', 'beautiful', 'yellow', 'purple', 'orange', 'green', 'brown', 'white', 'black', 'brick', 'stone', 'wooden',
   'glass', 'furnished', 'furniture', 'automatic', 'piston', 'flag', 'canada', 'brazil', 'america', 'france', 'italy', 'germany', 'japan',
@@ -577,6 +578,12 @@ const MONUMENT_WORDS: Array<[RegExp, MonumentKind]> = [
   [/\b(ibirapuera)\b/, 'ibirapuera'],
   [/\b(niagara|niagra)( falls)?\b/, 'niagara'],
   [/\b(igua[cç]u|iguazu|foz do igua[cç]u|cataratas)( falls)?\b/, 'iguacu'],
+  [/\b(tokyo tower)\b/, 'tokyo_tower'],
+  [/\b(sky ?tree)\b/, 'skytree'],
+  [/\b(senso ?ji|asakusa|kaminarimon|pagoda)\b/, 'sensoji'],
+  [/\b(canada place|the sails)\b/, 'canada_place'],
+  [/\b(science world|geodesic|silver ball)\b/, 'science_world'],
+  [/\b(lions gate|lion'?s gate)\b/, 'lions_gate'],
   [/\b(big letters|block letters|giant letters|a sign that says|sign saying|letters that say)\b/, 'sign'],
 ];
 
@@ -613,6 +620,8 @@ export function parseMonument(raw: string): MonumentSpec | null {
 export type CitySpec = { city: CityName; label: string; monuments: MonumentKind[]; sign: string };
 
 const CITY_WORDS: Array<[RegExp, CityName]> = [
+  [/\btokyo\b/, 'tokyo'],
+  [/\bvancouver\b/, 'vancouver'],
   [/\bcuritiba\b/, 'curitiba'],
   [/\b(s[aã]o paulo|sao paolo|sampa)\b/, 'saopaulo'],
   [/\bottawa\b/, 'ottawa'],

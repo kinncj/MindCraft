@@ -27,17 +27,27 @@ function draw(m: MonumentDraw): void {
   }
   // A stone island under the hall.
   for (let x = m.cx - 6; x <= m.cx + 6; x++) for (let z = m.cz - 4; z <= m.cz + 4; z++) m.put(x, m.g, z, stone);
-  // The barrel vault: ribs of wire with glass between them.
-  for (let x = m.cx - 6; x <= m.cx + 6; x++) {
-    const rib = (x - m.cx) % 3 === 0;
-    for (let a = 0; a <= 12; a++) {
-      const angle = (Math.PI * a) / 12;
-      const dz = Math.round(Math.cos(angle) * 4);
-      const dy = Math.round(Math.sin(angle) * 6);
-      m.put(x, m.g + 1 + dy, m.cz + dz, rib ? frame : glass);
+  // A round shell of steel tubes with glass between them: arcs of tube run
+  // from the ring at the bottom up and over, meeting at a hoop on top.
+  const radius = 6;
+  const rise = 7;
+  for (let step = 0; step < 16; step++) {
+    const around = (Math.PI * 2 * step) / 16;
+    const rib = step % 2 === 0;
+    for (let a = 0; a <= 10; a++) {
+      const up = (Math.PI / 2) * (a / 10);
+      const ring = Math.round(Math.cos(up) * radius);
+      const dy = Math.round(Math.sin(up) * rise);
+      const x = m.cx + Math.round(Math.cos(around) * ring);
+      const z = m.cz + Math.round(Math.sin(around) * ring * 0.7);
+      m.put(x, m.g + 1 + dy, z, rib ? frame : glass);
     }
-    m.put(x, m.g + 1, m.cz - 4, frame);
-    m.put(x, m.g + 1, m.cz + 4, frame);
+  }
+  // The hoop the tubes meet at, and the ring they spring from.
+  for (let step = 0; step < 16; step++) {
+    const around = (Math.PI * 2 * step) / 16;
+    m.put(m.cx + Math.round(Math.cos(around) * 2), m.g + 1 + rise, m.cz + Math.round(Math.sin(around) * 2), frame);
+    m.put(m.cx + Math.round(Math.cos(around) * radius), m.g + 1, m.cz + Math.round(Math.sin(around) * radius * 0.7), frame);
   }
   // Seats and a stage inside.
   for (let x = m.cx - 4; x <= m.cx + 4; x++) for (let z = m.cz - 2; z <= m.cz + 2; z++) m.put(x, m.g + 1, z, z <= m.cz - 1 ? m.kit.planks : m.kit.slab);

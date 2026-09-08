@@ -16,7 +16,10 @@ export const niemeyerEye: Monument = {
 };
 
 function draw(m: MonumentDraw): void {
-  const frame = m.ctx.color ?? m.kit.yellow;
+  // Niemeyer's eye is white concrete; the rectangular base under it is the
+  // part tiled in yellow, which he painted himself.
+  const shell = m.ctx.color ?? m.kit.white;
+  const base = m.kit.yellow;
   const { white, glass, water } = m.kit;
   plaza(m, white);
   // Reflecting pool in front.
@@ -26,8 +29,12 @@ function draw(m: MonumentDraw): void {
       m.put(x, m.g - 1, z, white);
     }
   }
-  // The stem.
-  box(m, m.cx - 3, m.g + 1, m.cz - 1, m.cx + 3, m.g + 8, m.cz + 1, white);
+  // The yellow-tiled base, and the stem the eye stands on.
+  box(m, m.cx - 5, m.g + 1, m.cz - 3, m.cx + 5, m.g + 3, m.cz + 3, base);
+  box(m, m.cx - 4, m.g + 4, m.cz - 2, m.cx + 4, m.g + 4, m.cz + 2, base);
+  box(m, m.cx - 3, m.g + 4, m.cz - 1, m.cx + 3, m.g + 8, m.cz + 1, white);
+  // The ramp curling up to it, the way people really go in.
+  for (let i = 0; i <= 6; i++) m.put(m.cx - 5 - i, m.g + 3 - Math.floor(i / 3), m.cz + 4, white);
   // The eye: an ellipse standing up, framed, glazed, three blocks thick.
   const ey = m.g + 14;
   const rx = Math.min(9, Math.floor(m.w / 2) - 1);
@@ -38,7 +45,7 @@ function draw(m: MonumentDraw): void {
       if (value > 1.05) continue;
       const onFrame = value > 0.72;
       for (let dz = -1; dz <= 1; dz++) {
-        const id = onFrame ? frame : dz === 0 ? glass : 0;
+        const id = onFrame ? shell : dz === 0 ? glass : 0;
         if (onFrame || dz === 0) m.put(m.cx + dx, ey + dy, m.cz + dz, id);
       }
     }

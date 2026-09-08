@@ -83,8 +83,11 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
 - **Famous places, in blocks.** Ask for the **Eiffel Tower**, the **CN Tower**, the
   **Rogers Centre**, Ottawa's **Peace Tower** and **Rideau Canal**, Curitiba's **Eye
   Museum**, **Wire Opera House** and **Botanical Garden**, São Paulo's **MASP**,
-  **Copan** and **Ibirapuera Auditorium**, or **Niagara** and **Iguaçu Falls** — with
-  water that really falls. Ask for a whole city ("build Curitiba") and its landmarks go
+  **Copan** and **Ibirapuera Auditorium**, **Tokyo Tower**, the **Skytree** and
+  **Sensoji**'s pagoda, Vancouver's **Canada Place** sails, **Science World** ball and
+  **Lions Gate Bridge**, or **Niagara** and **Iguaçu Falls** — with water that really
+  falls. Their proportions come from the real things: the Eiffel Tower's floors sit at
+  17% and 35% of its height because that is where 57 m and 115 m fall on 330 m. Ask for a whole city ("build Curitiba") and its landmarks go
   up side by side with the name in giant letters. A sign can spell anything: "a sign
   that says KINN". They are original block sculptures, one file each in
   `src/engine/build/monuments/`.

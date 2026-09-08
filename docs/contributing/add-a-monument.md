@@ -49,6 +49,20 @@ the real place is used. Keep it that way.
 4. **A city?** `monuments/cities.ts` maps a city name to its landmarks and the word
    for its sign. Asking for the city builds them all, each on its own ground.
 
+## Get the proportions from the real thing
+
+Look the place up before you draw it. What makes a monument recognisable is not
+detail, it is **ratios**: the Eiffel Tower's floors at 57 m and 115 m of 330 m
+(17% and 35%), the CN Tower's pod at 346 m of 553 (63%), Tokyo Tower's decks at
+150 m and 250 m of 333, MASP's box only 8 m above the ground over a 74 m span —
+long and low, not a tall box on legs. Write the numbers into the comment at the
+top of the file so the next person can check your work.
+
+Two of these were wrong on the first pass because they were drawn from memory: the
+Eiffel Tower's decks were far too high, and the Eye Museum had its colours the
+wrong way round (the eye is white concrete; the base under it is the yellow tiled
+part Niemeyer painted himself).
+
 ## Rules of thumb
 
 - **Stay inside the footprint.** The site planner hands out exactly `width × depth`

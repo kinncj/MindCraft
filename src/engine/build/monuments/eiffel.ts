@@ -18,17 +18,22 @@ export const eiffel: Monument = {
 function draw(m: MonumentDraw): void {
   const { iron, lamp } = m.kit;
   plaza(m, m.kit.cobble);
-  const top = m.g + Math.min(38, 38);
+  const top = m.g + 38;
   const base = Math.floor(Math.min(m.w, m.d) / 2) - 1;
-  const deck1 = m.g + 11;
-  const deck2 = m.g + 22;
+  // The real tower is 330 m with its floors at 57 m and 115 m and the top at
+  // 276 m — 17%, 35% and 84% of the way up. Those ratios are the silhouette.
+  const deck1 = m.g + Math.round(38 * 0.17);
+  const deck2 = m.g + Math.round(38 * 0.35);
+  const topDeck = m.g + Math.round(38 * 0.84);
   const legRadius = (y: number): number => {
     const t = (y - m.g) / (top - m.g);
-    if (t >= 0.62) return 1;
-    // Curves in fast at the bottom, like the real ironwork.
-    return Math.max(1, Math.round(base * (1 - t / 0.62) ** 1.5 + 1));
+    // Steep curve under the first floor, nearly straight above the second,
+    // a single mast above the top floor.
+    if (t >= 0.84) return 0;
+    if (t >= 0.35) return Math.max(1, Math.round(2 - (t - 0.35) * 2));
+    return Math.max(2, Math.round(base * (1 - t / 0.35) ** 1.4 + 2));
   };
-  for (let y = m.g + 1; y <= top - 6; y++) {
+  for (let y = m.g + 1; y <= topDeck - 1; y++) {
     const r = legRadius(y);
     for (const dx of [-r, r]) {
       for (const dz of [-r, r]) {
@@ -57,8 +62,10 @@ function draw(m: MonumentDraw): void {
     box(m, m.cx - pad, y, m.cz - pad, m.cx + pad, y, m.cz + pad, iron);
     ring(m, m.cx - pad, y + 1, m.cz - pad, m.cx + pad, m.cz + pad, m.kit.fence);
   }
-  // Cabin and antenna.
-  box(m, m.cx - 1, top - 6, m.cz - 1, m.cx + 1, top - 4, m.cz + 1, iron);
-  for (let y = top - 3; y <= top; y++) m.put(m.cx, y, m.cz, iron);
+  // The top floor, its little cabin, and the mast above.
+  box(m, m.cx - 1, topDeck, m.cz - 1, m.cx + 1, topDeck, m.cz + 1, iron);
+  box(m, m.cx - 1, topDeck + 1, m.cz - 1, m.cx + 1, topDeck + 2, m.cz + 1, m.kit.glass);
+  box(m, m.cx - 1, topDeck + 3, m.cz - 1, m.cx + 1, topDeck + 3, m.cz + 1, iron);
+  for (let y = topDeck + 4; y <= top; y++) m.put(m.cx, y, m.cz, iron);
   if (lamp !== null) m.put(m.cx, top + 1, m.cz, lamp);
 }

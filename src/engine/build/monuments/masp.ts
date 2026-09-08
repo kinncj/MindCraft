@@ -21,7 +21,9 @@ function draw(m: MonumentDraw): void {
   plaza(m, m.kit.cobble);
   const spanX = Math.floor(m.w / 2) - 2;
   const spanZ = Math.floor(m.d / 2) - 2;
-  const deck = m.g + 9;
+  // The real thing spans 74 m and lifts the box only 8 m: long and low, with a
+  // plaza running right through underneath. Keep just enough headroom to walk.
+  const deck = m.g + 5;
   // Four columns, and nothing else at head height: the plaza runs right under.
   for (const dx of [-spanX, spanX]) {
     for (const dz of [-spanZ, spanZ]) {
@@ -31,11 +33,11 @@ function draw(m: MonumentDraw): void {
       }
     }
   }
-  // The red beams across the top, which is what holds it up.
+  // The two beams the box hangs from, over the whole span.
   for (const dz of [-spanZ, spanZ]) {
     for (let x = m.cx - spanX; x <= m.cx + spanX; x++) {
       m.put(x, deck + 5, m.cz + dz, beam);
-      m.put(x, deck - 1, m.cz + dz, beam);
+      m.put(x, deck + 4, m.cz + dz, beam);
     }
   }
   // The gallery box itself, glass on the long sides.

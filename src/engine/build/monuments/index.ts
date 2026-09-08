@@ -12,6 +12,7 @@
  */
 
 import { botanicalGarden } from './botanicalGarden';
+import { canadaPlace } from './canadaPlace';
 import { cnTower } from './cnTower';
 import { copan } from './copan';
 import { eiffel } from './eiffel';
@@ -20,9 +21,14 @@ import { iguacu } from './iguacu';
 import { masp } from './masp';
 import { niagara } from './niagara';
 import { niemeyerEye } from './niemeyerEye';
+import { lionsGate } from './lionsGate';
 import { peaceTower } from './peaceTower';
 import { rideauCanal } from './rideauCanal';
 import { rogersDome } from './rogersDome';
+import { scienceWorld } from './scienceWorld';
+import { sensoji } from './sensoji';
+import { skytree } from './skytree';
+import { tokyoTower } from './tokyoTower';
 import { sign } from './sign';
 import { wireOpera } from './wireOpera';
 import type { Monument, MonumentDraw } from './types';
@@ -38,6 +44,12 @@ export const MONUMENT_LIST = [
   rogersDome,
   peaceTower,
   rideauCanal,
+  tokyoTower,
+  skytree,
+  sensoji,
+  canadaPlace,
+  scienceWorld,
+  lionsGate,
   niemeyerEye,
   wireOpera,
   botanicalGarden,

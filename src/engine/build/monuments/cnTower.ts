@@ -18,8 +18,12 @@ export const cnTower: Monument = {
 function draw(m: MonumentDraw): void {
   const { concrete, glass, white, lamp } = m.kit;
   plaza(m, m.kit.cobble);
-  const top = m.g + 40;
+  // 553 m tall, with the main pod at 346 m and the SkyPod at 447 m: 63% and
+  // 81% of the way up, and a third of the tower is antenna above them.
   const spire = m.g + 46;
+  const top = m.g + Math.round(46 * 0.84);
+  const pod = m.g + Math.round(46 * 0.63);
+  const skyPod = m.g + Math.round(46 * 0.81);
   for (let y = m.g + 1; y <= top; y++) {
     const t = (y - m.g) / (top - m.g);
     const r = y < m.g + 7 ? 2 : 1;
@@ -35,14 +39,14 @@ function draw(m: MonumentDraw): void {
     }
   }
   // The main pod: a glass ring with a white floor and roof.
-  for (let y = m.g + 26; y <= m.g + 30; y++) {
-    const r = y === m.g + 26 || y === m.g + 30 ? 4 : 5;
-    if (y === m.g + 26 || y === m.g + 30) disc(m, m.cx, y, m.cz, r, white);
-    else circle(m, m.cx, y, m.cz, r, glass);
+  for (let y = pod; y <= pod + 4; y++) {
+    const lip = y === pod || y === pod + 4;
+    if (lip) disc(m, m.cx, y, m.cz, 4, white);
+    else circle(m, m.cx, y, m.cz, 5, glass);
   }
   // The little sky pod above it.
-  for (let y = m.g + 34; y <= m.g + 36; y++) {
-    if (y === m.g + 35) circle(m, m.cx, y, m.cz, 2, glass);
+  for (let y = skyPod; y <= skyPod + 2; y++) {
+    if (y === skyPod + 1) circle(m, m.cx, y, m.cz, 2, glass);
     else disc(m, m.cx, y, m.cz, 2, white);
   }
   for (let y = top + 1; y <= spire; y++) m.put(m.cx, y, m.cz, white);

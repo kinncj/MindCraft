@@ -125,6 +125,22 @@ describe('famous places', () => {
 });
 
 describe('asking for a famous place', () => {
+  it('knows Tokyo and Vancouver too', async () => {
+    const { parseMonument, parseCity } = await import('../../src/engine/chat/buildRequest');
+    const cases: Array<[string, string]> = [
+      ['build the tokyo tower', 'tokyo_tower'],
+      ['build the skytree', 'skytree'],
+      ['make a japanese temple with a pagoda', 'sensoji'],
+      ['build canada place with the sails', 'canada_place'],
+      ['build the big silver ball in vancouver', 'science_world'],
+      ['build the lions gate bridge', 'lions_gate'],
+    ];
+    const wrong = cases.filter(([text, kind]) => parseMonument(text)?.kind !== kind).map(([text, kind]) => `${text} -> ${parseMonument(text)?.kind ?? 'nothing'} (wanted ${kind})`);
+    expect(wrong, wrong.join('; ')).toEqual([]);
+    expect(parseCity('build tokyo')?.city).toBe('tokyo');
+    expect(parseCity('build me vancouver canada')?.city).toBe('vancouver');
+  });
+
   it('reads the names, including the way a kid spells them', async () => {
     const { parseMonument, parseCity } = await import('../../src/engine/chat/buildRequest');
     const cases: Array<[string, string]> = [
