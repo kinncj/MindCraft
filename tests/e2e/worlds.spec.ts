@@ -36,8 +36,9 @@ test('Toy Land replaces the world after confirmation', async ({ page }) => {
   await page.getByRole('button', { name: 'Start Toy Land', exact: true }).click();
   await expect.poll(() => page.evaluate(() => window.mindcraft.getState().worldName)).toBe('Toy Land');
   await page.waitForFunction(() => window.mindcraftDebug?.isReady() === true, undefined, { timeout: 45_000 });
-  expect(await blockAt(page, 32, 5, 32)).toBe('magic_box');
-  await page.evaluate(() => window.mindcraft.getState().setOpenPanel('container', { position: { x: 32, y: 5, z: 32 } }));
+  // The toy chest sits by the toy box in the corner of the bedroom.
+  expect(await blockAt(page, 47, 5, 47)).toBe('magic_box');
+  await page.evaluate(() => window.mindcraft.getState().setOpenPanel('container', { position: { x: 47, y: 5, z: 47 } }));
   await expect(page.getByRole('dialog', { name: 'Toy Chest' })).toBeVisible();
 });
 

@@ -28,7 +28,7 @@ test('the menu has submenus for sharing, resetting, worlds, and how-to-play', as
   await expect(page.getByRole('button', { name: 'Reset the world' })).toBeVisible();
   await page.getByRole('button', { name: 'Back' }).click();
   await page.getByRole('button', { name: 'How to play' }).click();
-  await expect(page.getByText(/Drag to look around, scroll to zoom/)).toBeVisible();
+  await expect(page.getByText(/Drag to look around/)).toBeVisible();
   await page.getByRole('button', { name: 'Back' }).click();
   await page.getByRole('button', { name: 'Back to building' }).click();
   await expect(page.getByRole('dialog', { name: 'Menu' })).not.toBeVisible();

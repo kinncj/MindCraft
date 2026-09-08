@@ -233,7 +233,11 @@ export class Engine {
     this.input = new InputSystem(this.renderer.domElement);
     this.camera = new CameraSystem(this.player, this.input.frame, this.world, registry);
     // A real mouse on a desktop plays like a desktop block game: click to grab, look freely.
-    this.input.mouseMode = !this.mobile && typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches ? 'game' : 'tap';
+    // `?mouse=tap` asks for plain click-to-build instead (handy on a trackpad, and what
+    // the browser tests drive); `?mouse=game` forces the grabbing scheme anywhere.
+    const mouseFlag = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('mouse') : null;
+    const grabs = !this.mobile && typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches;
+    this.input.mouseMode = mouseFlag === 'tap' ? 'tap' : mouseFlag === 'game' ? 'game' : grabs ? 'game' : 'tap';
     this.input.onPointerLock = (locked) => bridge.onPointerLock?.(locked);
     this.player.current = (x, y, z) => this.fluids.current(x, y, z);
     if (options.player?.yaw !== undefined) this.camera.yaw = options.player.yaw;

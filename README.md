@@ -175,6 +175,9 @@ Open the game with `?debug=true` to get a small overlay with the helper model th
 was chosen, whether it runs in a worker or on the main thread, GPU limits, loading
 progress, thinking time, the exact prompt, the raw model output, and any error, plus
 a **Test the helper** button. `?power=high` forces the full renderer on software GL.
+`?mouse=tap` swaps the desktop's grab-the-pointer scheme for plain click-to-build
+(handy on a trackpad, and what the browser tests drive); `?mouse=game` forces the
+grabbing scheme anywhere.
 
 ## Running it
 

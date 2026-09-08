@@ -34,8 +34,14 @@ declare global {
 }
 
 /** Waits for the game to load, closes the splash, and waits for ground. */
-export async function startGame(page: Page): Promise<void> {
-  await page.goto('/');
+/**
+ * Starts a fresh game. By default the mouse is in click-to-build mode
+ * (`?mouse=tap`), which is what a touch screen and a trackpad-friendly
+ * desktop do; pass `{ mouse: 'game' }` to drive the grab-the-pointer
+ * scheme a desktop gets by default.
+ */
+export async function startGame(page: Page, options: { mouse?: 'tap' | 'game' } = {}): Promise<void> {
+  await page.goto(`/?mouse=${options.mouse ?? 'tap'}`);
   await page.getByRole('button', { name: /Let's build!/ }).click();
   await waitForGround(page);
 }

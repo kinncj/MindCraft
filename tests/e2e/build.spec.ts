@@ -26,6 +26,16 @@ test('clicking terrain in the 3D view places the selected block', async ({ page 
   await expect(page.getByRole('button', { name: 'Undo the last change' })).toBeEnabled();
 });
 
+test('with the desktop mouse scheme the first click grabs the mouse instead of building', async ({ page }) => {
+  await startGame(page, { mouse: 'game' });
+  await page.getByRole('button', { name: /^Brick/ }).click();
+  const target = await groundSpot(page);
+  await page.mouse.click(target.screen.x, target.screen.y);
+  await page.waitForTimeout(500);
+  // Like a desktop block game: the click grabs the pointer, it does not lay a block.
+  expect(await surfaceAt(page, target.x, target.z)).toBe(target.top);
+});
+
 test('undo puts a placed block back and redo removes it again', async ({ page }) => {
   await startGame(page);
   const spot = await skySpot(page);
