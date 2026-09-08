@@ -2,6 +2,9 @@
 
 Status: accepted (2026-09-07)
 
+Originating idea: Kinn. A didactic walkthrough of how the model was built lives
+in `docs/ai/how-we-built-the-little-model.md`.
+
 ## Context
 
 Free-form building has to work for every child on every device (ADR-0015).

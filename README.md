@@ -68,6 +68,7 @@ Everything stays on your computer. There is no server, no account, no ads, no tr
   rather than piling the next build on the last one — and plain land means plain land:
   roads, plazas and courts are left alone even though they look flat and empty.
   `npm run train:intent` retrains it from the sentences in `src/engine/chat/intentCorpus.ts`.
+  How it was built, end to end: `docs/ai/how-we-built-the-little-model.md`.
 - **Chat with villagers.** Say what you want in your own words: "a beautiful and
   colourful brick mansion, like a massive house" becomes a three-floor brick house
   with rainbow pillars, glass windows, a door, a stepped roof, and a chimney. Houses
@@ -192,6 +193,8 @@ The included workflow (`.github/workflows/deploy-github-pages.yml`) builds and p
 to GitHub Pages on every push to `main`. One-time setup: in the repo settings, under
 **Pages**, set the source to **GitHub Actions**. The site appears at
 `https://kinncj.github.io/MindCraft/`. Details: `docs/operations/github-pages-deployment.md`.
+
+Everything written down about the game is indexed in `docs/README.md`.
 
 ## How your world is saved
 
