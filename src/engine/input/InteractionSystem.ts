@@ -25,6 +25,8 @@ export type InteractionBridge = {
   spawn?(spec: { kind: 'vehicle' | 'pet' | 'villager' | 'robot'; variant: string }, x: number, y: number, z: number): boolean;
   /** Return true when something (an animal) consumed the tap. */
   tapEntity?(ray: Ray): boolean;
+  /** Middle-click: put the block you are looking at into the hotbar. */
+  pickBlock?(id: number): void;
   onBlockPlaced?(def: BlockDefinition, x: number, y: number, z: number): void;
   onBlockRemoved?(def: BlockDefinition, x: number, y: number, z: number): void;
 };
@@ -84,6 +86,16 @@ export class InteractionSystem implements System {
       const ray = this.camera.ray(tap.ndcX, tap.ndcY);
       if (this.bridge.tapEntity?.(ray)) continue;
       const mode = this.bridge.getMode();
+      // Middle button picks up the block you are looking at, like a block game.
+      if (tap.button === 1) {
+        const picked = this.pick(tap.ndcX, tap.ndcY, true);
+        if (picked) {
+          this.state.flash = { x: picked.x, y: picked.y, z: picked.z, until: this.clock + 0.45 };
+          this.bridge.pickBlock?.(this.world.getBlock(picked.x, picked.y, picked.z));
+          this.state.lastTap = { hit: picked, action: 'picked' };
+        }
+        continue;
+      }
       const removing = tap.button === 2 || mode === 'remove';
       const hit = this.pick(tap.ndcX, tap.ndcY, removing);
       if (!hit) {

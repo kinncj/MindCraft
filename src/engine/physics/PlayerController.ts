@@ -118,6 +118,56 @@ export class PlayerController {
     this.teleport(x, y + 0.5, z);
   }
 
+  /** How far up to look for daylight when a build closes over the player. */
+  private static readonly ESCAPE_HEIGHT = 8;
+
+  /**
+   * If the player's own box overlaps solid blocks, lift them to the nearest
+   * clear spot above. Blocks appearing around a standing child is normal in
+   * this game — a villager builds where you asked — so being buried has to be
+   * survivable, not a stuck screen.
+   */
+  private escapeIfBuriedIn(): void {
+    if (!this.buried(this.y)) return;
+    for (let lift = 1; lift <= PlayerController.ESCAPE_HEIGHT; lift++) {
+      if (this.buried(this.y + lift)) continue;
+      this.y += lift;
+      this.vy = 0;
+      this.onGround = false;
+      return;
+    }
+    // Nowhere clear overhead: stand on top of whatever swallowed us.
+    this.y = this.world.height(Math.round(this.x), Math.round(this.z)) + 1;
+    this.vy = 0;
+  }
+
+  private buried(y: number): boolean {
+    // Only the lower half counts. A head grazing a ceiling is ordinary
+    // movement and the sweep deals with it; blocks around your feet mean
+    // somebody built where you were standing.
+    const full = this.box(this.x, y, this.z);
+    const box = { ...full, maxY: full.minY + 0.9 };
+    const region = {
+      minX: Math.floor(box.minX),
+      maxX: Math.ceil(box.maxX),
+      minY: Math.floor(box.minY),
+      maxY: Math.ceil(box.maxY),
+      minZ: Math.floor(box.minZ),
+      maxZ: Math.ceil(box.maxZ),
+    };
+    // Touching is not being buried: a jump that grazes a ceiling, or standing
+    // flush against a wall, leaves a hair of overlap after the sweep. Only a
+    // real overlap on every axis means blocks closed over the child.
+    const bite = 0.05;
+    for (const solid of solidBoxesIn(this.world, this.registry, region)) {
+      const inX = Math.min(box.maxX, solid.maxX) - Math.max(box.minX, solid.minX);
+      const inY = Math.min(box.maxY, solid.maxY) - Math.max(box.minY, solid.minY);
+      const inZ = Math.min(box.maxZ, solid.maxZ) - Math.max(box.minZ, solid.minZ);
+      if (inX > bite && inY > bite && inZ > bite) return true;
+    }
+    return false;
+  }
+
   update(dt: number, input: PlayerInput, cameraYaw: number): void {
     if (this.mounted) {
       this.moving = false;
@@ -132,6 +182,11 @@ export class PlayerController {
     }
     // Don't simulate on unloaded ground: the player would fall forever.
     if (!this.world.isLoaded(Math.round(this.x), Math.round(this.z))) return;
+
+    // Somebody built where the kid was standing — a stamped blueprint, a
+    // villager's house, a monument. Step out of the wall instead of being
+    // stuck inside it.
+    this.escapeIfBuriedIn();
 
     this.inWater = isFluidAt(this.world, this.registry, this.x, this.y + 0.9, this.z);
     const feetInWater = isFluidAt(this.world, this.registry, this.x, this.y + 0.3, this.z);

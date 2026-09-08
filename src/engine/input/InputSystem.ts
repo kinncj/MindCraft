@@ -48,7 +48,7 @@ const PAD = {
 } as const;
 
 /** Things a controller asks the app layer to do (not world input). */
-export type PadCommand = 'menu' | 'hotbar_next' | 'hotbar_prev' | 'toggle_view' | 'toggle_mode' | 'undo' | 'palette' | 'rotate' | 'tool_next' | 'zoom_cycle' | 'fly_toggle' | 'photo';
+export type PadCommand = 'menu' | 'hotbar_next' | 'hotbar_prev' | 'toggle_view' | 'toggle_mode' | 'undo' | 'palette' | 'rotate' | 'tool_next' | 'zoom_cycle' | 'fly_toggle' | 'photo' | 'mode_place' | 'mode_remove' | 'mode_interact' | 'mode_cycle';
 
 /** How a mouse works: `game` locks the pointer like a desktop block game (left breaks, right places), `tap` is the kid-simple click-to-place. */
 export type MouseMode = 'game' | 'tap';
@@ -89,6 +89,11 @@ export class InputSystem implements System {
   private lookDY = 0;
   private zoom = 0;
   private taps: Tap[] = [];
+  /** The mouse button being held with the pointer grabbed, and for how long. */
+  private heldButton: number | null = null;
+  private heldFor = 0;
+  /** Seconds between repeats while a button is held down: about four a second. */
+  private static readonly REPEAT_SECONDS = 0.22;
   private hover: { ndcX: number; ndcY: number } | null = null;
   private pointers = new Map<number, { x: number; y: number }>();
   private pointerDownAt: { x: number; y: number; button: number } | null = null;
@@ -131,6 +136,7 @@ export class InputSystem implements System {
     const locked = document.pointerLockElement === this.canvas;
     if (locked === this.pointerLocked) return;
     this.pointerLocked = locked;
+    if (!locked) this.heldButton = null;
     this.pointerDownAt = null;
     this.dragging = false;
     this.onPointerLock?.(locked);
@@ -153,6 +159,17 @@ export class InputSystem implements System {
       this.lastJumpDown = this.clock;
     }
     this.jumpWasDown = f.jump;
+    // A held mouse button keeps breaking or placing at the crosshair, like a
+    // block game: one click is one block, holding is a stream of them.
+    if (this.heldButton !== null && this.pointerLocked && !blocked) {
+      this.heldFor += dt;
+      while (this.heldFor >= InputSystem.REPEAT_SECONDS) {
+        this.heldFor -= InputSystem.REPEAT_SECONDS;
+        this.taps.push({ ndcX: 0, ndcY: 0, button: this.heldButton });
+      }
+    } else {
+      this.heldFor = 0;
+    }
     f.sneak = !blocked && (k.has('shift') || p.sneak);
     f.sprint = !blocked && (k.has('control') || p.sprint);
     f.lookDX = blocked ? 0 : this.lookDX + p.lookX;
@@ -262,8 +279,15 @@ export class InputSystem implements System {
           return;
         }
       } else {
-        // Locked: aim at the crosshair. Left breaks, right places or uses.
-        this.taps.push({ ndcX: 0, ndcY: 0, button: event.button === 0 ? 2 : 0 });
+        // Locked: aim at the crosshair. Left breaks, right places or uses, and
+        // the middle button picks up whatever is under the crosshair.
+        const button = event.button === 0 ? 2 : event.button === 1 ? 1 : 0;
+        this.taps.push({ ndcX: 0, ndcY: 0, button });
+        // Holding keeps going, the way a block game does, until the button lifts.
+        if (button !== 1) {
+          this.heldButton = button;
+          this.heldFor = 0;
+        }
         return;
       }
     }
@@ -317,7 +341,10 @@ export class InputSystem implements System {
   };
 
   private onPointerUp = (event: PointerEvent): void => {
-    if (this.pointerLocked) return;
+    if (this.pointerLocked) {
+      if ((event.button === 0 ? 2 : 0) === this.heldButton) this.heldButton = null;
+      return;
+    }
     this.pointers.delete(event.pointerId);
     if (this.pointers.size < 2) this.pinchDistance = null;
     const start = this.pointerDownAt;
@@ -353,7 +380,7 @@ export class InputSystem implements System {
     const target = event.target;
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
     if (target instanceof HTMLButtonElement && (event.key === ' ' || event.key === 'Enter')) return;
-    if (event.key === ' ') event.preventDefault();
+    if (event.key === ' ' || event.key === 'Tab' || event.key === 'F5') event.preventDefault();
     const key = event.key.toLowerCase();
     if (!this.keys.has(key)) this.pressedQueue.add(key);
     this.keys.add(key);
@@ -365,6 +392,7 @@ export class InputSystem implements System {
 
   private onBlur = (): void => {
     this.keys.clear();
+    this.heldButton = null;
   };
 
   dispose(): void {

@@ -42,6 +42,15 @@ export function GameCanvas() {
       bridge: {
         getSelectedBlockId: () => registry.byId(useGameStore.getState().selectedBlockType)?.numericId ?? 1,
         getMode: () => useGameStore.getState().mode,
+        // Middle-click: the block you looked at lands in the hotbar slot in hand.
+        pickBlock: (id) => {
+          const def = engine.registry.get(id);
+          if (!def || def.id === 'air') return;
+          const s = useGameStore.getState();
+          s.setHotbarSlot(s.hotbarIndex, def.id);
+          s.selectSlot(s.hotbarIndex);
+          s.showToast(`${def.emoji ?? '🧱'} ${def.label} is in your hand!`);
+        },
         openPanel: (kind, payload) => {
           const s = useGameStore.getState();
           if (kind === 'container') {
@@ -81,6 +90,10 @@ export function GameCanvas() {
           else if (command === 'hotbar_next') s.selectSlot((s.hotbarIndex + 1) % s.hotbar.length);
           else if (command === 'hotbar_prev') s.selectSlot((s.hotbarIndex + s.hotbar.length - 1) % s.hotbar.length);
           else if (command === 'toggle_mode') s.setMode(s.mode === 'place' ? 'remove' : 'place');
+          else if (command === 'mode_place') s.setMode('place');
+          else if (command === 'mode_remove') s.setMode('remove');
+          else if (command === 'mode_interact') s.setMode('interact');
+          else if (command === 'mode_cycle') s.setMode(s.mode === 'place' ? 'remove' : s.mode === 'remove' ? 'interact' : 'place');
           else if (command === 'undo') s.undo();
           else if (command === 'palette') s.setOpenPanel('palette');
           else if (command === 'tool_next') s.nextTool();

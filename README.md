@@ -141,9 +141,11 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
 | Jump / swim up | `Space` | Jump button | A |
 | Look around | click the world once to grab the mouse, then move it (`Esc` lets go); trackpads can still drag | drag the world | right stick |
 | Zoom | wheel or the ➕ ➖ buttons (all the way in = first person) | pinch or ➕ ➖ | D-pad right cycles |
-| Switch camera | `V` or the view button | view button | D-pad up |
-| Place / use | right-click with the mouse grabbed (plain click when not) | tap | LT |
-| Remove | left-click with the mouse grabbed (right-click when not, or Remove mode) | Remove mode + tap | RT (or X to switch mode) |
+| Switch camera | `V` or `F5`, or the view button | view button | D-pad up |
+| Place / use | right-click with the mouse grabbed (plain click when not) — **hold to keep placing** | tap | LT |
+| Remove | left-click with the mouse grabbed (right-click when not, or Remove mode) — **hold to keep breaking** | Remove mode + tap | RT (or X to switch mode) |
+| Pick up the block you are looking at | middle-click with the mouse grabbed | — | — |
+| Build / Remove / Use mode | `B` / `N` / `F`, or `Tab` to cycle | Tools button | X, D-pad down |
 | Pick a block | `1`–`9`, mouse wheel when grabbed, `E` for all blocks | hotbar, ➕ More | LB / RB, Y for all blocks |
 | Build tools | Tools button, `R` turns a paste | Tools button | D-pad down cycles, D-pad left turns |
 | Interact only | Tools → Interact | Tools → Interact | D-pad down to it |

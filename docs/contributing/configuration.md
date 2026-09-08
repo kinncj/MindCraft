@@ -26,6 +26,14 @@
 | `?mouse=tap` | plain click-to-build instead of grabbing the pointer (trackpads, tests) |
 | `?mouse=game` | force the grab-the-pointer scheme anywhere |
 
+## Getting stuck is not a thing
+
+If blocks close around a child — a stamped blueprint, a villager's house, a
+monument going up where they stood — the player steps out: `PlayerController`
+lifts them to the first clear spot above (`escapeIfBuriedIn`). It only fires when
+their *feet* are inside something, so a head grazing a ceiling is left to ordinary
+physics.
+
 ## Non-negotiables
 
 These are not configuration. They are what the game is:

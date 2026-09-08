@@ -65,6 +65,8 @@ export type EngineBridge = {
   onPet(kind: string, name?: string): void;
   /** A controller button mapped to an app action (menu, hotbar, undo...). */
   onCommand?(command: PadCommand): void;
+  /** Middle-click: the block under the crosshair goes into the hotbar. */
+  pickBlock?(id: number): void;
   /** A controller started or stopped being used (show/hide the reticle). */
   onGamepadActive?(active: boolean): void;
   /** The mouse got grabbed (desktop game controls) or let go. */
@@ -325,6 +327,7 @@ export class Engine {
       getSelectedBlockId: () => bridge.getSelectedBlockId(),
       getMode: () => bridge.getMode(),
       openPanel: (kind, payload) => bridge.openPanel(kind, payload),
+      pickBlock: (id) => bridge.pickBlock?.(id),
       tapEntity: (ray) => {
         if (this.entities.mounted) {
           this.entities.dismount();
@@ -511,6 +514,12 @@ export class Engine {
     }
     if (this.input.frame.pressed.has('x')) this.dance();
     if (this.input.frame.pressed.has('p')) this.options.bridge.onCommand?.('photo');
+    // Quick keys for what a tap does: build, remove, or use. Tab cycles them.
+    if (this.input.frame.pressed.has('b')) this.options.bridge.onCommand?.('mode_place');
+    if (this.input.frame.pressed.has('n')) this.options.bridge.onCommand?.('mode_remove');
+    if (this.input.frame.pressed.has('f')) this.options.bridge.onCommand?.('mode_interact');
+    if (this.input.frame.pressed.has('tab')) this.options.bridge.onCommand?.('mode_cycle');
+    if (this.input.frame.pressed.has('f5')) this.camera.toggleViewMode();
     for (const command of this.input.frame.commands) {
       if (command === 'fly_toggle') this.setFlying(!this.player.flying);
       else if (command === 'toggle_view') this.camera.toggleViewMode();
