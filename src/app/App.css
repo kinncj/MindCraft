@@ -921,6 +921,17 @@ h3 {
   color: var(--text);
 }
 
+/* The country a group of landmarks belongs to: quieter than a subtitle, so
+   the cards under it still lead. */
+.sheet-group {
+  margin: 0.9rem 0 0.15rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
 .blueprint-grid {
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
