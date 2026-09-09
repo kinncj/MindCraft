@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { B, blocks } from '../../src/engine/blocks/blocks';
 import { BuildTools } from '../../src/engine/build/BuildTools';
+import { MONUMENT_LIST } from '../../src/engine/build/monuments/index';
 import { ChatAgent } from '../../src/engine/chat/ChatAgent';
 import { parseModelReply } from '../../src/engine/chat/BuiltInModelProvider';
 import { RuleChatProvider, findBlock } from '../../src/engine/chat/RuleChatProvider';
@@ -193,6 +194,14 @@ describe('helper robustness', () => {
     const rules = new RuleChatProvider();
     expect((await rules.reply(ctx('what can we do?'))).say).toContain('castle');
     expect((await rules.reply(ctx("I'm bored"))).say).toContain('castle');
+    // "What can you build?" is the first thing a child asks a villager, and it
+    // has to answer with real things — including one of the famous places.
+    const ideas = await rules.reply(ctx('what can you build'));
+    expect(ideas.say).toContain('house');
+    expect(ideas.actions, 'answering a question should not build anything').toEqual([]);
+    const named = MONUMENT_LIST.some((mo) => mo.id !== 'sign' && ideas.say.includes(mo.label));
+    expect(named, `no famous place named in: ${ideas.say}`).toBe(true);
+    expect((await rules.reply(ctx("i don't know what to build"))).say).toContain('castle');
   });
 
   it('retries without JSON mode and remembers why a provider fell back', async () => {

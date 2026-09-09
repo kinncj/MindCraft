@@ -1,6 +1,6 @@
 import { buildActionsFor, parseBuildRequest, parseEarthwork, parseFeature } from './buildRequest';
 import { actionsFor, describeRequest, parseRequests } from './requests';
-import { MONUMENTS } from '../build/monuments/index';
+import { MONUMENTS, MONUMENT_LIST } from '../build/monuments/index';
 import { CITY_PACKS, type CityName } from '../build/monuments/cities';
 
 const CITY_EMOJI: Record<CityName, string> = Object.fromEntries(Object.entries(CITY_PACKS).map(([k, v]) => [k, v.emoji])) as Record<CityName, string>;
@@ -29,6 +29,13 @@ const SHAPE_WORDS: Array<[RegExp, string, string, string]> = [
 ];
 
 const BUILD_VERB = /\b(build|make|put|create|stamp|place|construct|dig)\b/;
+
+/** A steady number from a villager's id, so each one suggests its own place. */
+function hash(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h;
+}
 const COLOR_WORDS: Record<string, string> = { red: 'color_red', orange: 'color_orange', yellow: 'color_yellow', green: 'color_green', blue: 'color_blue', purple: 'color_purple', pink: 'color_pink', white: 'color_white', black: 'color_black', brown: 'color_brown', gold: 'color_yellow', rainbow: 'rainbow', glass: 'glass', stone: 'stone', brick: 'brick', wood: 'planks', snow: 'snow', ice: 'ice', sand: 'sand' };
 
 const FAVORITES: Record<string, { color: string; food: string; thing: string }> = {
@@ -195,8 +202,12 @@ export class RuleChatProvider implements ChatProvider {
     if (/\b(thank|thanks|love you|awesome|cool|great job|good job|nice)\b/.test(text)) return say(`Aww, thank you! You're the best! 💛`);
     if (/\b(bye|goodbye|see you|later)\b/.test(text)) return say(`Bye bye! Come back soon! 👋`);
     if (/\b(joke|funny)\b/.test(text)) return say(`Why did the block go to school? To get a little smarter! 😆`);
-    if (/\b(help|what can (you|we) do|what should we do|what (do|can) we do|what to do|what now|ideas|bored)\b/.test(text)) {
-      return say(`I can build a house, a school, a hospital, a castle, a bridge, a treehouse, a playground, a pyramid… and I can dig pools, lakes, and bunkers! Any size, any color. Or say "follow me", "dance", or "make it night". 🏠🏰🌉`);
+    if (/\b(help|what can (you|i|we) (do|build|make)|what should (we|i) (do|build|make)|what (do|can) we do|what to do|what now|ideas|bored|i don'?t know what to build)\b/.test(text)) {
+      // One famous place, picked by which villager is being asked, so two of
+      // them suggest different ones and thirty-eight landmarks get an airing.
+      const buildable = MONUMENT_LIST.filter((mo) => mo.id !== 'sign');
+      const pick = buildable[hash(v.id) % buildable.length];
+      return say(`I can build a house, a school, a hospital, a castle, a bridge, a treehouse, a playground, a pyramid… and I can dig pools, lakes, and bunkers! Any size, any color. I know famous places too — ${pick.emoji} the ${pick.label}, or a whole city. Or say "follow me", "dance", or "make it night". 🏠🏰🌉`);
     }
     // Last chance before a shrug: the little intent model, which reads phrasings
     // and spellings the word lists above do not.
