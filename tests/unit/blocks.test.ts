@@ -70,6 +70,17 @@ describe('block catalog', () => {
     expect([...unknown], [...unknown].join('; ')).toEqual([]);
   });
 
+  it('the splash screen drifts blocks that exist', async () => {
+    // The first thing a child sees. blockIconDataUrl returns null for a name
+    // it does not know, so a renamed block just quietly stops drifting.
+    const { readFileSync } = await import('node:fs');
+    const source = readFileSync('src/components/WelcomePanel.tsx', 'utf8');
+    const floating = [...source.matchAll(/type: '([a-z0-9_]+)'/g)].map((m) => m[1]);
+    expect(floating.length, 'no drifting blocks found — has the splash changed?').toBeGreaterThan(3);
+    const gone = floating.filter((id) => !blocks.has(id));
+    expect(gone, `the splash screen names blocks that are not there: ${gone.join(', ')}`).toEqual([]);
+  });
+
   it('keeps the well-known blocks from v1 reachable, including renamed ones', () => {
     for (const id of ['grass', 'dirt', 'stone', 'planks', 'water', 'torch', 'star', 'rainbow', 'magic_box']) {
       expect(blocks.byId(id)).toBeDefined();
