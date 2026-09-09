@@ -44,6 +44,32 @@ describe('block catalog', () => {
     expect(bad, bad.join('; ')).toEqual([]);
   });
 
+  it('every B.something in the engine names a block that exists', async () => {
+    // B is a Record<string, number>, so B.stone_brickss is `undefined` with no
+    // compile error and no runtime complaint — it just places nothing, in a
+    // generator or a blueprint, silently. Three hundred call sites deep, the
+    // cheapest guard is to read them.
+    const { readdirSync, readFileSync, statSync } = await import('node:fs');
+    const files: string[] = [];
+    const walk = (dir: string): void => {
+      for (const name of readdirSync(dir)) {
+        const path = `${dir}/${name}`;
+        if (statSync(path).isDirectory()) walk(path);
+        else if (path.endsWith('.ts')) files.push(path);
+      }
+    };
+    walk('src');
+    const unknown = new Set<string>();
+    for (const path of files) {
+      const source = readFileSync(path, 'utf8');
+      if (!/from '.*blocks\/blocks'/.test(source) && !path.endsWith('blocks/blocks.ts')) continue;
+      for (const match of source.matchAll(/\bB\.([a-z][a-z0-9_]*)\b/g)) {
+        if (!blocks.has(match[1])) unknown.add(`${path}: B.${match[1]}`);
+      }
+    }
+    expect([...unknown], [...unknown].join('; ')).toEqual([]);
+  });
+
   it('keeps the well-known blocks from v1 reachable, including renamed ones', () => {
     for (const id of ['grass', 'dirt', 'stone', 'planks', 'water', 'torch', 'star', 'rainbow', 'magic_box']) {
       expect(blocks.byId(id)).toBeDefined();
