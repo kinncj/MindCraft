@@ -31,7 +31,7 @@ jobs:
       # no use to us: drop it before apt is asked for anything.
       - name: Drop apt sources we do not need
         run: |
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/microsoft-prod.list
+          sudo grep -rlE 'dl\.google\.com|packages\.microsoft\.com' /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null | sudo xargs -r rm -fv
           sudo apt-get update
       - run: npx playwright install --with-deps chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'

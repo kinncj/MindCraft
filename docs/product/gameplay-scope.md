@@ -45,10 +45,12 @@
   built-in on-device model behind a parent toggle, or an outside agent. Anything the
   child describes — a hospital with doctors, a school with six classrooms, a 30 by 20
   lake, an airport with a runway — is generated to order and built by hand, undoable
-- Crafting: a picture recipe book (37 recipes) with a tap-to-fill grid; crafting table
+- Crafting: a picture recipe book (38 recipes) with a tap-to-fill grid; crafting table
 - Logic: lever, button, pressure plate, wire (fades over 15 blocks, and climbs a step),
   logic lamp, repeaters that pass power on at full strength so a circuit can run past
-  fifteen blocks, pistons facing all six ways that push up to 12 blocks and sticky
+  fifteen blocks, flip blocks that turn power the other way round — no power in means
+  full power out, one tick later, so a flip block wired back into itself blinks —
+  pistons facing all six ways that push up to 12 blocks and sticky
   pistons that pull one back, powered and automatic doors, note blocks; a 10 Hz tick
 - Robots: card programs (forward, back, left, right, turn, up, down, place, remove,
   wait, repeat ×N), one step every half second, persisted with the world

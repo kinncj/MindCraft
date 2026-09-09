@@ -66,6 +66,47 @@ describe('logic', () => {
     expect(BlockState.variant(world.getState(4, 3, 5))).toBe(0);
   });
 
+  it('a flip block turns power the other way round', () => {
+    const { world, logic } = rig();
+    // Lever -> wire -> flip block -> wire -> lamp. With the lever off, the
+    // flip block sends power and the lamp is lit; on, and the lamp goes out.
+    world.setBlock(0, 3, 0, B.lever);
+    world.setBlock(1, 3, 0, B.wire);
+    world.setBlock(2, 3, 0, B.flip_block);
+    world.setBlock(3, 3, 0, B.wire);
+    world.setBlock(4, 3, 0, B.logic_lamp);
+    logic.tick();
+    expect(world.getBlock(4, 3, 0)).toBe(B.logic_lamp_on);
+    expect(BlockState.variant(world.getState(2, 3, 0))).toBe(1); // it glows when sending
+
+    world.setBlock(0, 3, 0, B.lever, BlockState.withOpen(0, true));
+    logic.tick(); // the flip block reads the power in
+    logic.tick(); // and answers on the tick after, the way a torch does
+    expect(world.getBlock(4, 3, 0)).toBe(B.logic_lamp);
+    expect(BlockState.variant(world.getState(2, 3, 0))).toBe(0);
+
+    world.setBlock(0, 3, 0, B.lever, BlockState.withOpen(0, false));
+    logic.tick();
+    logic.tick();
+    expect(world.getBlock(4, 3, 0)).toBe(B.logic_lamp_on);
+  });
+
+  it('a flip block wired back into itself blinks, which is a clock', () => {
+    const { world, logic } = rig();
+    world.setBlock(0, 3, 0, B.flip_block);
+    world.setBlock(1, 3, 0, B.wire);
+    world.setBlock(1, 3, 1, B.wire);
+    world.setBlock(0, 3, 1, B.wire); // the loop back into the flip block
+    world.setBlock(0, 3, -1, B.logic_lamp);
+    const seen: boolean[] = [];
+    for (let i = 0; i < 6; i++) {
+      logic.tick();
+      seen.push(world.getBlock(0, 3, -1) === B.logic_lamp_on);
+    }
+    // It must actually change: a clock that never ticks is just a lamp.
+    expect(new Set(seen).size, `the lamp never changed: ${seen.join(',')}`).toBe(2);
+  });
+
   it('wire runs out after fifteen blocks', () => {
     const { world, logic } = rig();
     world.setBlock(-8, 3, 0, B.lever, BlockState.withOpen(0, true));

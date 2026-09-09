@@ -56,6 +56,7 @@ export const RECIPES: Recipe[] = [
   { id: 'piston', label: 'Piston', emoji: '🔩', result: 'piston', count: 1, grid: ['planks', 'planks', 'planks', 'cobblestone', 'glow_crystal', 'cobblestone', 'cobblestone', 'wire', 'cobblestone'], hint: 'A wooden face, stone, and a spark.' },
   { id: 'sticky_piston', label: 'Sticky Piston', emoji: '🔩', result: 'sticky_piston', count: 1, grid: ['hay', _, _, 'piston', _, _, _, _, _], hint: 'A piston with a sticky top.' },
   { id: 'repeater', label: 'Repeater', emoji: '🔁', result: 'repeater', count: 1, grid: [_, _, _, 'glow_crystal', 'wire', 'glow_crystal', 'stone', 'stone', 'stone'], hint: 'Two little lights on a stone slab: it passes power on, full strength.' },
+  { id: 'flip_block', label: 'Flip Block', emoji: '🔀', result: 'flip_block', count: 1, grid: [_, 'glow_crystal', _, _, 'wire', _, _, 'stone', _], hint: 'A light on a wire on a stone: it turns power the other way round.' },
   { id: 'note_block', label: 'Note Block', emoji: '🎵', result: 'note_block', count: 1, grid: ['planks', 'planks', 'planks', 'planks', 'wire', 'planks', 'planks', 'planks', 'planks'], hint: 'Wire inside a wooden box.' },
   { id: 'robot', label: 'Robot', emoji: '🤖', result: 'robot', count: 1, grid: ['glow_crystal', 'stone_bricks', 'glow_crystal', 'stone_bricks', 'wire', 'stone_bricks', 'piston', 'stone_bricks', 'piston'], hint: 'Eyes, a heart of wire, piston legs.' },
 ];

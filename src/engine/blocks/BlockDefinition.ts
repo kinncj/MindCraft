@@ -126,7 +126,7 @@ export type BlockDefinition = {
   /** Placing this "block" spawns a creature, vehicle, or robot instead. */
   spawns?: { kind: 'vehicle' | 'pet' | 'villager' | 'robot'; variant: string };
   /** Part of the logic layer: emits, carries, or reacts to power. */
-  logic?: { role: 'source' | 'wire' | 'consumer' | 'repeater'; kind?: 'lever' | 'button' | 'plate' | 'wire' | 'lamp' | 'piston' | 'sticky_piston' | 'note' | 'door' | 'head' | 'repeater' };
+  logic?: { role: 'source' | 'wire' | 'consumer' | 'repeater' | 'inverter'; kind?: 'lever' | 'button' | 'plate' | 'wire' | 'lamp' | 'piston' | 'sticky_piston' | 'note' | 'door' | 'head' | 'repeater' | 'flip' };
   /** Pistons cannot move it. */
   immovable: boolean;
   /** Shown in the block palette? */

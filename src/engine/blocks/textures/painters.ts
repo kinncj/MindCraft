@@ -807,6 +807,31 @@ const repeaterOn: Painter = (ctx) => {
   ctx.fillRect(4, 4, 3, 3);
   ctx.fillRect(9, 9, 3, 3);
 };
+const flipBlock: Painter = (ctx) => {
+  // A dark post with an unlit bulb: the flip block is off when power is on.
+  ctx.fillStyle = '#6f665a';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#4a4238';
+  ctx.fillRect(0, 0, SIZE, 2);
+  ctx.fillRect(0, SIZE - 2, SIZE, 2);
+  ctx.fillStyle = '#3a3226';
+  ctx.fillRect(7, 5, 2, 9); // the post
+  ctx.fillStyle = '#5a2a24';
+  ctx.fillRect(6, 2, 4, 4); // the bulb, dark
+};
+const flipBlockOn: Painter = (ctx) => {
+  ctx.fillStyle = '#8a8074';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#5c5348';
+  ctx.fillRect(0, 0, SIZE, 2);
+  ctx.fillRect(0, SIZE - 2, SIZE, 2);
+  ctx.fillStyle = '#4a4238';
+  ctx.fillRect(7, 5, 2, 9);
+  ctx.fillStyle = '#ffd94a';
+  ctx.fillRect(6, 2, 4, 4); // lit: it is sending power out
+  ctx.fillStyle = '#fff6c9';
+  ctx.fillRect(7, 3, 2, 2);
+};
 const wireOn: Painter = (ctx) => {
   ctx.clearRect(0, 0, SIZE, SIZE);
   ctx.fillStyle = '#ff3b2f';
@@ -992,6 +1017,8 @@ export const PAINTERS: Record<string, { paint: Painter; seed: number }> = {
   wire: { paint: wire, seed: 185 },
   wire_on: { paint: wireOn, seed: 186 },
   repeater: { paint: repeater, seed: 187 },
+  flip_block: { paint: flipBlock, seed: 189 },
+  flip_block_on: { paint: flipBlockOn, seed: 190 },
   repeater_on: { paint: repeaterOn, seed: 188 },
   logic_lamp: { paint: logicLamp, seed: 187 },
   logic_lamp_on: { paint: logicLampOn, seed: 188 },

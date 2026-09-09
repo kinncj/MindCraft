@@ -7,7 +7,7 @@ import { CHUNK_SIZE, DIRECTIONS, WORLD_HEIGHT, localIndex, positionKey } from '.
 import type { BlockChange, VoxelWorld } from '../world/VoxelWorld';
 import { extendPiston, pistonDirection, retractPiston } from './pistons';
 
-export type LogicRole = 'source' | 'wire' | 'consumer' | 'repeater';
+export type LogicRole = 'source' | 'wire' | 'consumer' | 'repeater' | 'inverter';
 
 const TICK = 0.1;
 const BUTTON_SECONDS = 1.5;
@@ -142,6 +142,17 @@ export class LogicSystem implements System {
         queue.push([c.x, c.y, c.z, level]);
       }
     }
+    // A flip block answers the tick before: no power going in means full
+    // power coming out. It pushes into the queue without claiming a level of
+    // its own, so a wire looping back into it reads as power in — and that
+    // one tick of delay is exactly what makes such a loop blink.
+    const flipped = new Map<string, boolean>();
+    for (const [key, c] of this.cells) {
+      if (this.role(this.world.getBlock(c.x, c.y, c.z)) !== 'inverter') continue;
+      const on = (this.powered.get(key) ?? 0) === 0;
+      flipped.set(key, on);
+      if (on) queue.push([c.x, c.y, c.z, MAX_WIRE]);
+    }
     // Flow through wires; anything adjacent to power is powered.
     let head = 0;
     while (head < queue.length) {
@@ -194,10 +205,12 @@ export class LogicSystem implements System {
       const id = this.world.getBlock(cell.x, cell.y, cell.z);
       const def = this.registry.get(id);
       if (!def) continue;
-      if (def.logic?.role === 'wire' || def.logic?.role === 'repeater') {
+      if (def.logic?.role === 'wire' || def.logic?.role === 'repeater' || def.logic?.role === 'inverter') {
+        // A flip block glows for what it is sending, not for what it is given.
+        const shining = def.logic.role === 'inverter' ? (flipped.get(key) ?? false) : now;
         const state = this.world.getState(cell.x, cell.y, cell.z);
         const lit = BlockState.variant(state) === 1;
-        if (lit !== now) this.world.setBlock(cell.x, cell.y, cell.z, id, BlockState.withVariant(state, now ? 1 : 0));
+        if (lit !== shining) this.world.setBlock(cell.x, cell.y, cell.z, id, BlockState.withVariant(state, shining ? 1 : 0));
       }
       if (was !== now) {
         const state = this.world.getState(cell.x, cell.y, cell.z);

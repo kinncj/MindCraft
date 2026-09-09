@@ -308,7 +308,7 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 2. ~~Build mode~~ — done: room, fill, paint, copy/paste, mirror, blueprints
 3. ~~Life layer~~ — done: furniture, car and boat, pets, villagers with jobs, dress-up
 4. ~~UI refresh~~ — done: bottom sheets, a menu with submenus, a tools drawer, safe areas
-5. ~~Crafting and logic~~ — done: recipe book, levers/buttons/plates/wire/lamps/pistons/doors/note blocks, robots
+5. ~~Crafting and logic~~ — done: recipe book, levers/buttons/plates/wire/repeaters/flip blocks/lamps/pistons/doors/note blocks, robots
 6. ~~Sound~~ — done: generative Tone.js soundtrack by biome and time, effects, mute and volume
 7. ~~Words to buildings~~ — done: any building, dig or feature from a sentence, proven
    walkable by physics tests, each on its own patch of open ground
