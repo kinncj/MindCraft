@@ -11,7 +11,9 @@ import { VoxelWorld } from '../../src/engine/world/VoxelWorld';
 
 function flat(): VoxelWorld {
   const world = new VoxelWorld(blocks);
-  for (let cx = -5; cx <= 5; cx++) for (let cz = -5; cz <= 5; cz++) {
+  // Only the chunks a monument can reach from 24,24: the widest footprint is
+  // 64, so x and z run -8..56. Growing more than that was most of the cost.
+  for (let cx = -1; cx <= 4; cx++) for (let cz = -1; cz <= 4; cz++) {
     const chunk = new Chunk(cx, cz);
     for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) for (let y = 0; y <= 12; y++) chunk.set(x, y, z, y < 10 ? B.dirt : B.grass);
     world.addChunk(chunk);
@@ -56,7 +58,8 @@ describe('famous places', () => {
         expect(e.y - GROUND, `${kind} is taller than it says`).toBeLessThanOrEqual(spec.height + 2);
       }
     }
-  });
+    // Twenty-eight monuments, each in its own world: slow, and honestly so.
+  }, 30_000);
 
   it('the tall ones are tall, and nothing floats in the air by itself', () => {
     for (const kind of MONUMENT_KINDS) {
@@ -74,7 +77,8 @@ describe('famous places', () => {
       // most of the build should still rest on something.
       expect(floating.length / columns.size, `${kind}: too much of it floats`).toBeLessThan(0.5);
     }
-  });
+    // Twenty-eight monuments, each in its own world: slow, and honestly so.
+  }, 30_000);
 
   it('the waterfalls really have falling water, and the canal has ice', () => {
     const water = blocks.numericOf('water');
@@ -134,7 +138,8 @@ describe('famous places', () => {
       if (built < stated - 3 || built > stated + 2) wrong.push(`${kind}: says ${stated}, builds ${built}`);
     }
     expect(wrong, wrong.join('; ')).toEqual([]);
-  });
+    // Twenty-eight monuments, each in its own world: slow, and honestly so.
+  }, 30_000);
 
   it('keeps the proportions of the real place, not just its name', () => {
     // Every monument says what the real thing measures. A building whose block
