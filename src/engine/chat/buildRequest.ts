@@ -170,6 +170,7 @@ const VOCABULARY = [
   'eiffel', 'niagara', 'iguacu', 'iguazu', 'toronto', 'ottawa', 'curitiba', 'paris', 'rideau', 'copan', 'masp', 'ibirapuera',
   'tokyo', 'vancouver', 'skytree', 'sensoji', 'asakusa', 'kaminarimon', 'pagoda', 'geodesic',
   'redeemer', 'corcovado', 'sugarloaf', 'statue', 'mountain', 'baixada', 'athletico', 'atletico', 'paranaense', 'stadium', 'arena',
+  'blinking', 'blinker', 'flashing', 'beacon',
   'liberty', 'empire', 'westminster', 'elizabeth', 'london', 'england', 'torch', 'clock',
   'niemeyer', 'botanical', 'opera', 'parliament', 'stadium', 'museum', 'canal', 'waterfall', 'waterfalls', 'monument', 'tower',
   'colourful', 'colorful', 'rainbow', 'beautiful', 'yellow', 'purple', 'orange', 'green', 'brown', 'white', 'black', 'brick', 'stone', 'wooden',
@@ -428,7 +429,7 @@ export function buildActionsFor(spec: BuildSpec, ctx: ChatContext): ChatAction[]
 
 /** Things built beside a building, asked for on their own: a bridge, a treehouse, a playground. */
 export type FeatureSpec = {
-  kind: 'court' | 'playground' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse' | 'runway' | 'doghouse';
+  kind: 'court' | 'playground' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse' | 'runway' | 'doghouse' | 'blinker';
   width?: number;
   length?: number;
   color?: string;
@@ -441,6 +442,7 @@ export type FeatureSpec = {
 
 const STANDALONE_FEATURES: Array<[RegExp, FeatureSpec['kind'], string]> = [
   [/\b(doghouses?|kennels?|dog ?house(s)?|house for (my |the )?(dog|puppy|doggy)|puppy house)\b/, 'doghouse', 'dog house'],
+  [/\b(blink(ing|er)?s?( light| lamp)?s?|flashing (light|lamp)s?|(light|lamp)s? that (blinks?|flashes)|disco light|beacons?)\b/, 'blinker', 'blinking light'],
   [/\b(runways?|air ?strips?|landing strips?|tarmacs?)\b/, 'runway', 'runway'],
   [/\b(tree ?house(s)?)\b/, 'treehouse', 'treehouse'],
   [/\b(bridges?|walkways?|footbridges?)\b/, 'bridge', 'bridge'],

@@ -44,7 +44,8 @@
   the bundle, an optional helper model a grown-up downloads (ADR-0012), the browser's
   built-in on-device model behind a parent toggle, or an outside agent. Anything the
   child describes — a hospital with doctors, a school with six classrooms, a 30 by 20
-  lake, an airport with a runway — is generated to order and built by hand, undoable
+  lake, an airport with a runway, a lamp post that blinks — is generated to order and
+  built by hand, undoable
 - Crafting: a picture recipe book (38 recipes) with a tap-to-fill grid; crafting table
 - Logic: lever, button, pressure plate, wire (fades over 15 blocks, and climbs a step),
   logic lamp, repeaters that pass power on at full strength so a circuit can run past

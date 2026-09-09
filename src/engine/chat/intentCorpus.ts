@@ -72,6 +72,11 @@ export const LABEL_WORDS: Record<IntentLabel, string[]> = {
     'the stadium in curitiba', 'ligga arena', 'the red and black stadium', 'furacao stadium',
     'the stadium with the roof that opens',
   ],
+  blinker: [
+    'a blinking light', 'a light that blinks', 'a flashing lamp', 'a blinker',
+    'a lamp that turns on and off by itself', 'a light that keeps flashing',
+    'a beacon', 'a blinking lamp post', 'a light that goes on and off',
+  ],
   m_big_ben: [
     'big ben', 'elizabeth tower', 'the clock tower in london', 'the big clock tower',
     'the tower with the giant clock', 'westminster clock tower', 'the london clock',

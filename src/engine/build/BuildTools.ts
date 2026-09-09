@@ -45,7 +45,7 @@ export type EarthworkOptions = {
 
 export type FurnitureItem = { id: number; state?: number; /** Something on top (a TV on a table). */ on?: number };
 
-export type FeatureKind = 'court' | 'playground' | 'pool' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse' | 'runway' | 'doghouse';
+export type FeatureKind = 'court' | 'playground' | 'pool' | 'garden' | 'parking' | 'fountain' | 'fence' | 'bridge' | 'treehouse' | 'runway' | 'doghouse' | 'blinker';
 
 /** Footprints of the outdoor features. */
 export const FEATURE_SIZE: Record<FeatureKind, { w: number; d: number }> = {
@@ -60,6 +60,7 @@ export const FEATURE_SIZE: Record<FeatureKind, { w: number; d: number }> = {
   treehouse: { w: 5, d: 5 },
   runway: { w: 41, d: 9 },
   doghouse: { w: 9, d: 9 },
+  blinker: { w: 7, d: 7 },
 };
 
 /** Blocks the features are made of. */
@@ -81,6 +82,12 @@ export type FeatureKit = {
   /** Logs for bridge posts and treehouse stilts. */
   wood: number;
   roof: number;
+  /** Stone for a plinth, and the pieces a working circuit is made of. */
+  stone: number;
+  wire: number | null;
+  flipBlock: number | null;
+  /** The lamp that reads power, as opposed to the lantern that just shines. */
+  logicLamp: number | null;
 };
 
 /** What a feature drawn on its own needs from the generator. */
@@ -154,6 +161,7 @@ export type HouseOptions = {
   stickyPiston: number | null;
   wire: number | null;
   lever: number | null;
+  flipBlock: number | null;
   /** Colour blocks for pillars and roof when colourful. */
   palette: number[];
 }
@@ -896,6 +904,43 @@ export class BuildTools {
           if (k.lamp !== null && (x - fx0) % 6 === 0) {
             put(x, groundY + 1, fz0 - 1, k.lamp);
             put(x, groundY + 1, fz1 + 1, k.lamp);
+          }
+        }
+        break;
+      }
+      case 'blinker': {
+        // A lamp post that blinks on its own: a flip block with its own wire
+        // looped back into it, which is a clock, and a lamp reading the flip.
+        // Four blocks and it never stops — the whole trick, out in the open
+        // where a child can look at it and copy it.
+        const k = opts.kit;
+        const cx = Math.floor((fx0 + fx1) / 2);
+        const cz = Math.floor((fz0 + fz1) / 2);
+        for (let x = fx0; x <= fx1; x++) {
+          for (let z = fz0; z <= fz1; z++) {
+            const rim = x === fx0 || x === fx1 || z === fz0 || z === fz1;
+            put(x, groundY, z, rim ? k.grass : k.parkingFloor);
+            for (let h = 1; h <= 8; h++) put(x, groundY + h, z, 0);
+          }
+        }
+        // The plinth: a stone base with a three by three deck to work on.
+        for (let h = 1; h <= 2; h++) {
+          for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) put(cx + dx, groundY + h, cz + dz, k.stone);
+        }
+        const deck = groundY + 3;
+        for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) put(cx + dx, deck, cz + dz, k.stone);
+        if (k.flipBlock === null || k.wire === null || k.logicLamp === null) break;
+        // The clock itself, sitting on the deck.
+        put(cx, deck + 1, cz, k.flipBlock);
+        put(cx + 1, deck + 1, cz, k.wire);
+        put(cx + 1, deck + 1, cz + 1, k.wire);
+        put(cx, deck + 1, cz + 1, k.wire); // and back into the flip block
+        put(cx - 1, deck + 1, cz, k.logicLamp); // the lamp that blinks with it
+        // A rail round the deck so it reads as a post, not a puddle of blocks.
+        for (let dx = -2; dx <= 2; dx++) {
+          for (let dz = -2; dz <= 2; dz++) {
+            if (Math.max(Math.abs(dx), Math.abs(dz)) !== 2) continue;
+            put(cx + dx, deck + 1, cz + dz, k.fence);
           }
         }
         break;

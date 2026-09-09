@@ -86,7 +86,7 @@ const ROOM_FURNITURE: Record<string, Array<string | [string, string]>> = {
   room: ['table', 'chair', 'bookshelf'],
 };
 
-export const FEATURE_KINDS: FeatureKind[] = ['court', 'playground', 'pool', 'garden', 'parking', 'fountain', 'fence', 'bridge', 'treehouse', 'runway', 'doghouse'];
+export const FEATURE_KINDS: FeatureKind[] = ['court', 'playground', 'pool', 'garden', 'parking', 'fountain', 'fence', 'bridge', 'treehouse', 'runway', 'doghouse', 'blinker'];
 
 export function flagNames(): string[] {
   return Object.keys(FLAG_ART);
@@ -176,6 +176,10 @@ export function featureKit(registry: BlockRegistry, paint?: string | null): Feat
     lamp: maybe('lantern'),
     wood: id('wood', 'planks'),
     roof: color ?? id('roof_tiles', 'planks'),
+    stone: id('stone_bricks', 'stone'),
+    wire: maybe('wire'),
+    flipBlock: maybe('flip_block'),
+    logicLamp: maybe('logic_lamp'),
   };
 }
 
@@ -246,6 +250,7 @@ export function houseOptions(registry: BlockRegistry, a: BuildingArgs): HouseOpt
     stickyPiston: maybe('sticky_piston'),
     wire: maybe('wire'),
     lever: maybe('lever'),
+    flipBlock: maybe('flip_block'),
     pole: id('fence', 'wood'),
     signBlock: registry.numericOf('color_red'),
     trim: a.trim ? id(a.trim, 'planks') : null,

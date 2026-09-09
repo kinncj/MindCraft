@@ -22,12 +22,21 @@ function flat(): VoxelWorld {
 const GROUND = 12; // flat() tops out at y = 12, so a monument is built with y = 13
 const kit = monumentKit(blocks);
 
+// Growing a flat world costs far more than drawing the monument in it, and
+// several tests want the same twenty-odd monuments. Build each one once.
+const built = new Map<string, { world: ReturnType<typeof flat>; edits: ReturnType<BuildTools['planMonument']> }>();
+
 function build(kind: (typeof MONUMENT_KINDS)[number], text?: string) {
+  const key = `${kind}|${text ?? ''}`;
+  const cached = built.get(key);
+  if (cached) return cached;
   const world = flat();
   const tools = new BuildTools(world, blocks, new CommandHistory(world));
   const edits = tools.planMonument(kind, 24, GROUND + 1, 24, { kit, text });
   tools.run(MONUMENTS[kind].label, edits);
-  return { world, edits };
+  const made = { world, edits };
+  built.set(key, made);
+  return made;
 }
 
 describe('famous places', () => {
@@ -348,6 +357,28 @@ describe('a dog house, built to the kid\'s specs', () => {
     const { parseBuildRequest } = await import('../../src/engine/chat/buildRequest');
     expect(parseBuildRequest('build a dog house'), 'a kennel is not a bungalow').toBeNull();
     expect(parseBuildRequest('build a house')?.type).toBe('house');
+  });
+
+  it('a blinking light really blinks once it is built', async () => {
+    const { featureOptions } = await import('../../src/engine/build/buildingKit');
+    const { parseFeature } = await import('../../src/engine/chat/buildRequest');
+    const { LogicSystem } = await import('../../src/engine/logic/LogicSystem');
+    expect(parseFeature('build me a light that blinks')?.kind).toBe('blinker');
+    expect(parseFeature('a flashing lamp please')?.kind).toBe('blinker');
+    const world = flat();
+    // The logic system watches the world, so it has to be listening before
+    // the lamp post goes up, exactly as the engine composes it.
+    const logic = new LogicSystem(world, blocks);
+    const tools = new BuildTools(world, blocks, new CommandHistory(world));
+    const opts = featureOptions(blocks, { kind: 'blinker' });
+    tools.run('blinking light', tools.planFeature('blinker', 24, GROUND + 1, 24, opts));
+    const lamp = { x: 23, y: GROUND + 4, z: 24 };
+    const seen: boolean[] = [];
+    for (let i = 0; i < 6; i++) {
+      logic.tick();
+      seen.push(world.getBlock(lamp.x, lamp.y, lamp.z) === blocks.numericOf('logic_lamp_on'));
+    }
+    expect(new Set(seen).size, `the lamp never changed: ${seen.join(',')}`).toBe(2);
   });
 
   it('builds a kennel a puppy can walk into, with its initial over the door', async () => {

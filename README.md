@@ -75,6 +75,8 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
   "build a school and dig a big lake and then make it night" is three jobs, done in
   order, while "a school with 6 classrooms and a computer room" stays one school. Airports
   come with a runway a plane can really take off from, and public buildings get sliding doors.
+  Ask for "a light that blinks" and you get a working clock: a flip block with its own wire
+  looped back into it, out in the open where a child can look at it and copy it.
   Each thing gets its own patch of open, level ground — the villager looks for somewhere clear
   rather than piling the next build on the last one — and plain land means plain land:
   roads, plazas and courts are left alone even though they look flat and empty.
@@ -312,7 +314,7 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 6. ~~Sound~~ — done: generative Tone.js soundtrack by biome and time, effects, mute and volume
 7. ~~Words to buildings~~ — done: any building, dig or feature from a sentence, proven
    walkable by physics tests, each on its own patch of open ground
-8. ~~A model of our own~~ — done: a 143 KB sentence model trained in the repo, shipped in
+8. ~~A model of our own~~ — done: a 144 KB sentence model trained in the repo, shipped in
    the bundle, no download
 
 Nothing before the basics stay boring and reliable.
