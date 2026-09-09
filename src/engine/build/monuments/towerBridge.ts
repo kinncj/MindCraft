@@ -4,6 +4,7 @@
  * Cornish granite and Portland stone over a steel frame, painted blue.
  */
 
+import { liftingRoadway } from './automation';
 import type { Monument, MonumentDraw } from './types';
 
 export const towerBridge: Monument = {
@@ -47,25 +48,20 @@ function draw(m: MonumentDraw): void {
       for (let h = 1; h <= 6; h++) m.put(x, m.g + h, z, 0);
     }
   }
-  // The roadway, split in the middle where the bascules lift.
+  // The roadway, all the way across; the middle of it really opens.
   for (let x = m.x0; x <= m.x1; x++) {
-    const gap = Math.abs(x - m.cx) <= 1;
     for (let z = m.cz - 1; z <= m.cz + 1; z++) {
-      if (!gap) m.put(x, deckY, z, planks);
+      m.put(x, deckY, z, planks);
       for (let h = 1; h <= 4; h++) m.put(x, deckY + h, z, 0);
     }
-    if (!gap) {
+    if (Math.abs(x - m.cx) > 5) {
       m.put(x, deckY + 1, m.cz - 2, fence);
       m.put(x, deckY + 1, m.cz + 2, fence);
     }
   }
-  // The two bascules, tilted up, which is how everyone pictures it.
-  for (let i = 1; i <= 3; i++) {
-    for (let z = m.cz - 1; z <= m.cz + 1; z++) {
-      m.put(m.cx - 1 - i, deckY + i, z, planks);
-      m.put(m.cx + 1 + i, deckY + i, z, planks);
-    }
-  }
+  // The bascules: sticky pistons, wire and a flip block, so the leaves really
+  // draw back and a ship goes under. Closed until a child asks for it open.
+  liftingRoadway(m, { cx: m.cx, zNorth: m.cz - 1, zSouth: m.cz + 1, y: deckY, deck: planks, steel: stone });
   // The towers: stone piers, four corner turrets, a pointed roof.
   for (const tx of [towerA, towerB]) {
     for (let y = m.g; y <= topY; y++) {

@@ -42,6 +42,7 @@ function letterFor(id: number): string {
   if (name === 'repeater') return '>';
   if (name.includes('piston')) return 'P';
   if (name === 'lever') return 'L';
+  if (name.startsWith('flip_block')) return 'F';
   if (name.startsWith('color_')) return name[6].toUpperCase();
   return name[0];
 }

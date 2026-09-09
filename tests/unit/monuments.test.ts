@@ -218,6 +218,47 @@ describe('famous places', () => {
 });
 
 describe('the roofs really open and shut', () => {
+  it('Tower Bridge is closed until a child opens it, and shuts again', async () => {
+    const { LogicSystem } = await import('../../src/engine/logic/LogicSystem');
+    const { BlockState } = await import('../../src/engine/blocks/BlockState');
+    const world = flat();
+    const logic = new LogicSystem(world, blocks); // listening before it is built
+    const tools = new BuildTools(world, blocks, new CommandHistory(world));
+    tools.run('tower_bridge', tools.planMonument('tower_bridge', 24, GROUND + 1, 24, { kit }));
+
+    let lever: { x: number; y: number; z: number } | null = null;
+    let flips = 0;
+    for (let x = 0; x < 48; x++) for (let y = GROUND; y < GROUND + 24; y++) for (let z = 0; z < 48; z++) {
+      const id = world.getBlock(x, y, z);
+      if (id === blocks.numericOf('lever')) lever = { x, y, z };
+      else if (id === blocks.numericOf('flip_block')) flips++;
+    }
+    expect(lever, 'no lever on the bridge').not.toBeNull();
+    expect(flips, 'the bascules need a flip block to be shut by default').toBeGreaterThan(0);
+
+    // Find the roadway, then count how much of the middle is road.
+    const deckY = Math.max(...[...Array(24).keys()].map((i) => GROUND + i).filter((y) => world.getBlock(24 - 8, y, 24) === blocks.numericOf('planks')));
+    const middle = (): number => {
+      let n = 0;
+      for (let x = 24 - 2; x <= 24 + 2; x++) for (let z = 23; z <= 25; z++) if (world.getBlock(x, deckY, z) !== 0) n++;
+      return n;
+    };
+
+    // Closed to start with: a bridge you cannot walk over is not a bridge.
+    for (let i = 0; i < 40; i++) logic.update(1 / 10);
+    const closed = middle();
+    expect(closed, 'the road did not close by itself').toBeGreaterThan(8);
+
+    const state = world.getState(lever!.x, lever!.y, lever!.z);
+    world.setBlock(lever!.x, lever!.y, lever!.z, blocks.numericOf('lever'), BlockState.withOpen(state, true));
+    for (let i = 0; i < 40; i++) logic.update(1 / 10);
+    expect(middle(), 'the lever did not open the bascules').toBeLessThan(closed);
+
+    world.setBlock(lever!.x, lever!.y, lever!.z, blocks.numericOf('lever'), BlockState.withOpen(state, false));
+    for (let i = 0; i < 40; i++) logic.update(1 / 10);
+    expect(middle(), 'the bascules did not come back down').toBe(closed);
+  });
+
   it('a lever slides the stadium roof over the pitch and back again', async () => {
     const { LogicSystem } = await import('../../src/engine/logic/LogicSystem');
     const { BlockState } = await import('../../src/engine/blocks/BlockState');
@@ -441,7 +482,7 @@ describe('a dog house, built to the kid\'s specs', () => {
     const tools = new BuildTools(world, blocks, new CommandHistory(world));
     const opts = featureOptions(blocks, { kind: 'blinker' });
     tools.run('blinking light', tools.planFeature('blinker', 24, GROUND + 1, 24, opts));
-    const lamp = { x: 23, y: GROUND + 4, z: 24 };
+    const lamp = { x: 23, y: GROUND + 5, z: 24 };
     const seen: boolean[] = [];
     for (let i = 0; i < 6; i++) {
       logic.tick();

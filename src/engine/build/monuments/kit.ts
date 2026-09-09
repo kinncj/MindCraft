@@ -47,5 +47,6 @@ export function monumentKit(registry: BlockRegistry, missing?: string[]): Monume
     wire: maybe('wire'),
     lever: maybe('lever'),
     repeater: maybe('repeater'),
+    flipBlock: maybe('flip_block'),
   };
 }

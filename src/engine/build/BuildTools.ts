@@ -930,12 +930,16 @@ export class BuildTools {
         const deck = groundY + 3;
         for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) put(cx + dx, deck, cz + dz, k.stone);
         if (k.flipBlock === null || k.wire === null || k.logicLamp === null) break;
-        // The clock itself, sitting on the deck.
-        put(cx, deck + 1, cz, k.flipBlock);
-        put(cx + 1, deck + 1, cz, k.wire);
-        put(cx + 1, deck + 1, cz + 1, k.wire);
-        put(cx, deck + 1, cz + 1, k.wire); // and back into the flip block
-        put(cx - 1, deck + 1, cz, k.logicLamp); // the lamp that blinks with it
+        // The clock itself. A flip block reads the block under it, so the wire
+        // it reads goes below and its answer leaves out of the top; run that
+        // answer round and back down under it and it can never settle.
+        put(cx, deck + 1, cz, k.wire); // what it reads
+        put(cx, deck + 2, cz, k.flipBlock);
+        put(cx, deck + 3, cz, k.wire); // what it says
+        put(cx + 1, deck + 3, cz, k.wire);
+        put(cx + 1, deck + 2, cz, k.wire);
+        put(cx + 1, deck + 1, cz, k.wire); // round, and back under it
+        put(cx - 1, deck + 2, cz, k.logicLamp); // the lamp that blinks with it
         // A rail round the deck so it reads as a post, not a puddle of blocks.
         for (let dx = -2; dx <= 2; dx++) {
           for (let dz = -2; dz <= 2; dz++) {

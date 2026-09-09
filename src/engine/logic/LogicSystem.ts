@@ -142,16 +142,30 @@ export class LogicSystem implements System {
         queue.push([c.x, c.y, c.z, level]);
       }
     }
-    // A flip block answers the tick before: no power going in means full
-    // power coming out. It pushes into the queue without claiming a level of
-    // its own, so a wire looping back into it reads as power in — and that
-    // one tick of delay is exactly what makes such a loop blink.
+    // A flip block reads the block under it and answers the tick before: no
+    // power down there means full power out of its sides and its top. Reading
+    // downwards and sending everywhere else is what keeps it from switching
+    // itself off — its own output can never be its own input — while a wire
+    // the child runs round from the top back under it blinks, on purpose.
     const flipped = new Map<string, boolean>();
     for (const [key, c] of this.cells) {
       if (this.role(this.world.getBlock(c.x, c.y, c.z)) !== 'inverter') continue;
-      const on = (this.powered.get(key) ?? 0) === 0;
+      const on = (this.powered.get(positionKey(c.x, c.y - 1, c.z)) ?? 0) === 0;
       flipped.set(key, on);
-      if (on) queue.push([c.x, c.y, c.z, MAX_WIRE]);
+      if (!on) continue;
+      for (const d of DIRECTIONS) {
+        if (d.y === -1) continue;
+        const nx = c.x + d.x;
+        const ny = c.y + d.y;
+        const nz = c.z + d.z;
+        if (ny < 0 || ny >= WORLD_HEIGHT) continue;
+        const role = this.role(this.world.getBlock(nx, ny, nz));
+        if (!role) continue;
+        const nkey = positionKey(nx, ny, nz);
+        if ((next.get(nkey) ?? 0) >= MAX_WIRE) continue;
+        next.set(nkey, MAX_WIRE);
+        if (role === 'wire' || role === 'repeater') queue.push([nx, ny, nz, MAX_WIRE]);
+      }
     }
     // Flow through wires; anything adjacent to power is powered.
     let head = 0;

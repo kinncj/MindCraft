@@ -66,44 +66,59 @@ describe('logic', () => {
     expect(BlockState.variant(world.getState(4, 3, 5))).toBe(0);
   });
 
-  it('a flip block turns power the other way round', () => {
+  it('a flip block reads the block under it and turns the power round', () => {
     const { world, logic } = rig();
-    // Lever -> wire -> flip block -> wire -> lamp. With the lever off, the
-    // flip block sends power and the lamp is lit; on, and the lamp goes out.
+    // Lever -> wire -> the wire the flip block stands on. Its answer goes out
+    // sideways to a lamp. Lever off: the lamp is lit. Lever on: it goes out.
     world.setBlock(0, 3, 0, B.lever);
     world.setBlock(1, 3, 0, B.wire);
-    world.setBlock(2, 3, 0, B.flip_block);
-    world.setBlock(3, 3, 0, B.wire);
-    world.setBlock(4, 3, 0, B.logic_lamp);
+    world.setBlock(2, 3, 0, B.wire); // what the flip block reads
+    world.setBlock(2, 4, 0, B.flip_block);
+    // The answer goes out of the top: wire beside it would run diagonally back
+    // down into the wire it reads, which is a loop, not an inverter.
+    world.setBlock(2, 5, 0, B.wire);
+    world.setBlock(3, 5, 0, B.wire);
+    world.setBlock(4, 5, 0, B.logic_lamp);
     logic.tick();
-    expect(world.getBlock(4, 3, 0)).toBe(B.logic_lamp_on);
-    expect(BlockState.variant(world.getState(2, 3, 0))).toBe(1); // it glows when sending
+    expect(world.getBlock(4, 5, 0)).toBe(B.logic_lamp_on);
+    expect(BlockState.variant(world.getState(2, 4, 0))).toBe(1); // it glows when sending
 
     world.setBlock(0, 3, 0, B.lever, BlockState.withOpen(0, true));
-    logic.tick(); // the flip block reads the power in
+    logic.tick(); // the flip block reads the power under it
     logic.tick(); // and answers on the tick after, the way a torch does
-    expect(world.getBlock(4, 3, 0)).toBe(B.logic_lamp);
-    expect(BlockState.variant(world.getState(2, 3, 0))).toBe(0);
+    expect(world.getBlock(4, 5, 0)).toBe(B.logic_lamp);
+    expect(BlockState.variant(world.getState(2, 4, 0))).toBe(0);
 
     world.setBlock(0, 3, 0, B.lever, BlockState.withOpen(0, false));
     logic.tick();
     logic.tick();
-    expect(world.getBlock(4, 3, 0)).toBe(B.logic_lamp_on);
+    expect(world.getBlock(4, 5, 0)).toBe(B.logic_lamp_on);
   });
 
-  it('a flip block wired back into itself blinks, which is a clock', () => {
+  it('its own output never switches it off, but a loop under it blinks', () => {
     const { world, logic } = rig();
+    // A flip block with wire beside it and nothing under it stays on, however
+    // long you wait: reading downwards is what stops it fighting itself.
     world.setBlock(0, 3, 0, B.flip_block);
     world.setBlock(1, 3, 0, B.wire);
-    world.setBlock(1, 3, 1, B.wire);
-    world.setBlock(0, 3, 1, B.wire); // the loop back into the flip block
     world.setBlock(0, 3, -1, B.logic_lamp);
+    for (let i = 0; i < 6; i++) logic.tick();
+    expect(world.getBlock(0, 3, -1), 'a plain flip block should just stay on').toBe(B.logic_lamp_on);
+
+    // Now run that wire round and under it, and it becomes a clock.
+    const { world: w2, logic: l2 } = rig();
+    w2.setBlock(0, 3, 0, B.wire); // what it reads
+    w2.setBlock(0, 4, 0, B.flip_block);
+    w2.setBlock(0, 5, 0, B.wire); // what it says, out of the top
+    w2.setBlock(1, 5, 0, B.wire);
+    w2.setBlock(1, 4, 0, B.wire);
+    w2.setBlock(1, 3, 0, B.wire); // down, and back under it
+    w2.setBlock(0, 4, -1, B.logic_lamp);
     const seen: boolean[] = [];
-    for (let i = 0; i < 6; i++) {
-      logic.tick();
-      seen.push(world.getBlock(0, 3, -1) === B.logic_lamp_on);
+    for (let i = 0; i < 8; i++) {
+      l2.tick();
+      seen.push(w2.getBlock(0, 4, -1) === B.logic_lamp_on);
     }
-    // It must actually change: a clock that never ticks is just a lamp.
     expect(new Set(seen).size, `the lamp never changed: ${seen.join(',')}`).toBe(2);
   });
 

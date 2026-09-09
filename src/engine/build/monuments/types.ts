@@ -35,6 +35,8 @@ export type MonumentKit = {
   wire: number | null;
   lever: number | null;
   repeater: number | null;
+  /** Turns power the other way round: a bridge is closed when nobody asks. */
+  flipBlock: number | null;
 };
 
 export type MonumentContext = {

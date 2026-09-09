@@ -154,8 +154,9 @@ takes minutes per shot and mostly photographs the hillside in front of the thing
 
 ## Machinery that really works
 
-Two stadiums have retractable roofs, and they are not painted on: `automation.ts`
-builds them from sticky pistons, wire, repeaters and a lever a child can flip.
+Two stadiums have retractable roofs and Tower Bridge has bascules that lift, and
+none of them are painted on: `automation.ts` builds them from sticky pistons,
+wire, repeaters, a flip block and a lever a child can reach.
 Three things about this engine decide the design:
 
 - **A sticky piston pulls back exactly one block**, so each panel is one block
@@ -166,9 +167,18 @@ Three things about this engine decide the design:
   the circuit starts.
 - **Only wire makes the diagonal step** a staircase needs, so no repeater may sit
   where the stairs meet the rail.
+- **A flip block reads the block under it** and answers out of every other side.
+  That is what makes Tower Bridge's bascules sit closed until a child asks for
+  them open: the lever's wire runs under the flip block, so lever down means no
+  power in, which means full power out, which means the leaves are together and
+  you can walk over. The trap is that wire steps diagonally: run the answer back
+  down the same row and it drops into the question, the flip block is bypassed
+  entirely, and the lever works backwards. Take the answer out of the top and
+  down a row further along.
 
 Each of those was a bug first. `monuments.test.ts` flips the lever through the
-real `LogicSystem` and checks the roof closes and comes back.
+real `LogicSystem` and checks the roof closes and comes back — and that the
+bridge is closed to begin with, opens, and shuts again.
 
 ## Check it
 

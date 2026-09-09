@@ -90,7 +90,9 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
   **Lions Gate Bridge**, or **Niagara** and **Iguaçu Falls** — with water that really
   falls — Niagara really is three falls with Goat Island between them, and a boat in the
   mist below. **Athletico Paranaense's Arena da Baixada** and the **Rogers Centre** have
-  roofs that genuinely open: sticky pistons, wire, repeaters and a lever a kid can flip. Rio's **Christ the Redeemer** stands on Corcovado with **Sugarloaf** across
+  roofs that genuinely open: sticky pistons, wire, repeaters and a lever a kid can flip. **Tower Bridge**'s
+  bascules work the same way, closed until you ask — a flip block turns the lever round, so the road is
+  there to walk over until a child opens it for a ship. Rio's **Christ the Redeemer** stands on Corcovado with **Sugarloaf** across
   the bay. London brings **Big Ben** and **Tower Bridge** with its bascules up; New York
   the **Statue of Liberty** on her pedestal and the **Empire State Building**, stepping
   in at every art deco setback. Then the ones every picture book has: the **Sydney Opera
