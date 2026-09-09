@@ -4,6 +4,7 @@ import { BuildTools } from '../../src/engine/build/BuildTools';
 import { MONUMENTS, MONUMENT_KINDS, MONUMENT_LIST, monumentFootprint, monumentKit } from '../../src/engine/build/monuments/index';
 import { CITY_NAMES, CITY_PACKS } from '../../src/engine/build/monuments/cities';
 import { cleanText, textWidth } from '../../src/engine/build/monuments/font';
+import { featureKit } from '../../src/engine/build/buildingKit';
 import { CommandHistory } from '../../src/engine/commands/CommandHistory';
 import { PlayerController } from '../../src/engine/physics/PlayerController';
 import { Chunk } from '../../src/engine/world/Chunk';
@@ -193,6 +194,16 @@ describe('famous places', () => {
         expect(metres, `${monument.id}.${name} is taller than the whole thing`).toBeLessThanOrEqual(monument.real.height);
       }
     }
+  });
+
+  it('every block the kits ask for is really in the catalogue', () => {
+    // Both kits fall back rather than fail, which is right for a slim registry
+    // and dangerous here: rename `stone_bricks` and every monument quietly
+    // becomes plain stone with nothing red. These are the names they want.
+    const missing: string[] = [];
+    monumentKit(blocks, missing);
+    featureKit(blocks, null, missing);
+    expect(missing, `the catalogue no longer has: ${missing.join(', ')}`).toEqual([]);
   });
 
   it('the registry and the files agree', () => {

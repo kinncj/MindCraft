@@ -155,8 +155,14 @@ export function earthworkOptions(registry: BlockRegistry, a: { width?: number; l
 }
 
 /** The blocks outdoor features are made of, with fallbacks for slim registries. */
-export function featureKit(registry: BlockRegistry, paint?: string | null): FeatureKit {
-  const id = (name: string, fallback: string): number => (registry.has(name) ? registry.numericOf(name) : registry.numericOf(fallback));
+export function featureKit(registry: BlockRegistry, paint?: string | null, missing?: string[]): FeatureKit {
+  // A fallback keeps a slim registry building; `missing` is how a test finds
+  // out that a preferred block has been renamed out from under us.
+  const id = (name: string, fallback: string): number => {
+    if (registry.has(name)) return registry.numericOf(name);
+    missing?.push(name);
+    return registry.numericOf(fallback);
+  };
   const maybe = (name: string): number | null => (registry.has(name) ? registry.numericOf(name) : null);
   const color = paint ? resolveBlockId(paint)?.numericId ?? null : null;
   return {

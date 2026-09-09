@@ -1,10 +1,21 @@
-/** The blocks the monuments are made of, resolved from the block registry. */
+/**
+ * The blocks the monuments are made of, resolved from the block registry.
+ *
+ * Every `id()` here has a fallback so a slimmed-down registry still builds
+ * something. That makes a renamed block silent: every black facade would
+ * quietly become deep stone and no test would notice. Pass `missing` to find
+ * out which preferred names were not there — a test does exactly that.
+ */
 
 import type { BlockRegistry } from '../../blocks/registry';
 import type { MonumentKit } from './types';
 
-export function monumentKit(registry: BlockRegistry): MonumentKit {
-  const id = (name: string, fallback: string): number => (registry.has(name) ? registry.numericOf(name) : registry.numericOf(fallback));
+export function monumentKit(registry: BlockRegistry, missing?: string[]): MonumentKit {
+  const id = (name: string, fallback: string): number => {
+    if (registry.has(name)) return registry.numericOf(name);
+    missing?.push(name);
+    return registry.numericOf(fallback);
+  };
   const maybe = (name: string): number | null => (registry.has(name) ? registry.numericOf(name) : null);
   return {
     iron: id('color_brown', 'cobblestone'),
