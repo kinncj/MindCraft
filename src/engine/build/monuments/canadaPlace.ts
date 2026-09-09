@@ -50,15 +50,18 @@ function draw(m: MonumentDraw): void {
     }
   }
   box(m, px0, m.g + 5, pz0, px1, m.g + 5, pz1, sail);
-  // Five sails in a row, each a peaked triangle of white.
+  // Five sails in a row: each one a fabric peak, wide at the deck and drawn
+  // to a point, not a pole. Two blocks thick so they read from any angle.
+  const peak = Math.max(4, m.up(40) - 5); // 40 m to the top of the sails
   for (let s = 0; s < 5; s++) {
-    const sx = px0 + 2 + s * Math.floor((px1 - px0 - 3) / 4);
-    const peak = Math.max(3, m.up(40) - 6); // 40 m to the top of the sails
+    const sx = px0 + 2 + s * Math.floor((px1 - px0 - 4) / 4);
     for (let dz = -4; dz <= 4; dz++) {
-      const height = Math.max(0, peak - Math.abs(dz) * 2);
+      const height = Math.max(0, peak - Math.abs(dz));
       for (let h = 1; h <= height; h++) {
-        m.put(sx, m.g + 5 + h, m.cz + dz, sail);
-        if (h === height && height > 2) m.put(sx + 1, m.g + 5 + h, m.cz + dz, sail);
+        // The sail narrows as it climbs: three blocks wide at the deck, one at the tip.
+        const spread = h > height - 2 ? 0 : h > height / 2 ? 1 : 2;
+        // Solid: a sail is a sheet, not a wire frame.
+        for (let dx = -spread; dx <= spread; dx++) m.put(sx + dx, m.g + 5 + h, m.cz + dz, sail);
       }
     }
   }

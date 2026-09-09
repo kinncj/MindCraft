@@ -219,6 +219,7 @@ npm run build        # typecheck + production build into dist/
 npm run preview      # serve the production build locally
 npm run train:brain  # retrain the creature brain into src/engine/ai/weights.ts
 npm run train:intent # retrain the sentence model into src/engine/chat/intentWeights.ts
+npm run elevation -- eiffel   # print a monument as an elevation, to see its shape
 ```
 
 `npm run lint` is the typecheck that matters: a bare `npx tsc --noEmit` checks nothing

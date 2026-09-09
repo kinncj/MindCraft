@@ -37,7 +37,10 @@ function draw(m: MonumentDraw): void {
   for (let y = m.g + 1; y <= mastFrom; y++) {
     const t = (y - m.g) / (top - m.g);
     // Wide three-sided foot, drawing in to a slim round shaft.
-    const r = Math.max(1, Math.min(Math.floor(Math.min(m.w, m.d) / 2) - 2, Math.round(4 * (1 - t / 0.55) ** 1.1) + 1));
+    // Clamp before the power: a negative base to a fractional power is NaN,
+    // and a NaN radius drew nothing at all above the lower deck.
+    const draw = Math.max(0, 1 - t / 0.55);
+    const r = Math.max(1, Math.min(Math.floor(Math.min(m.w, m.d) / 2) - 2, Math.round(4 * draw ** 1.1) + 1));
     if (t < 0.12) {
       // The tripod: three legs spreading out at the bottom.
       const reach = Math.floor(Math.min(m.w, m.d) / 2) - 2;

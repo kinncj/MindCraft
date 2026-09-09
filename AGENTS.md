@@ -53,6 +53,7 @@ npm run lint         # the real typecheck (tsc -b)
 npm run build        # typecheck + production build
 npm run train:brain  # retrain the creature policy
 npm run train:intent # retrain the sentence model
+npm run elevation -- eiffel   # print a monument block by block, to see it
 ```
 
 `npx tsc --noEmit` checks **nothing** here — the root `tsconfig.json` holds only

@@ -33,15 +33,17 @@ function draw(m: MonumentDraw): void {
     const wave = Math.round(Math.sin((dx / half) * Math.PI) * 3.5);
     const x = m.cx + dx;
     for (let y = m.g + 1; y <= top; y++) {
-      // Every floor wears its horizontal brise-soleil; the glass sits behind.
+      // Copan is read in stripes: a concrete brise-soleil on every floor with
+      // the glazing showing between them, right across a 250 m facade.
       const brise = (y - m.g) % 2 === 0;
       for (let dz = -2; dz <= 2; dz++) {
         const z = m.cz + wave + dz;
         if (Math.abs(dz) === 2) {
-          m.put(x, y, z, brise ? band : 0); // the fins stand proud of the face
+          // The fins stand proud of the face; between them you see the glass.
+          m.put(x, y, z, brise ? band : glass);
           continue;
         }
-        m.put(x, y, z, brise ? band : dz === 0 ? glass : white);
+        m.put(x, y, z, brise ? band : dz === 0 ? 0 : glass);
       }
     }
     m.put(x, m.g, m.cz + wave, m.kit.cobble);

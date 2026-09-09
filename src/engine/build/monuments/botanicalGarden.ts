@@ -39,20 +39,26 @@ function draw(m: MonumentDraw): void {
     { x: m.cx + 7, radius: 3, height: 7 },
   ];
   for (const nave of naves) {
+    // A real shell: every block whose distance from the middle is about the
+    // radius, stretched upward so the nave is a tall vault rather than a ball.
+    const stretch = nave.radius / nave.height;
     for (let dz = -nave.radius; dz <= nave.radius; dz++) {
       for (let dx = -nave.radius; dx <= nave.radius; dx++) {
-        // A dome: the shell follows a quarter circle in both directions.
-        const away = Math.sqrt(dx * dx + dz * dz) / nave.radius;
-        if (away > 1.05) continue;
-        const roof = Math.round(Math.cos((Math.PI / 2) * Math.min(1, away)) * nave.height);
         const x = nave.x + dx;
         const z = houseZ + dz;
+        if (dx * dx + dz * dz > (nave.radius + 0.4) ** 2) continue;
         m.put(x, m.g, z, frame);
-        for (let y = 1; y <= roof; y++) {
-          const shell = y === roof || away > 0.8;
-          // Ribs of white metal every few blocks, glass in between.
-          const rib = (x + z) % 4 === 0 || y === roof;
-          m.put(x, m.g + y, z, shell ? (rib ? frame : glass) : 0);
+        for (let y = 1; y <= nave.height; y++) {
+          const away = Math.sqrt(dx * dx + dz * dz + (y * stretch) ** 2);
+          const onShell = Math.abs(away - nave.radius) < 0.65;
+          const onWall = y <= 2 && dx * dx + dz * dz > (nave.radius - 0.9) ** 2;
+          if (!onShell && !onWall) {
+            m.put(x, m.g + y, z, 0);
+            continue;
+          }
+          // White metal ribs every few blocks, glass in the panels between.
+          const rib = (x + z) % 5 === 0 || y === 1;
+          m.put(x, m.g + y, z, rib ? frame : glass);
         }
       }
     }

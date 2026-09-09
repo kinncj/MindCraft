@@ -82,6 +82,29 @@ Eiffel Tower's decks were far too high, and the Eye Museum had its colours the
 wrong way round (the eye is white concrete; the base under it is the yellow tiled
 part Niemeyer painted himself).
 
+## Look at it
+
+```bash
+npm run elevation -- eiffel          # front and side, block by block
+npm run elevation -- arena_baixada plan
+npm run elevation --                 # what there is
+```
+
+An elevation is the fastest way to see whether a monument reads: it prints the
+silhouette in a second, one letter per material (`o` glass, `~` water, `+` wire,
+`P` piston, `L` lever, a capital for each colour). Every visual bug so far was
+obvious the moment it was printed and invisible in the code:
+
+- The Skytree's shaft **vanished above the lower deck** — a negative base to a
+  fractional power gives `NaN`, and a `NaN` radius draws nothing.
+- The Eiffel Tower braced its legs with solid slabs, so the ironwork read as a
+  wall rather than a lattice.
+- Christ the Redeemer had a four-block head on an eighteen-block figure.
+- The greenhouse was drawn as a height field, so its domes had **no sides**.
+
+A screenshot of the running game is the slow way to learn the same things: it
+takes minutes per shot and mostly photographs the hillside in front of the thing.
+
 ## Rules of thumb
 
 - **Stay inside the footprint.** The site planner hands out exactly `width × depth`
