@@ -3,7 +3,7 @@
  * water, lit up at night. A whole ball, not a dome sitting on the ground.
  */
 
-import { circle, disc, plaza } from './shapes';
+import { disc, plaza } from './shapes';
 import type { Monument, MonumentDraw } from './types';
 
 export const scienceWorld: Monument = {
@@ -36,11 +36,21 @@ function draw(m: MonumentDraw): void {
       m.put(m.cx, centreY + dy, m.cz, shell);
       continue;
     }
-    circle(m, m.cx, centreY + dy, m.cz, r, shell);
-    // The struts that make it read as triangles rather than a smooth ball.
-    if (m.kit.lamp !== null && dy % 3 === 0) {
-      m.put(m.cx + r, centreY + dy, m.cz, m.kit.lamp);
-      m.put(m.cx - r, centreY + dy, m.cz, m.kit.lamp);
+    // The shell is a frame, not a skin: twelve meridian struts, a ring every
+    // third course, the diagonals that close each triangle, and glass in
+    // between. Buckminster Fuller's geodesic, as close as blocks allow.
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dz = -r; dz <= r; dz++) {
+        if (Math.abs(Math.hypot(dx, dz) - r) > 0.5) continue;
+        const segment = (Math.atan2(dz, dx) * 6) / Math.PI;
+        const meridian = Math.abs(segment - Math.round(segment)) < 0.16;
+        const ring = dy % 3 === 0;
+        const diagonal = (Math.round(segment) + Math.round(dy / 3)) % 3 === 0 && Math.abs(segment - Math.round(segment)) < 0.4;
+        const strut = meridian || ring || diagonal;
+        m.put(m.cx + dx, centreY + dy, m.cz + dz, strut ? shell : m.kit.glass);
+        // A light at every node, which is why it glows at night.
+        if (meridian && ring && m.kit.lamp !== null) m.put(m.cx + dx, centreY + dy, m.cz + dz, m.kit.lamp);
+      }
     }
   }
   // The plinth and the doorway in.
