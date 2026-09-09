@@ -46,8 +46,20 @@ the real place is used. Keep it that way.
    misspellings), a label in `MONUMENT_LABELS` (`intentFeatures.ts`), and the ways
    people say it in `intentCorpus.ts`. Then `npm run train:intent`.
 
+   Two traps live here. **The speller's `VOCABULARY` is a list of words it will
+   pull other words towards**: adding `rome` turned "computer room" into
+   "computer rome", and `gate` and `leaning` sit one letter from "get" and
+   "learning". Leave a name out of the vocabulary if a child's ordinary word is
+   one edit away — the regex still matches it spelled correctly. And **do not
+   take a word the game already means**: a plain "pyramid" is the pyramid
+   *shape*, so the Great Pyramid answers to "the great pyramid", "Giza", "Egypt"
+   and "the Sphinx" instead, with a test pinning "a huge pyramid" to the shape.
+
 4. **A city?** `monuments/cities.ts` maps a city name to its landmarks and the word
    for its sign. Asking for the city builds them all, each on its own ground.
+   A city is read before a monument (so "São Paulo" is not a building called
+   Paulo), but a landmark named outright wins over the city it stands in —
+   "tower bridge in london" builds the bridge, not the whole of London.
 
 ## Declare what the real place measures
 
@@ -67,6 +79,13 @@ ratio, the other that a monument builds as tall as it claims.
 
 Mark a waterfall or a mountain `landscape: true`; a gorge has no facade to
 compare.
+
+**`across()` scales off the height, not the width.** That is right for anything
+whose block footprint keeps the real ratio, and wrong for something very long
+and very low: on the Golden Gate, `m.across(640)` for the half-span put the
+towers forty-eight blocks out of a fifty-one block footprint, because the
+blocks-per-metre comes from 227 m of tower. For a bridge like that, place the
+towers as a fraction of `m.w` and keep `up()` for the heights.
 
 ## Get the proportions from the real thing
 
@@ -101,6 +120,10 @@ obvious the moment it was printed and invisible in the code:
   wall rather than a lattice.
 - Christ the Redeemer had a four-block head on an eighteen-block figure.
 - The greenhouse was drawn as a height field, so its domes had **no sides**.
+- Science World was a **solid white ball**: a geodesic dome with no geodesics.
+- Tower Bridge built its pinnacles on top of the 65 m mark instead of inside it,
+  so it stood twenty-two blocks while claiming sixteen — the height test caught
+  that one before the elevation did.
 
 A screenshot of the running game is the slow way to learn the same things: it
 takes minutes per shot and mostly photographs the hillside in front of the thing.
@@ -116,6 +139,11 @@ takes minutes per shot and mostly photographs the hillside in front of the thing
   it with a physics test, the way `monuments.test.ts` walks a character under MASP.
 - **Water should fall.** For the waterfalls, the test checks the water spans
   several heights — a flat blue rectangle is not a waterfall.
+- **Clear the bumps, not the sky.** A build is capped at 20,000 blocks. Clearing
+  the air above the whole footprint costs `width × depth × height` on its own:
+  on the Great Pyramid's 37 by 37 that was 35,000 blocks before a single stone
+  was laid. Five blocks of headroom takes the grass and the trees, which is all
+  the clearing was ever for.
 
 ## Machinery that really works
 
