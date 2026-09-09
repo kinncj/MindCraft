@@ -106,8 +106,15 @@ part Niemeyer painted himself).
 ```bash
 npm run elevation -- eiffel          # front and side, block by block
 npm run elevation -- arena_baixada plan
+npm run elevation -- rideau_canal section   # a slice down the middle
 npm run elevation --                 # what there is
 ```
+
+The **plan** catches what a facade cannot: Copán's S-curve and the Burj
+Khalifa's Y are invisible from the front and obvious from above. The
+**section** is a true slice rather than a silhouette, so it shows what is
+hollow and is the only view that reaches below the ground — the Rideau Canal's
+whole channel and the Colosseum's hypogeum are down there.
 
 An elevation is the fastest way to see whether a monument reads: it prints the
 silhouette in a second, one letter per material (`o` glass, `~` water, `+` wire,

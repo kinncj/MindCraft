@@ -46,6 +46,9 @@
   child describes — a hospital with doctors, a school with six classrooms, a 30 by 20
   lake, an airport with a runway, a lamp post that blinks — is generated to order and
   built by hand, undoable
+- Famous places: thirty-eight landmarks drawn from the real measurements, one file
+  each in `src/engine/build/monuments/`, grouped into seventeen city packs a child can ask for
+  whole ("build Curitiba", "build Sydney"). Two of them have roofs that really open
 - Crafting: a picture recipe book (38 recipes) with a tap-to-fill grid; crafting table
 - Logic: lever, button, pressure plate, wire (fades over 15 blocks, and climbs a step),
   logic lamp, repeaters that pass power on at full strength so a circuit can run past

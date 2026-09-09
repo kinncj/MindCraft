@@ -295,6 +295,18 @@ describe('asking for a famous place', () => {
     expect(parseCity('build sydney')?.city).toBe('sydney');
     expect(parseCity('build rome')?.city).toBe('rome');
     expect(parseCity('build san francisco')?.city).toBe('sanfrancisco');
+    const more: Array<[string, string]> = [
+      ['build stonehenge', 'stonehenge'],
+      ['make a stone henge', 'stonehenge'],
+      ['build the great wall of china', 'great_wall'],
+      ['build the burj khalifa', 'burj_khalifa'],
+      ['build the tallest building in the world', 'burj_khalifa'],
+      ['build machu picchu', 'machu_picchu'],
+    ];
+    const alsoWrong = more.filter(([text, kind]) => parseMonument(text)?.kind !== kind).map(([text, kind]) => `${text} -> ${parseMonument(text)?.kind ?? 'nothing'} (wanted ${kind})`);
+    expect(alsoWrong, alsoWrong.join('; ')).toEqual([]);
+    expect(parseCity('build beijing')?.city).toBe('beijing');
+    expect(parseCity('build dubai')?.city).toBe('dubai');
     // A plain pyramid is the shape a kid means; only Giza is the monument.
     expect(parseMonument('build a huge pyramid')).toBeNull();
   });

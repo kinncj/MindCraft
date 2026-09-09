@@ -121,6 +121,27 @@ export const LABEL_WORDS: Record<IntentLabel, string[]> = {
     'leaning tower of pisa', 'leaning tower', 'the tower that leans', 'pisa tower',
     'the tower that is falling over', 'the wonky tower',
   ],
+  m_stonehenge: [
+    'stonehenge', 'stone henge', 'the ring of standing stones', 'the big old stones in a circle',
+    'the ancient stone circle',
+  ],
+  m_great_wall: [
+    // Every one of these says "great" or "china": a plain wall is a wall shape,
+    // and a kid asking for one of those is not asking for a monument.
+    'the great wall of china', 'great wall', 'the long wall in china',
+    'the chinese wall with the towers', 'the great wall that goes over the hills',
+  ],
+  m_burj_khalifa: [
+    'burj khalifa', 'the tallest building in the world', 'the tallest tower in dubai',
+    'the really tall building in dubai', 'burj',
+  ],
+  m_machu_picchu: [
+    'machu picchu', 'machupicchu', 'the inca city on the mountain', 'the old stone city in peru',
+    'the ruins on the mountain with the terraces',
+  ],
+  city_beijing: ['beijing', 'beijing china', 'the capital of china'],
+  city_dubai: ['dubai', 'dubai uae'],
+  city_cusco: ['cusco', 'cuzco', 'peru'],
   city_sydney: ['sydney', 'sydney australia', 'the city of sydney'],
   city_rome: ['rome', 'rome italy', 'the city of rome', 'roma'],
   city_cairo: ['cairo', 'giza', 'egypt', 'cairo egypt'],

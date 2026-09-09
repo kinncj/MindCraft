@@ -175,6 +175,7 @@ const VOCABULARY = [
   // 'rome', 'gate' and 'leaning' are deliberately absent: they are one letter
   // from 'room', 'get' and 'learning', and a kid says those far more often.
   'golden', 'taj', 'mahal', 'pisa', 'cairo', 'egypt', 'francisco', 'australia', 'italy', 'india',
+  'stonehenge', 'burj', 'khalifa', 'machu', 'picchu', 'dubai', 'beijing', 'china', 'peru',
   'liberty', 'empire', 'westminster', 'elizabeth', 'london', 'england', 'torch', 'clock',
   'niemeyer', 'botanical', 'opera', 'parliament', 'stadium', 'museum', 'canal', 'waterfall', 'waterfalls', 'monument', 'tower',
   'colourful', 'colorful', 'rainbow', 'beautiful', 'yellow', 'purple', 'orange', 'green', 'brown', 'white', 'black', 'brick', 'stone', 'wooden',
@@ -594,6 +595,10 @@ const MONUMENT_WORDS: Array<[RegExp, MonumentKind]> = [
   [/\b(great pyramids?|pyramids? of giza|pyramids? in egypt|egyptian pyramids?|sphinx|giza)\b/, 'pyramid'],
   [/\b(golden gate)( bridge)?\b/, 'golden_gate'],
   [/\b(taj ?mahal)\b/, 'taj_mahal'],
+  [/\b(stone ?henge)\b/, 'stonehenge'],
+  [/\b(great wall)( of china)?\b/, 'great_wall'],
+  [/\b(burj khalifa|burj|tallest building)\b/, 'burj_khalifa'],
+  [/\b(machu ?p?icchu|machu ?pichu|inca city)\b/, 'machu_picchu'],
   [/\b(leaning tower|tower of pisa|pisa tower|wonky tower)\b/, 'leaning_tower'],
   [/\b(big ben|elizabeth tower|westminster clock)\b/, 'big_ben'],
   [/\b(statue of liberty|lady liberty|liberty)\b/, 'liberty'],
@@ -636,7 +641,9 @@ export function parseMonument(raw: string): MonumentSpec | null {
     const guess = classifyIntent(text);
     if (guess.kind === 'monument' && intentIsClear(guess)) {
       const subject = labelSubject(guess.label);
-      if (isMonumentKind(subject)) kind = subject;
+      // "a wall of glass" is a wall; only the great one is the monument.
+      const genericWall = subject === 'great_wall' && !/\b(great|china|chinese)\b/.test(text);
+      if (isMonumentKind(subject) && !genericWall) kind = subject;
     }
   }
   if (!kind) return null;
@@ -662,6 +669,9 @@ const CITY_WORDS: Array<[RegExp, CityName]> = [
   [/\b(rome|roma)\b/, 'rome'],
   [/\b(cairo|giza|egypt)\b/, 'cairo'],
   [/\b(san francisco|san fran|frisco)\b/, 'sanfrancisco'],
+  [/\bbeijing\b/, 'beijing'],
+  [/\bdubai\b/, 'dubai'],
+  [/\b(cusco|cuzco|peru)\b/, 'cusco'],
   [/\b(new york city|new york|nyc|the big apple)\b/, 'newyork'],
 ];
 

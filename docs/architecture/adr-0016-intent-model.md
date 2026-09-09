@@ -29,8 +29,8 @@ Ship a tiny model trained in this repo, inside the bundle.
   letters, and a rough *sound* of each word (`phonetic`, so "skool" and
   "school" both become "skl", "hosptial" and "hospital" both "hosptl").
   Words also carry where they sit ("a house with a garden" is a house; "a
-  garden next to the house" is a garden). 8192 buckets × 100 labels, one
-  byte per weight, 90% of the weights pruned to zero — 160 KB gzipped,
+  garden next to the house" is a garden). 8192 buckets × 107 labels, one
+  byte per weight, 90% of the weights pruned to zero — 169 KB gzipped,
   recorded in the generated file's own header. Size is measured against the
   alternative: a downloaded helper model is 400 MB and up, so this one only
   has to stay a small fraction of the page (the test's line is a megabyte).
@@ -88,3 +88,27 @@ school. Three separate faults, all now covered by tests:
 Blocks are centred on their coordinates (the physics rounds), so a one-wide
 doorway is walked down its middle. A test now walks a character through a plain
 house door for exactly that reason.
+
+## Addendum (2026-09-09): where this design stops scaling
+
+Every label is a column of weights, and the corpus generates a fixed number of
+sentences per label, so both the file and the training run grow **linearly with
+the number of things a child can name**. Adding thirty-odd landmarks took the
+model from 50 labels to 107, the download from 15 KB to 169 KB, and a training
+run from under a minute to about five. Held-out accuracy has not moved: 98%
+throughout, because the labels are mostly well separated by their own words.
+
+That is fine at this size and will not be fine forever. The cost is in the
+weights matrix, `buckets × labels`, which at 8192 × 107 is already 877,000
+bytes before pruning. When it stops being comfortable — call it 300 labels or
+half a megabyte of download — the fix is not a bigger model but a smaller
+question: read the *kind* of thing first (a building, a dig, a landmark, an
+action) with one small classifier, then pick the landmark with a second one
+that only ever sees landmark words. Two matrices of a few thousand weights beat
+one of a few hundred thousand, and each stays easy to train and easy to check.
+
+The other thing that grows is the risk of collisions. Each new name is a chance
+to steal a word the game already means — a plain "pyramid" is the pyramid
+*shape*, "a wall of glass" is a wall, "computer room" is not in Italy — and
+those are caught by tests, not by accuracy figures. Adding a label means adding
+the sentence that must **not** change meaning, too.

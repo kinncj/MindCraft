@@ -19,12 +19,15 @@ import { christRedeemer } from './christRedeemer';
 import { cnTower } from './cnTower';
 import { copan } from './copan';
 import { eiffel } from './eiffel';
+import { burjKhalifa } from './burjKhalifa';
 import { colosseum } from './colosseum';
 import { empireState } from './empireState';
 import { goldenGate } from './goldenGate';
+import { greatWall } from './greatWall';
 import { harbourBridge } from './harbourBridge';
 import { ibirapuera } from './ibirapuera';
 import { iguacu } from './iguacu';
+import { machuPicchu } from './machuPicchu';
 import { masp } from './masp';
 import { operaHouse } from './operaHouse';
 import { pyramid } from './pyramid';
@@ -39,6 +42,7 @@ import { rogersDome } from './rogersDome';
 import { scienceWorld } from './scienceWorld';
 import { sensoji } from './sensoji';
 import { skytree } from './skytree';
+import { stonehenge } from './stonehenge';
 import { sugarloaf } from './sugarloaf';
 import { tajMahal } from './tajMahal';
 import { towerBridge } from './towerBridge';
@@ -78,6 +82,10 @@ export const MONUMENT_LIST = [
   goldenGate,
   tajMahal,
   leaningTower,
+  stonehenge,
+  greatWall,
+  burjKhalifa,
+  machuPicchu,
   niemeyerEye,
   wireOpera,
   botanicalGarden,

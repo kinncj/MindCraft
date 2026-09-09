@@ -5,6 +5,7 @@
  *
  *   npm run elevation -- eiffel            # front, then side
  *   npm run elevation -- arena_baixada plan
+ *   npm run elevation -- rideau_canal section   # a slice down the middle
  *   npm run elevation --                   # lists what there is
  */
 
@@ -107,6 +108,21 @@ function plan(): void {
   }
 }
 
+/**
+ * A true slice down the middle rather than a silhouette: it shows what is
+ * hollow, and it is the only view that reaches below the ground, where the
+ * Rideau Canal's whole channel and the Colosseum's hypogeum live.
+ */
+function section(): void {
+  console.log('\nsection (a slice down the middle, below ground too):');
+  for (let y = top; y >= GROUND - 4; y--) {
+    let row = String(y - GROUND).padStart(3) + ' ';
+    for (let a = -halfW; a <= halfW; a++) row += letterFor(world.getBlock(AT + a, y, AT));
+    console.log(row);
+  }
+}
+
 if (view === 'front' || view === 'both') elevation('front');
 if (view === 'side' || view === 'both') elevation('side');
 if (view === 'plan') plan();
+if (view === 'section') section();

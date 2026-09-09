@@ -96,7 +96,10 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
   in at every art deco setback. Then the ones every picture book has: the **Sydney Opera
   House** and the **Harbour Bridge**, the **Colosseum** with three storeys of arches and
   its south side fallen, the **Great Pyramid** with the **Sphinx** in front, the **Golden
-  Gate**, the **Taj Mahal** with its pool, and the **Leaning Tower of Pisa**, leaning. Their proportions come from the real things: the Eiffel Tower's floors sit at
+  Gate**, the **Taj Mahal** with its pool, and the **Leaning Tower of Pisa**, leaning. And **Stonehenge** with its lintel ring
+  and trilithons, the **Great Wall** riding over the hills with a watchtower on it, the
+  **Burj Khalifa** — three wings stepping back in a spiral — and **Machu Picchu** on its
+  terraced saddle with Huayna Picchu behind. Their proportions come from the real things: the Eiffel Tower's floors sit at
   17% and 35% of its height because that is where 57 m and 115 m fall on 330 m. Ask for a whole city ("build Curitiba") and its landmarks go
   up side by side with the name in giant letters. A sign can spell anything: "a sign
   that says KINN". They are original block sculptures, one file each in
@@ -227,6 +230,7 @@ npm run preview      # serve the production build locally
 npm run train:brain  # retrain the creature brain into src/engine/ai/weights.ts
 npm run train:intent # retrain the sentence model into src/engine/chat/intentWeights.ts
 npm run elevation -- eiffel   # print a monument as an elevation, to see its shape
+npm run elevation -- rideau_canal section   # or a slice down the middle, below ground too
 ```
 
 `npm run lint` is the typecheck that matters: a bare `npx tsc --noEmit` checks nothing
@@ -317,7 +321,7 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 6. ~~Sound~~ — done: generative Tone.js soundtrack by biome and time, effects, mute and volume
 7. ~~Words to buildings~~ — done: any building, dig or feature from a sentence, proven
    walkable by physics tests, each on its own patch of open ground
-8. ~~A model of our own~~ — done: a 160 KB sentence model trained in the repo, shipped in
+8. ~~A model of our own~~ — done: a 169 KB sentence model trained in the repo, shipped in
    the bundle, no download
 
 Nothing before the basics stay boring and reliable.
