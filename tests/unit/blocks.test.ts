@@ -17,9 +17,15 @@ describe('block catalog', () => {
     for (const def of blocks.all()) expect(def.numericId).toBeGreaterThan(0);
   });
 
-  it('references only textures that exist', () => {
+  it('references only textures that exist, variants included', () => {
+    // Variants are the faces a block wears when it is powered or open, and
+    // they were not checked: a missing painter there ships a broken texture
+    // that nothing fails on, because the block looks fine until it lights up.
     for (const def of blocks.all()) {
       for (const key of Object.values(def.textures)) expect(PAINTERS[key], `${def.id} → ${key}`).toBeDefined();
+      for (const [variant, faces] of Object.entries(def.variants ?? {})) {
+        for (const key of Object.values(faces)) expect(PAINTERS[key], `${def.id} variant ${variant} → ${key}`).toBeDefined();
+      }
     }
   });
 
