@@ -199,6 +199,14 @@ describe('helper robustness', () => {
     }
     const unknown = CHAT_TOOL_ALLOWLIST.filter((tool) => !registered.has(tool));
     expect(unknown, `the villager may call tools that do not exist: ${unknown.join(', ')}`).toEqual([]);
+
+    // Every job a villager can have needs its own favourite colour, food and
+    // thing to say. A new job without them falls back to a stranger's answers.
+    const { JOBS } = await import('../../src/engine/entities/villagers');
+    const provider = readFileSync('src/engine/chat/RuleChatProvider.ts', 'utf8');
+    const favourites = provider.slice(provider.indexOf('const FAVORITES'), provider.indexOf('export class RuleChatProvider'));
+    const jobless = JOBS.map((j) => j.id).filter((id) => !new RegExp(`\\b${id}:`).test(favourites));
+    expect(jobless, `these jobs have no favourites of their own: ${jobless.join(', ')}`).toEqual([]);
     expect(prompt).toContain('"kind":"plane"');
     expect(pickHelperModel('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', false)).toBe('Qwen2.5-0.5B-Instruct-q4f32_1-MLC');
     expect(pickHelperModel('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', true)).toBe('Qwen2.5-0.5B-Instruct-q4f16_1-MLC');
