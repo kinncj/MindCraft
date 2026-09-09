@@ -25,6 +25,14 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+      # The runner image carries Google's Chrome apt source, and when its
+      # index is mid-publish apt fails with a hash mismatch and takes the whole
+      # run down. We install Chromium through Playwright, so that source is of
+      # no use to us: drop it before apt is asked for anything.
+      - name: Drop apt sources we do not need
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/microsoft-prod.list
+          sudo apt-get update
       - run: npx playwright install --with-deps chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
       - run: npx playwright install-deps chromium
