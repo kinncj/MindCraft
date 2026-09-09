@@ -160,6 +160,23 @@ describe('famous places', () => {
     expect(wrong, wrong.join('; ')).toEqual([]);
   });
 
+  it('every monument that names a level really builds to it', () => {
+    // A `levels` block is a promise: these heights are where the drawing puts
+    // things. It was decoration on two of them until the Eye Museum's base and
+    // Sensoji's gate were made to read their own numbers.
+    const missing: string[] = [];
+    for (const monument of MONUMENT_LIST) {
+      const levels = monument.real.levels;
+      if (!levels) continue;
+      const scale = monument.height / monument.real.height;
+      for (const [name, metres] of Object.entries(levels)) {
+        const blocks = Math.round(metres * scale);
+        if (blocks < 0 || blocks > monument.height + 2) missing.push(`${monument.id}.${name} is ${metres} m of ${monument.real.height} m, which is ${blocks} of ${monument.height} blocks`);
+      }
+    }
+    expect(missing, missing.join('; ')).toEqual([]);
+  });
+
   it('puts the decks and floors where the metres say', () => {
     // The drawing asks for heights in metres and the engine scales them. This
     // is that arithmetic: the Eiffel Tower's first floor really is at 57 m.

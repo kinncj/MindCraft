@@ -52,23 +52,32 @@ function draw(m: MonumentDraw): void {
     }
   }
 
-  // The yellow-tiled base, and the white stem standing on it.
-  box(m, m.cx - 5, m.g + 1, m.cz - 3, m.cx + 5, m.g + 3, m.cz + 3, yellow);
-  box(m, m.cx - 4, m.g + 4, m.cz - 2, m.cx + 4, m.g + 4, m.cz + 2, yellow);
-  box(m, m.cx - 3, m.g + 4, m.cz - 1, m.cx + 3, m.g + 9, m.cz + 1, shell);
+  // The yellow-tiled base to 12 m, then the white stem carrying the eye up to
+  // where it starts at 24 m — both straight off the real measurements.
+  const baseTop = m.g + m.up(12);
+  const eyeFoot = m.g + m.up(24);
+  box(m, m.cx - 5, m.g + 1, m.cz - 3, m.cx + 5, baseTop - 1, m.cz + 3, yellow);
+  box(m, m.cx - 4, baseTop, m.cz - 2, m.cx + 4, baseTop, m.cz + 2, yellow);
+  box(m, m.cx - 3, baseTop, m.cz - 1, m.cx + 3, eyeFoot, m.cz + 1, shell);
 
-  // The ramp: a Niemeyer building always has one, curving as it climbs.
-  for (let i = 0; i <= 8; i++) {
+  // The ramp: a Niemeyer building always has one, curving as it climbs to the
+  // top of the base.
+  const rampSteps = Math.max(4, (baseTop - m.g) * 2);
+  for (let i = 0; i <= rampSteps; i++) {
     const y = m.g + 1 + Math.floor(i / 2);
-    const x = m.cx - 5 - Math.round(Math.sin((i / 8) * Math.PI) * 3);
-    m.put(x, y, m.cz + 4 + Math.round(i / 2), shell);
-    m.put(x - 1, y, m.cz + 4 + Math.round(i / 2), shell);
+    if (y > baseTop) break;
+    const x = m.cx - 5 - Math.round(Math.sin((i / rampSteps) * Math.PI) * 3);
+    const z = m.cz + 4 + Math.round(i / 2);
+    if (z > m.z1) break;
+    m.put(x, y, z, shell);
+    m.put(x - 1, y, z, shell);
   }
 
   // The eye itself: an ellipse of white concrete, glazed, with a dark pupil.
-  const ey = m.g + 15;
+  // The eye runs from 24 m to the top at 40 m, so its centre is at 32.
+  const ey = m.g + m.up(32);
   const rx = Math.min(10, Math.floor(m.w / 2) - 2);
-  const ry = 5;
+  const ry = Math.max(3, m.g + m.up(40) - ey);
   for (let dx = -rx; dx <= rx; dx++) {
     for (let dy = -ry; dy <= ry; dy++) {
       const value = (dx / rx) ** 2 + (dy / ry) ** 2;
