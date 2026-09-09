@@ -4,6 +4,7 @@ import { BlockState } from '../../src/engine/blocks/BlockState';
 import { defineBlock } from '../../src/engine/blocks/BlockDefinition';
 import { BlockRegistry } from '../../src/engine/blocks/registry';
 import { PAINTERS } from '../../src/engine/blocks/textures/painters';
+import { VEHICLE_KINDS } from '../../src/engine/entities/vehicles';
 
 describe('block catalog', () => {
   it('has unique numeric ids and string ids', () => {
@@ -27,6 +28,20 @@ describe('block catalog', () => {
         for (const key of Object.values(faces)) expect(PAINTERS[key], `${def.id} variant ${variant} → ${key}`).toBeDefined();
       }
     }
+  });
+
+  it('every block that spawns something spawns something real', () => {
+    // A card whose variant the engine does not recognise places nothing at
+    // all: spawnFromCard returns false and the child sees a block vanish.
+    // Vehicles are the risk — the variant has to be one the game drives.
+    const bad: string[] = [];
+    for (const def of blocks.all()) {
+      const spawns = def.spawns;
+      if (!spawns) continue;
+      if (spawns.kind === 'vehicle' && !(VEHICLE_KINDS as string[]).includes(spawns.variant)) bad.push(`${def.id} spawns a ${spawns.variant}, which is not a vehicle`);
+      if (spawns.kind === 'pet' && spawns.variant !== 'dog' && spawns.variant !== 'cat') bad.push(`${def.id} spawns a ${spawns.variant}, and pets are dogs and cats`);
+    }
+    expect(bad, bad.join('; ')).toEqual([]);
   });
 
   it('keeps the well-known blocks from v1 reachable, including renamed ones', () => {
