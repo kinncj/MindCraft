@@ -188,6 +188,17 @@ describe('helper robustness', () => {
     const prompt = helper.systemPrompt(ctx('hi'));
     expect(prompt.length).toBeLessThan(4000); // about a thousand tokens, inside the 2048 window with examples and history
     for (const tool of CHAT_TOOL_ALLOWLIST) expect(prompt).toContain(`"tool":"${tool}"`);
+    // The allowlist is names, and names drift. A tool renamed in the registry
+    // leaves the villager asking for something that is not there, and nothing
+    // fails until a child asks for it — so check the names really exist.
+    const { readFileSync } = await import('node:fs');
+    const registered = new Set<string>();
+    for (const file of ['coreTools', 'buildTools', 'lifeTools', 'automationTools']) {
+      const source = readFileSync(`src/engine/tools/${file}.ts`, 'utf8');
+      for (const match of source.matchAll(/name: '([a-z]+(?:_[a-z0-9]+)+)'/g)) registered.add(match[1]);
+    }
+    const unknown = CHAT_TOOL_ALLOWLIST.filter((tool) => !registered.has(tool));
+    expect(unknown, `the villager may call tools that do not exist: ${unknown.join(', ')}`).toEqual([]);
     expect(prompt).toContain('"kind":"plane"');
     expect(pickHelperModel('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', false)).toBe('Qwen2.5-0.5B-Instruct-q4f32_1-MLC');
     expect(pickHelperModel('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', true)).toBe('Qwen2.5-0.5B-Instruct-q4f16_1-MLC');
