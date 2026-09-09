@@ -5,7 +5,7 @@
 
 import type { MonumentKind } from './index';
 
-export type CityName = 'curitiba' | 'saopaulo' | 'ottawa' | 'toronto' | 'paris' | 'tokyo' | 'vancouver' | 'rio' | 'london' | 'newyork';
+export type CityName = 'curitiba' | 'saopaulo' | 'ottawa' | 'toronto' | 'paris' | 'tokyo' | 'vancouver' | 'rio' | 'london' | 'newyork' | 'sydney' | 'rome' | 'cairo' | 'sanfrancisco';
 
 export const CITY_PACKS: Record<CityName, { label: string; emoji: string; monuments: MonumentKind[]; sign: string }> = {
   curitiba: { label: 'Curitiba', emoji: '🌲', monuments: ['niemeyer_eye', 'wire_opera', 'botanical_garden', 'arena_baixada'], sign: 'CURITIBA' },
@@ -18,6 +18,10 @@ export const CITY_PACKS: Record<CityName, { label: string; emoji: string; monume
   rio: { label: 'Rio de Janeiro', emoji: '🌴', monuments: ['christ_redeemer', 'sugarloaf'], sign: 'RIO' },
   london: { label: 'London', emoji: '🎡', monuments: ['big_ben', 'tower_bridge'], sign: 'LONDON' },
   newyork: { label: 'New York', emoji: '🗽', monuments: ['liberty', 'empire_state'], sign: 'NEW YORK' },
+  sydney: { label: 'Sydney', emoji: '🎭', monuments: ['opera_house', 'harbour_bridge'], sign: 'SYDNEY' },
+  rome: { label: 'Rome', emoji: '🏛️', monuments: ['colosseum', 'leaning_tower'], sign: 'ROMA' },
+  cairo: { label: 'Cairo', emoji: '🔺', monuments: ['pyramid'], sign: 'GIZA' },
+  sanfrancisco: { label: 'San Francisco', emoji: '🌁', monuments: ['golden_gate'], sign: 'SAN FRAN' },
 };
 
 export const CITY_NAMES = Object.keys(CITY_PACKS) as CityName[];

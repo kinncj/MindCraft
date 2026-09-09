@@ -275,6 +275,30 @@ describe('asking for a famous place', () => {
     expect(request?.kind).toBe('monument');
   });
 
+  it('knows the places children ask for from picture books', async () => {
+    const { parseMonument, parseCity } = await import('../../src/engine/chat/buildRequest');
+    const cases: Array<[string, string]> = [
+      ['build the sydney opera house', 'opera_house'],
+      ['build the harbour bridge', 'harbour_bridge'],
+      ['build the colosseum', 'colosseum'],
+      ['make a coliseum', 'colosseum'],
+      ['build the great pyramid', 'pyramid'],
+      ['build the pyramids of giza', 'pyramid'],
+      ['build the sphinx', 'pyramid'],
+      ['build the golden gate bridge', 'golden_gate'],
+      ['build the taj mahal', 'taj_mahal'],
+      ['build the leaning tower of pisa', 'leaning_tower'],
+      ['make the tower that leans', 'leaning_tower'],
+    ];
+    const wrong = cases.filter(([text, kind]) => parseMonument(text)?.kind !== kind).map(([text, kind]) => `${text} -> ${parseMonument(text)?.kind ?? 'nothing'} (wanted ${kind})`);
+    expect(wrong, wrong.join('; ')).toEqual([]);
+    expect(parseCity('build sydney')?.city).toBe('sydney');
+    expect(parseCity('build rome')?.city).toBe('rome');
+    expect(parseCity('build san francisco')?.city).toBe('sanfrancisco');
+    // A plain pyramid is the shape a kid means; only Giza is the monument.
+    expect(parseMonument('build a huge pyramid')).toBeNull();
+  });
+
   it('reads the names, including the way a kid spells them', async () => {
     const { parseMonument, parseCity } = await import('../../src/engine/chat/buildRequest');
     const cases: Array<[string, string]> = [

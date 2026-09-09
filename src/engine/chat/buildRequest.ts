@@ -171,6 +171,10 @@ const VOCABULARY = [
   'tokyo', 'vancouver', 'skytree', 'sensoji', 'asakusa', 'kaminarimon', 'pagoda', 'geodesic',
   'redeemer', 'corcovado', 'sugarloaf', 'statue', 'mountain', 'baixada', 'athletico', 'atletico', 'paranaense', 'stadium', 'arena',
   'blinking', 'blinker', 'flashing', 'beacon',
+  'sydney', 'opera', 'harbour', 'colosseum', 'coliseum', 'pyramid', 'pyramids', 'sphinx', 'giza',
+  // 'rome', 'gate' and 'leaning' are deliberately absent: they are one letter
+  // from 'room', 'get' and 'learning', and a kid says those far more often.
+  'golden', 'taj', 'mahal', 'pisa', 'cairo', 'egypt', 'francisco', 'australia', 'italy', 'india',
   'liberty', 'empire', 'westminster', 'elizabeth', 'london', 'england', 'torch', 'clock',
   'niemeyer', 'botanical', 'opera', 'parliament', 'stadium', 'museum', 'canal', 'waterfall', 'waterfalls', 'monument', 'tower',
   'colourful', 'colorful', 'rainbow', 'beautiful', 'yellow', 'purple', 'orange', 'green', 'brown', 'white', 'black', 'brick', 'stone', 'wooden',
@@ -583,6 +587,14 @@ const MONUMENT_WORDS: Array<[RegExp, MonumentKind]> = [
   [/\b(niagara|niagra)( falls)?\b/, 'niagara'],
   [/\b(igua[cç]u|iguazu|foz do igua[cç]u|cataratas)( falls)?\b/, 'iguacu'],
   [/\b(tower bridge)\b/, 'tower_bridge'],
+  [/\b((sydney )?opera house)\b/, 'opera_house'],
+  [/\b((sydney )?(harbou?r bridge)|coat ?hanger)\b/, 'harbour_bridge'],
+  [/\b(colosseum|coliseum|colosseo|roman arena|gladiator)\b/, 'colosseum'],
+  // A plain "pyramid" is the shape; the Great Pyramid needs saying so.
+  [/\b(great pyramids?|pyramids? of giza|pyramids? in egypt|egyptian pyramids?|sphinx|giza)\b/, 'pyramid'],
+  [/\b(golden gate)( bridge)?\b/, 'golden_gate'],
+  [/\b(taj ?mahal)\b/, 'taj_mahal'],
+  [/\b(leaning tower|tower of pisa|pisa tower|wonky tower)\b/, 'leaning_tower'],
   [/\b(big ben|elizabeth tower|westminster clock)\b/, 'big_ben'],
   [/\b(statue of liberty|lady liberty|liberty)\b/, 'liberty'],
   [/\b(empire state|empire)\b/, 'empire_state'],
@@ -646,6 +658,10 @@ const CITY_WORDS: Array<[RegExp, CityName]> = [
   [/\btoronto\b/, 'toronto'],
   [/\bparis\b/, 'paris'],
   [/\blondon\b/, 'london'],
+  [/\bsydney\b/, 'sydney'],
+  [/\b(rome|roma)\b/, 'rome'],
+  [/\b(cairo|giza|egypt)\b/, 'cairo'],
+  [/\b(san francisco|san fran|frisco)\b/, 'sanfrancisco'],
   [/\b(new york city|new york|nyc|the big apple)\b/, 'newyork'],
 ];
 

@@ -22,9 +22,10 @@ export const MONUMENT_LABELS = [
   'm_tokyo_tower', 'm_skytree', 'm_sensoji', 'm_canada_place', 'm_science_world', 'm_lions_gate',
   'm_christ_redeemer', 'm_sugarloaf', 'm_arena_baixada',
   'm_big_ben', 'm_tower_bridge', 'm_liberty', 'm_empire_state',
+  'm_opera_house', 'm_harbour_bridge', 'm_colosseum', 'm_pyramid', 'm_golden_gate', 'm_taj_mahal', 'm_leaning_tower',
 ] as const;
 
-export const CITY_LABELS = ['city_curitiba', 'city_saopaulo', 'city_ottawa', 'city_toronto', 'city_paris', 'city_tokyo', 'city_vancouver', 'city_rio', 'city_london', 'city_newyork'] as const;
+export const CITY_LABELS = ['city_curitiba', 'city_saopaulo', 'city_ottawa', 'city_toronto', 'city_paris', 'city_tokyo', 'city_vancouver', 'city_rio', 'city_london', 'city_newyork', 'city_sydney', 'city_rome', 'city_cairo', 'city_sanfrancisco'] as const;
 
 /**
  * The rest of what a villager can be asked to do. The label says what

@@ -19,12 +19,18 @@ import { christRedeemer } from './christRedeemer';
 import { cnTower } from './cnTower';
 import { copan } from './copan';
 import { eiffel } from './eiffel';
+import { colosseum } from './colosseum';
 import { empireState } from './empireState';
+import { goldenGate } from './goldenGate';
+import { harbourBridge } from './harbourBridge';
 import { ibirapuera } from './ibirapuera';
 import { iguacu } from './iguacu';
 import { masp } from './masp';
+import { operaHouse } from './operaHouse';
+import { pyramid } from './pyramid';
 import { niagara } from './niagara';
 import { niemeyerEye } from './niemeyerEye';
+import { leaningTower } from './leaningTower';
 import { liberty } from './liberty';
 import { lionsGate } from './lionsGate';
 import { peaceTower } from './peaceTower';
@@ -34,6 +40,7 @@ import { scienceWorld } from './scienceWorld';
 import { sensoji } from './sensoji';
 import { skytree } from './skytree';
 import { sugarloaf } from './sugarloaf';
+import { tajMahal } from './tajMahal';
 import { towerBridge } from './towerBridge';
 import { tokyoTower } from './tokyoTower';
 import { sign } from './sign';
@@ -64,6 +71,13 @@ export const MONUMENT_LIST = [
   towerBridge,
   liberty,
   empireState,
+  operaHouse,
+  harbourBridge,
+  colosseum,
+  pyramid,
+  goldenGate,
+  tajMahal,
+  leaningTower,
   niemeyerEye,
   wireOpera,
   botanicalGarden,

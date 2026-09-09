@@ -93,6 +93,38 @@ export const LABEL_WORDS: Record<IntentLabel, string[]> = {
     'empire state building', 'empire state', 'the tall building in new york',
     'the skyscraper king kong climbed', 'the building with the spire in new york',
   ],
+  m_opera_house: [
+    'sydney opera house', 'the opera house', 'the building with the white sails in sydney',
+    'the sails on the harbour', 'opera house in australia',
+  ],
+  m_harbour_bridge: [
+    'sydney harbour bridge', 'harbour bridge', 'harbor bridge', 'the coathanger',
+    'the big arch bridge in sydney', 'the bridge in australia',
+  ],
+  m_colosseum: [
+    'colosseum', 'coliseum', 'the roman arena', 'the big round arena in rome',
+    'the amphitheatre in rome', 'where the gladiators fought',
+  ],
+  m_pyramid: [
+    'the great pyramid', 'the pyramids of giza', 'a pyramid in egypt',
+    'the sphinx', 'the big triangle in the desert', 'the egyptian pyramid',
+  ],
+  m_golden_gate: [
+    'golden gate bridge', 'golden gate', 'the big orange bridge',
+    'the bridge in san francisco', 'the orange bridge with the cables',
+  ],
+  m_taj_mahal: [
+    'taj mahal', 'the white palace with the dome', 'the marble building in india',
+    'the building with the pool in front and a big dome',
+  ],
+  m_leaning_tower: [
+    'leaning tower of pisa', 'leaning tower', 'the tower that leans', 'pisa tower',
+    'the tower that is falling over', 'the wonky tower',
+  ],
+  city_sydney: ['sydney', 'sydney australia', 'the city of sydney'],
+  city_rome: ['rome', 'rome italy', 'the city of rome', 'roma'],
+  city_cairo: ['cairo', 'giza', 'egypt', 'cairo egypt'],
+  city_sanfrancisco: ['san francisco', 'san fran', 'sf california', 'the city of san francisco'],
   city_london: ['london', 'london england', 'the city of london', 'london uk'],
   city_newyork: ['new york', 'new york city', 'nyc', 'the big apple', 'new york usa'],
   city_curitiba: ['curitiba', 'curitiba brazil', 'the city of curitiba'],

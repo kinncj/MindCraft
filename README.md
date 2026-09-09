@@ -93,7 +93,10 @@ Copilot, Kiro, Qwen Code and opencode are in the repo.
   roofs that genuinely open: sticky pistons, wire, repeaters and a lever a kid can flip. Rio's **Christ the Redeemer** stands on Corcovado with **Sugarloaf** across
   the bay. London brings **Big Ben** and **Tower Bridge** with its bascules up; New York
   the **Statue of Liberty** on her pedestal and the **Empire State Building**, stepping
-  in at every art deco setback. Their proportions come from the real things: the Eiffel Tower's floors sit at
+  in at every art deco setback. Then the ones every picture book has: the **Sydney Opera
+  House** and the **Harbour Bridge**, the **Colosseum** with three storeys of arches and
+  its south side fallen, the **Great Pyramid** with the **Sphinx** in front, the **Golden
+  Gate**, the **Taj Mahal** with its pool, and the **Leaning Tower of Pisa**, leaning. Their proportions come from the real things: the Eiffel Tower's floors sit at
   17% and 35% of its height because that is where 57 m and 115 m fall on 330 m. Ask for a whole city ("build Curitiba") and its landmarks go
   up side by side with the name in giant letters. A sign can spell anything: "a sign
   that says KINN". They are original block sculptures, one file each in
@@ -314,7 +317,7 @@ Browsers with WebMCP see the same tools on `navigator.modelContext`.
 6. ~~Sound~~ — done: generative Tone.js soundtrack by biome and time, effects, mute and volume
 7. ~~Words to buildings~~ — done: any building, dig or feature from a sentence, proven
    walkable by physics tests, each on its own patch of open ground
-8. ~~A model of our own~~ — done: a 144 KB sentence model trained in the repo, shipped in
+8. ~~A model of our own~~ — done: a 160 KB sentence model trained in the repo, shipped in
    the bundle, no download
 
 Nothing before the basics stay boring and reliable.
