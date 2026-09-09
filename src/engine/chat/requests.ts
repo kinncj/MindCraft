@@ -6,7 +6,7 @@
  * through the same parsers a single request would.
  */
 
-import { buildActionsFor, parseBuildRequest, parseCity, parseEarthwork, parseFeature, parseMonument, type BuildSpec, type CitySpec, type EarthworkSpec, type FeatureSpec, type MonumentSpec } from './buildRequest';
+import { buildActionsFor, namedMonument, parseBuildRequest, parseCity, parseEarthwork, parseFeature, parseMonument, type BuildSpec, type CitySpec, type EarthworkSpec, type FeatureSpec, type MonumentSpec } from './buildRequest';
 import { MONUMENTS, monumentFootprint } from '../build/monuments/index';
 import { classifyIntent, intentIsClear, splitClauses } from './intent';
 import { FEATURE_SIZE } from '../build/BuildTools';
@@ -40,7 +40,8 @@ export function parseRequests(raw: string): Request[] {
 function parseClause(clause: string): Request | null {
   // Famous places first: "the eiffel tower" is not a tower shape, and
   // "sao paulo" is not a request for a building called Paulo.
-  const city = parseCity(clause);
+  // ...unless the child named one landmark of that city outright.
+  const city = namedMonument(clause) === null ? parseCity(clause) : null;
   if (city) return { kind: 'city', spec: city, clause };
   const monument = parseMonument(clause);
   if (monument) return { kind: 'monument', spec: monument, clause };

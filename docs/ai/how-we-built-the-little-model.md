@@ -99,19 +99,19 @@ interesting work went.
 Current shape (from the generated header of `src/engine/chat/intentWeights.ts`):
 
 ```
-8192 hashed feature buckets × 82 labels
+8192 hashed feature buckets × 88 labels
 one byte per weight, 90% of them pruned to zero
-145,713 generated training sentences
-held-out accuracy 98.0%
-132 KB gzipped — 875 KB of base64 in the source
+160,323 generated training sentences
+held-out accuracy 98.3%
+143 KB gzipped — 939 KB of base64 in the source
 ```
 
-Two numbers get quoted for size, and they measure different things: **41.5 KB**
-is the weights on their own, gzipped, which is what the training run prints and
-what the generated file's header records. **43 KB** is what a child's browser
-actually pays for them — the gzipped page with the model minus the gzipped page
-without it, slightly more because compressed base64 does not overlap with the
-code around it. Either way the model is a rounding error next to Three.js.
+That last line is the number that matters: the gzipped page with the model minus
+the gzipped page without it, which is what a child's browser actually pays. The
+training run prints it, and the generated file's header records it, so the two
+can never drift apart. It grew as the labels did — every monument and city a kid
+can name adds a column of weights — and 143 KB is still a rounding error next to
+Three.js, which is most of the download either way.
 
 The training script measures this on every run and writes it into the header, and
 a unit test checks the header against the file and fails if the weights ever grow
@@ -202,12 +202,12 @@ TypeScript run by Node's built-in type stripping — no training framework, no
 Python, no dependencies at all.
 
 ```
-145713 sentences, 82 labels, 8192 buckets
-epoch 5:  loss 0.1051
-epoch 10: loss 0.0673
-epoch 20: loss 0.0458
-epoch 30: loss 0.0394
-train accuracy 99.5%, held out 97.5%
+160323 sentences, 88 labels, 8192 buckets
+epoch 5:  loss 0.0942
+epoch 10: loss 0.0603
+epoch 20: loss 0.0407
+epoch 30: loss 0.0350
+train accuracy 99.6%, held out 98.4%
 ```
 
 Stochastic gradient descent on cross-entropy: shuffle the sentences, take each
@@ -233,7 +233,7 @@ better, because a run of zeros is nearly free in gzip:
 | 4096 | 90% | 98.0% | 57.2 KB | fine until the labels grew |
 | 4096 | 93% | 97.3% | 44.4 KB | small, but real sentences started failing |
 | 8192 | 80% | 98.1% | 173.5 KB | best of all, and not worth the bytes |
-| **8192** | **90%** | **98.0%** | **132.4 KB** | **what ships** |
+| **8192** | **90%** | **98.3%** | **143.0 KB** | **what ships** |
 | 8192 | 97% | 97.0% | 46.3 KB | squeezed; one or two sentences slip |
 | 8192 | 98% | 96.7% | 40.2 KB | "can we have a storm" → a shop |
 

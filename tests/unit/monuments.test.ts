@@ -240,6 +240,27 @@ describe('asking for a famous place', () => {
     expect(parseCity('build me vancouver canada')?.city).toBe('vancouver');
   });
 
+  it('knows London and New York', async () => {
+    const { parseMonument, parseCity } = await import('../../src/engine/chat/buildRequest');
+    const { parseRequests } = await import('../../src/engine/chat/requests');
+    const cases: Array<[string, string]> = [
+      ['build big ben', 'big_ben'],
+      ['build the big clock tower', 'big_ben'],
+      ['build tower bridge', 'tower_bridge'],
+      ['make the bridge with two towers', 'tower_bridge'],
+      ['build the statue of liberty', 'liberty'],
+      ['build the lady with the torch', 'liberty'],
+      ['build the empire state building', 'empire_state'],
+    ];
+    const wrong = cases.filter(([text, kind]) => parseMonument(text)?.kind !== kind).map(([text, kind]) => `${text} -> ${parseMonument(text)?.kind ?? 'nothing'} (wanted ${kind})`);
+    expect(wrong, wrong.join('; ')).toEqual([]);
+    expect(parseCity('build london')?.city).toBe('london');
+    expect(parseCity('build me new york city')?.city).toBe('newyork');
+    // One named landmark beats the city it stands in.
+    const [request] = parseRequests('build tower bridge in london');
+    expect(request?.kind).toBe('monument');
+  });
+
   it('reads the names, including the way a kid spells them', async () => {
     const { parseMonument, parseCity } = await import('../../src/engine/chat/buildRequest');
     const cases: Array<[string, string]> = [

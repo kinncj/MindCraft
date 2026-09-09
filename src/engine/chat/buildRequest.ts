@@ -170,6 +170,7 @@ const VOCABULARY = [
   'eiffel', 'niagara', 'iguacu', 'iguazu', 'toronto', 'ottawa', 'curitiba', 'paris', 'rideau', 'copan', 'masp', 'ibirapuera',
   'tokyo', 'vancouver', 'skytree', 'sensoji', 'asakusa', 'kaminarimon', 'pagoda', 'geodesic',
   'redeemer', 'corcovado', 'sugarloaf', 'statue', 'mountain', 'baixada', 'athletico', 'atletico', 'paranaense', 'stadium', 'arena',
+  'liberty', 'empire', 'westminster', 'elizabeth', 'london', 'england', 'torch', 'clock',
   'niemeyer', 'botanical', 'opera', 'parliament', 'stadium', 'museum', 'canal', 'waterfall', 'waterfalls', 'monument', 'tower',
   'colourful', 'colorful', 'rainbow', 'beautiful', 'yellow', 'purple', 'orange', 'green', 'brown', 'white', 'black', 'brick', 'stone', 'wooden',
   'glass', 'furnished', 'furniture', 'automatic', 'piston', 'flag', 'canada', 'brazil', 'america', 'france', 'italy', 'germany', 'japan',
@@ -579,6 +580,10 @@ const MONUMENT_WORDS: Array<[RegExp, MonumentKind]> = [
   [/\b(ibirapuera)\b/, 'ibirapuera'],
   [/\b(niagara|niagra)( falls)?\b/, 'niagara'],
   [/\b(igua[cç]u|iguazu|foz do igua[cç]u|cataratas)( falls)?\b/, 'iguacu'],
+  [/\b(tower bridge)\b/, 'tower_bridge'],
+  [/\b(big ben|elizabeth tower|westminster clock)\b/, 'big_ben'],
+  [/\b(statue of liberty|lady liberty|liberty)\b/, 'liberty'],
+  [/\b(empire state|empire)\b/, 'empire_state'],
   [/\b(tokyo tower)\b/, 'tokyo_tower'],
   [/\b(sky ?tree)\b/, 'skytree'],
   [/\b(senso ?ji|asakusa|kaminarimon|pagoda)\b/, 'sensoji'],
@@ -598,15 +603,21 @@ function signText(text: string): string | undefined {
   return word.length > 0 ? word : undefined;
 }
 
+/**
+ * The monument a child named outright, if any. A city is read before a
+ * monument ("sao paulo" is not a building called Paulo), so this lets one
+ * named landmark win over the city it stands in: "tower bridge in london"
+ * builds the bridge, not the whole of London.
+ */
+export function namedMonument(raw: string): MonumentKind | null {
+  const text = correctSpelling(raw.toLowerCase());
+  for (const [pattern, kind] of MONUMENT_WORDS) if (pattern.test(text)) return kind;
+  return null;
+}
+
 export function parseMonument(raw: string): MonumentSpec | null {
   const text = correctSpelling(raw.toLowerCase());
-  let kind: MonumentKind | null = null;
-  for (const [pattern, k] of MONUMENT_WORDS) {
-    if (pattern.test(text)) {
-      kind = k;
-      break;
-    }
-  }
+  let kind: MonumentKind | null = namedMonument(raw);
   if (!kind) {
     const guess = classifyIntent(text);
     if (guess.kind === 'monument' && intentIsClear(guess)) {
@@ -632,6 +643,8 @@ const CITY_WORDS: Array<[RegExp, CityName]> = [
   [/\bottawa\b/, 'ottawa'],
   [/\btoronto\b/, 'toronto'],
   [/\bparis\b/, 'paris'],
+  [/\blondon\b/, 'london'],
+  [/\b(new york city|new york|nyc|the big apple)\b/, 'newyork'],
 ];
 
 export function parseCity(raw: string): CitySpec | null {

@@ -33,7 +33,7 @@ function draw(m: MonumentDraw): void {
   plaza(m, m.kit.cobble);
   drawText(text, (column, row) => {
     const x = startX + column;
-    const y = m.g + 6 - row;
+    const y = m.g + 5 - row; // the letters stand on the plinth, not above it
     const colour = m.ctx.color ?? palette[Math.floor(column / 6) % palette.length];
     m.put(x, y, m.cz, colour);
     m.put(x, y, m.cz + 1, colour);

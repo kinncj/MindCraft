@@ -12,17 +12,20 @@
  */
 
 import { arenaBaixada } from './arenaBaixada';
+import { bigBen } from './bigBen';
 import { botanicalGarden } from './botanicalGarden';
 import { canadaPlace } from './canadaPlace';
 import { christRedeemer } from './christRedeemer';
 import { cnTower } from './cnTower';
 import { copan } from './copan';
 import { eiffel } from './eiffel';
+import { empireState } from './empireState';
 import { ibirapuera } from './ibirapuera';
 import { iguacu } from './iguacu';
 import { masp } from './masp';
 import { niagara } from './niagara';
 import { niemeyerEye } from './niemeyerEye';
+import { liberty } from './liberty';
 import { lionsGate } from './lionsGate';
 import { peaceTower } from './peaceTower';
 import { rideauCanal } from './rideauCanal';
@@ -31,6 +34,7 @@ import { scienceWorld } from './scienceWorld';
 import { sensoji } from './sensoji';
 import { skytree } from './skytree';
 import { sugarloaf } from './sugarloaf';
+import { towerBridge } from './towerBridge';
 import { tokyoTower } from './tokyoTower';
 import { sign } from './sign';
 import { wireOpera } from './wireOpera';
@@ -56,6 +60,10 @@ export const MONUMENT_LIST = [
   christRedeemer,
   sugarloaf,
   arenaBaixada,
+  bigBen,
+  towerBridge,
+  liberty,
+  empireState,
   niemeyerEye,
   wireOpera,
   botanicalGarden,

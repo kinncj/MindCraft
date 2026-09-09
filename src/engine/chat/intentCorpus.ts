@@ -72,6 +72,24 @@ export const LABEL_WORDS: Record<IntentLabel, string[]> = {
     'the stadium in curitiba', 'ligga arena', 'the red and black stadium', 'furacao stadium',
     'the stadium with the roof that opens',
   ],
+  m_big_ben: [
+    'big ben', 'elizabeth tower', 'the clock tower in london', 'the big clock tower',
+    'the tower with the giant clock', 'westminster clock tower', 'the london clock',
+  ],
+  m_tower_bridge: [
+    'tower bridge', 'the bridge with two towers', 'the london bridge that opens',
+    'the bridge in london with the blue chains', 'the drawbridge in london',
+  ],
+  m_liberty: [
+    'statue of liberty', 'lady liberty', 'the green statue in new york',
+    'the statue holding a torch', 'the lady with the torch', 'liberty statue',
+  ],
+  m_empire_state: [
+    'empire state building', 'empire state', 'the tall building in new york',
+    'the skyscraper king kong climbed', 'the building with the spire in new york',
+  ],
+  city_london: ['london', 'london england', 'the city of london', 'london uk'],
+  city_newyork: ['new york', 'new york city', 'nyc', 'the big apple', 'new york usa'],
   city_curitiba: ['curitiba', 'curitiba brazil', 'the city of curitiba'],
   city_saopaulo: ['sao paulo', 'são paulo', 'sao paulo brazil', 'the city of sao paulo'],
   city_ottawa: ['ottawa', 'ottawa canada', 'the capital of canada'],
